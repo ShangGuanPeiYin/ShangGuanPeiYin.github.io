@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+git --git-dir="$(dirname "$0")/.gitrepo" --work-tree="$(dirname "$0")" "$@"

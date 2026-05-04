@@ -1,0 +1,30 @@
+[[main]]
+  name = "首页"
+  pageRef = "/"
+  weight = 10
+
+[[main]]
+  name = "文章"
+  pageRef = "posts"
+  weight = 20
+
+[[main]]
+  name = "标签"
+  pageRef = "tags"
+  weight = 30
+
+[[main]]
+  identifier = "github"
+  pre = "github"
+  url = "https://github.com/yourname"
+  weight = 40
+
+[[footer]]
+  name = "文章"
+  pageRef = "posts"
+  weight = 10
+
+[[footer]]
+  name = "标签"
+  pageRef = "tags"
+  weight = 20
