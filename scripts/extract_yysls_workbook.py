@@ -7,8 +7,19 @@ from openpyxl import load_workbook
 
 
 ROOT = Path("/home/xxs/myboke")
-SOURCE = ROOT / "yysls" / "破竹鸢100级竞速轴属性毕业率计算器4.3.xlsx"
-TARGET = ROOT / "static" / "tools" / "yysls-graduation" / "workbook-data.json"
+TARGET_DIR = ROOT / "static" / "tools" / "yysls-graduation"
+SOURCES = [
+    {
+        "name": "破竹鸢",
+        "source": ROOT / "yysls" / "破竹鸢100级竞速轴属性毕业率计算器4.3.xlsx",
+        "target": TARGET_DIR / "workbook-yuan.json",
+    },
+    {
+        "name": "破竹尘",
+        "source": ROOT / "yysls" / "破竹尘100级竞速轴属性毕业率计算器4.5.xlsx",
+        "target": TARGET_DIR / "workbook-chen.json",
+    },
+]
 
 
 def cell_payload(value):
@@ -19,9 +30,16 @@ def cell_payload(value):
     return {"v": value}
 
 
-def main() -> None:
-    wb = load_workbook(SOURCE, data_only=False, read_only=False)
-    payload = {"sheetOrder": wb.sheetnames, "sheets": {}}
+def extract_workbook(source: Path, name: str) -> dict:
+    wb = load_workbook(source, data_only=False, read_only=False)
+    payload = {
+        "meta": {
+            "name": name,
+            "filename": source.name,
+        },
+        "sheetOrder": wb.sheetnames,
+        "sheets": {},
+    }
 
     for ws in wb.worksheets:
         sheet_cells = {}
@@ -51,8 +69,16 @@ def main() -> None:
             },
         }
 
-    TARGET.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
-    print(f"Wrote {TARGET}")
+    return payload
+
+
+def main() -> None:
+    TARGET_DIR.mkdir(parents=True, exist_ok=True)
+
+    for item in SOURCES:
+        payload = extract_workbook(item["source"], item["name"])
+        item["target"].write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+        print(f"Wrote {item['target']}")
 
 
 if __name__ == "__main__":
