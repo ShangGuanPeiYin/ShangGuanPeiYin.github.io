@@ -5,8 +5,7 @@
       compact: true,
       fields: [
         { cell: "C2", label: "释放奇术时主属性", type: "select", options: ["外功", "鸣金", "裂石", "牵丝", "破竹", "无相"] },
-        { cell: "F7", label: "目标", type: "select", optionsFromTargetSheet: true },
-        { cell: "C28", label: "用时（秒）", type: "number", step: "0.1" }
+        { cell: "F7", label: "目标", type: "select", optionsFromTargetSheet: true }
       ]
     },
     {
