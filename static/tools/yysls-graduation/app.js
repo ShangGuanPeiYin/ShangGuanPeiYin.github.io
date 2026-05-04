@@ -9,12 +9,18 @@
       ]
     },
     {
-      title: "状态开关",
+      title: "心法",
       checks: true,
       fields: [
         { cell: "H3", label: "断石之构", type: "check" },
         { cell: "I3", label: "三穷致知", type: "check" },
-        { cell: "J3", label: "易水歌", type: "check" },
+        { cell: "J3", label: "易水歌", type: "check" }
+      ]
+    },
+    {
+      title: "吃药",
+      checks: true,
+      fields: [
         { cell: "I5", label: "玉鳞脍", type: "check" },
         { cell: "F19", label: "沧海帖", type: "check" },
         { cell: "G19", label: "行藏帖", type: "check" },
