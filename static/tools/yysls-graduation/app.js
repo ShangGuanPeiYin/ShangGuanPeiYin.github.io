@@ -206,6 +206,11 @@
       this.formulas = {};
       this.cache = new Map();
       this.compiled = new Map();
+      this.rangeCache = new Map();
+      this.columnRangeCache = new Map();
+      this.vlookupIndexCache = new WeakMap();
+      this.dependents = new Map();
+      this.staticSheets = new Set(["目标属性", "版本日志"]);
 
       Object.entries(this.sheets).forEach(([sheetName, sheetData]) => {
         Object.entries(sheetData.cells).forEach(([coord, payload]) => {
@@ -214,6 +219,8 @@
           else this.defaultInputs[key] = payload.v;
         });
       });
+
+      this.buildDependencyGraph();
     }
 
     workbookKey(cell) {
@@ -221,13 +228,17 @@
     }
 
     setInput(cell, value) {
-      this.inputsState[this.workbookKey(cell)] = value;
-      this.cache.clear();
+      const key = this.workbookKey(cell);
+      this.inputsState[key] = value;
+      this.invalidateFromKey(key);
     }
 
     resetInputs() {
       Object.keys(this.inputsState).forEach((key) => delete this.inputsState[key]);
       this.cache.clear();
+      this.rangeCache.clear();
+      this.columnRangeCache.clear();
+      this.vlookupIndexCache = new WeakMap();
     }
 
     currentValue(key) {
@@ -288,6 +299,9 @@
     }
 
     buildRange(sheetName, startRef, endRef) {
+      const cacheKey = `${sheetName}|${startRef}|${endRef}`;
+      if (this.rangeCache.has(cacheKey)) return this.rangeCache.get(cacheKey);
+
       const start = this.splitRef(startRef);
       const end = this.splitRef(endRef);
       const rows = [];
@@ -298,10 +312,14 @@
         }
         rows.push(cols);
       }
+      this.rangeCache.set(cacheKey, rows);
       return rows;
     }
 
     buildColumnRange(sheetName, startCol, endCol) {
+      const cacheKey = `${sheetName}|${startCol}|${endCol}`;
+      if (this.columnRangeCache.has(cacheKey)) return this.columnRangeCache.get(cacheKey);
+
       const bounds = this.sheets[sheetName].bounds;
       const rows = [];
       for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
@@ -311,6 +329,7 @@
         }
         rows.push(cols);
       }
+      this.columnRangeCache.set(cacheKey, rows);
       return rows;
     }
 
@@ -333,10 +352,17 @@
         IF(condition, yesValue, noValue) {
           return condition ? yesValue : noValue;
         },
-        VLOOKUP(lookupValue, table, columnIndex) {
-          for (const row of table) {
-            if (row[0] === lookupValue) return row[columnIndex - 1];
+        VLOOKUP: (lookupValue, table, columnIndex) => {
+          let index = this.vlookupIndexCache.get(table);
+          if (!index) {
+            index = new Map();
+            for (const row of table) {
+              if (!index.has(row[0])) index.set(row[0], row);
+            }
+            this.vlookupIndexCache.set(table, index);
           }
+          const row = index.get(lookupValue);
+          if (row) return row[columnIndex - 1];
           return 0;
         },
         MAX: (...values) => Math.max(...values.flat(Infinity).map((value) => this.toNumber(value))),
@@ -382,6 +408,98 @@
         (targetSheet, startCol, endCol) => this.buildColumnRange(targetSheet, startCol, endCol),
         this.functions()
       );
+    }
+
+    protectFormulaForDependencyScan(formula) {
+      const protectedData = this.protectStrings(formula.slice(1));
+      let expr = protectedData.protectedExpr;
+      expr = expr.replace(/([A-Za-z0-9_\u4e00-\u9fa5]+)!\$?([A-Z]{1,3}):\$?([A-Z]{1,3})/g, "");
+      expr = expr.replace(/(?<![A-Z0-9_"])\$?([A-Z]{1,3}):\$?([A-Z]{1,3})(?!\d)/g, "");
+      return expr;
+    }
+
+    expandRangeDependencies(sheetName, startRef, endRef) {
+      const start = this.splitRef(startRef);
+      const end = this.splitRef(endRef);
+      const keys = [];
+      for (let row = start.row; row <= end.row; row += 1) {
+        for (let col = this.colToNumber(start.col); col <= this.colToNumber(end.col); col += 1) {
+          keys.push(`${sheetName}!${this.numberToCol(col)}${row}`);
+        }
+      }
+      return keys;
+    }
+
+    extractDependencies(sheetName, formula) {
+      const dependencies = new Set();
+      let expr = this.protectFormulaForDependencyScan(formula);
+
+      expr = expr.replace(/([A-Za-z0-9_\u4e00-\u9fa5]+)!\$?([A-Z]{1,3})\$?(\d+):\$?([A-Z]{1,3})\$?(\d+)/g, (_, targetSheet, c1, r1, c2, r2) => {
+        this.expandRangeDependencies(targetSheet, `${c1}${r1}`, `${c2}${r2}`).forEach((key) => dependencies.add(key));
+        return "";
+      });
+
+      expr = expr.replace(/(?<![A-Z0-9_"])\$?([A-Z]{1,3})\$?(\d+):\$?([A-Z]{1,3})\$?(\d+)/g, (_, c1, r1, c2, r2) => {
+        this.expandRangeDependencies(sheetName, `${c1}${r1}`, `${c2}${r2}`).forEach((key) => dependencies.add(key));
+        return "";
+      });
+
+      expr = expr.replace(/([A-Za-z0-9_\u4e00-\u9fa5]+)!\$?([A-Z]{1,3})\$?(\d+)/g, (_, targetSheet, col, row) => {
+        dependencies.add(`${targetSheet}!${col}${row}`);
+        return "";
+      });
+
+      expr.replace(/(?<![A-Z0-9_"])\$?([A-Z]{1,3})\$?(\d+)/g, (_, col, row) => {
+        dependencies.add(`${sheetName}!${col}${row}`);
+        return "";
+      });
+
+      return dependencies;
+    }
+
+    buildDependencyGraph() {
+      Object.entries(this.formulas).forEach(([formulaKey, formula]) => {
+        const sheetName = formulaKey.split("!")[0];
+        const dependencies = this.extractDependencies(sheetName, formula);
+        dependencies.forEach((dependencyKey) => {
+          if (!this.dependents.has(dependencyKey)) this.dependents.set(dependencyKey, new Set());
+          this.dependents.get(dependencyKey).add(formulaKey);
+        });
+      });
+    }
+
+    clearDynamicRangeCaches() {
+      for (const key of [...this.rangeCache.keys()]) {
+        const sheetName = key.split("|")[0];
+        if (!this.staticSheets.has(sheetName)) this.rangeCache.delete(key);
+      }
+      for (const key of [...this.columnRangeCache.keys()]) {
+        const sheetName = key.split("|")[0];
+        if (!this.staticSheets.has(sheetName)) this.columnRangeCache.delete(key);
+      }
+      this.vlookupIndexCache = new WeakMap();
+    }
+
+    invalidateFromKey(changedKey) {
+      this.cache.delete(changedKey);
+      this.clearDynamicRangeCaches();
+
+      const queue = [changedKey];
+      const visited = new Set();
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (visited.has(current)) continue;
+        visited.add(current);
+
+        const dependents = this.dependents.get(current);
+        if (!dependents) continue;
+
+        dependents.forEach((dependentKey) => {
+          this.cache.delete(dependentKey);
+          queue.push(dependentKey);
+        });
+      }
     }
   }
 
