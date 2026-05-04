@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>破竹鸢毕业率计算器</title>
+    <meta
+      name="description"
+      content="基于原始 Excel 工作簿公式的网页版破竹鸢毕业率计算器，填写后结果与 Excel 主计算页保持一致。"
+    />
+    <style>
+      :root {
+        --bg: #f4efe4;
+        --paper: rgba(255, 255, 255, 0.9);
+        --ink: #182026;
+        --muted: #5a6670;
+        --line: rgba(24, 32, 38, 0.12);
+        --accent: #a54d30;
+        --accent-2: #1e6a68;
+        --shadow: 0 18px 40px rgba(24, 32, 38, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(165, 77, 48, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(30, 106, 104, 0.14), transparent 22%),
+          linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
+      }
+
+      .page {
+        width: min(1300px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 28px 0 56px;
+      }
+
+      .hero,
+      .panel {
+        background: var(--paper);
+        border: 1px solid rgba(255, 255, 255, 0.76);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      .hero {
+        border-radius: 28px;
+        padding: 28px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(165, 77, 48, 0.12);
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.2rem, 5vw, 4rem);
+        line-height: 1.02;
+      }
+
+      .hero p,
+      .subtle {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .button,
+      button {
+        appearance: none;
+        border: none;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      .button,
+      button.primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 13px 18px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      button.secondary {
+        padding: 13px 18px;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+
+      .layout {
+        margin-top: 24px;
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+      }
+
+      .panel {
+        border-radius: 24px;
+        padding: 22px;
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 1.2rem;
+      }
+
+      .section {
+        padding: 18px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .section:first-of-type {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      .section h3 {
+        margin: 0 0 14px;
+        font-size: 1rem;
+      }
+
+      .fields {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .fields.compact {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .field {
+        display: grid;
+        gap: 7px;
+      }
+
+      .field span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      input,
+      select {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid rgba(24, 32, 38, 0.14);
+        padding: 12px 14px;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .checks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .toggle input {
+        width: auto;
+        margin: 0;
+      }
+
+      .results {
+        display: grid;
+        gap: 16px;
+      }
+
+      .score-card {
+        padding: 20px;
+        border-radius: 22px;
+        background: linear-gradient(145deg, rgba(24, 32, 38, 0.96), rgba(39, 53, 61, 0.92));
+        color: #fff;
+      }
+
+      .score-card small {
+        display: block;
+        color: rgba(255, 255, 255, 0.72);
+        margin-bottom: 8px;
+      }
+
+      .score {
+        font-size: clamp(2.4rem, 7vw, 4.3rem);
+        line-height: 1;
+        font-weight: 800;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        font-size: 0.92rem;
+      }
+
+      .summary-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .mini {
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid var(--line);
+        padding: 16px;
+      }
+
+      .mini strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.25rem;
+      }
+
+      .kv {
+        display: grid;
+        gap: 10px;
+      }
+
+      .kv-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 14px;
+        border-radius: 16px;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+
+      .kv-item span:first-child { color: var(--muted); }
+
+      .state {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(30, 106, 104, 0.08);
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      @media (max-width: 980px) {
+        .layout { grid-template-columns: 1fr; }
+        .fields,
+        .fields.compact,
+        .summary-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <div class="badge">原 Excel 公式驱动</div>
+        <h1>破竹鸢毕业率计算器</h1>
+        <p>
+          这个页面不再做估算，而是直接加载原始工作簿数据，并按 Excel 里的公式链实时计算。
+          你在这里填写的值，会回写到和原表同名的输入格，再读取原表输出格的结果。
+        </p>
+        <div class="hero-actions">
+          <a class="button" href="#calculator">开始填写</a>
+          <a class="button" style="background:#fff;color:var(--ink);border:1px solid var(--line);" href="/">返回博客</a>
+        </div>
+      </section>
+
+      <div class="layout" id="calculator">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>主输入区</h2>
+              <p class="subtle">
+                这里对应的是工作簿 `期望` 页里真正的可编辑主输入格。
+              </p>
+            </div>
+            <button class="secondary" id="resetDefaults" type="button">恢复表内默认值</button>
+          </div>
+
+          <div id="formMount"></div>
+        </section>
+
+        <aside class="results">
+          <section class="score-card">
+            <small>Excel 输出</small>
+            <div class="score" id="graduationRate">--</div>
+            <div class="pill-row">
+              <div class="pill" id="mainSheetStatus">工作簿载入中</div>
+              <div class="pill" id="targetName">目标：--</div>
+            </div>
+            <p class="subtle" style="margin-top:14px;color:rgba(255,255,255,0.78);">
+              这里读取的是 `期望!C40`，也就是原表里的 `100本属性毕业率`。
+            </p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>关键结果</h2>
+                <p class="subtle">直接读取原工作簿输出格。</p>
+              </div>
+            </div>
+            <div class="summary-grid">
+              <div class="mini">
+                <span>总伤</span>
+                <strong id="totalDamage">--</strong>
+                <p class="subtle">读取 `期望!C30`</p>
+              </div>
+              <div class="mini">
+                <span>DPS</span>
+                <strong id="dpsValue">--</strong>
+                <p class="subtle">读取 `期望!C35`</p>
+              </div>
+              <div class="mini">
+                <span>用时</span>
+                <strong id="fightTimeResult">--</strong>
+                <p class="subtle">读取 `期望!C28`</p>
+              </div>
+              <div class="mini">
+                <span>装备对比变化</span>
+                <strong id="compareDelta">--</strong>
+                <p class="subtle">读取 `期望!Q2`</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>面板回显</h2>
+                <p class="subtle">方便确认网页输入已经正确回写到工作簿。</p>
+              </div>
+            </div>
+            <div class="kv" id="echoMount"></div>
+          </section>
+
+          <section class="state" id="engineNote">
+            初始化中。
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script src="/tools/yysls-graduation/app.js"></script>
+  </body>
+</html>
