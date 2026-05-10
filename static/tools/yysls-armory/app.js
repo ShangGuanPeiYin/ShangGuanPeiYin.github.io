@@ -1,7 +1,7 @@
 (function () {
   const STORAGE_KEY = "yysls_armory_import_data_v2";
   const ACCOUNT_KEY = "yysls_armory_selected_account_v2";
-  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json?v=20260510-4";
+  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json?v=20260510-5";
 
   const slotOrder = ["武器", "环", "佩", "冠胄", "胸甲", "胫甲", "腕甲"];
   const weaponTypeMap = {
@@ -120,6 +120,14 @@
     });
 
     return normalized;
+  }
+
+  function totalEquipmentCount(data) {
+    const normalized = ensureDataShape(data);
+    return (normalized.game_account_list || []).reduce((sum, account) => {
+      const list = normalized[`game_equip_data_${account}`];
+      return sum + (Array.isArray(list) ? list.length : 0);
+    }, 0);
   }
 
   function weaponTypeLabel(weaponTypeId) {
@@ -407,6 +415,15 @@
     }
   }
 
+  async function fetchBundledData() {
+    const response = await fetch(DEFAULT_DATA_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`预置数据请求失败：${response.status}`);
+    }
+    const rawText = await response.text();
+    return parseMaybeJson(rawText);
+  }
+
   function createAccount() {
     if (!state.rawData) {
       state.rawData = { game_account_list: [] };
@@ -604,18 +621,51 @@
     fillSelect(nodes.weaponFilter, ["全部"], "全部");
     renderAll();
 
+    let savedData = null;
+    let savedCount = -1;
     const saved = localStorage.getItem(STORAGE_KEY);
+
     if (saved) {
       nodes.jsonInput.value = saved;
       try {
-        loadImportedPayload(parseMaybeJson(saved));
-        return;
+        savedData = parseMaybeJson(saved);
+        savedCount = totalEquipmentCount(savedData);
       } catch (error) {
         setMessage(`发现旧缓存，但解析失败：${error.message}`, "warn");
       }
     }
 
-    await loadBundledData();
+    try {
+      const bundledData = await fetchBundledData();
+      const bundledCount = totalEquipmentCount(bundledData);
+
+      if (bundledCount > savedCount) {
+        nodes.jsonInput.value = JSON.stringify(bundledData, null, 2);
+        loadImportedPayload(bundledData);
+        if (savedCount >= 0 && bundledCount > savedCount) {
+          setMessage(`已恢复站内预置装备数据，当前角色共 ${bundledCount} 件装备。`, "info");
+        }
+        return;
+      }
+
+      if (savedData) {
+        nodes.jsonInput.value = saved;
+        loadImportedPayload(savedData);
+        return;
+      }
+
+      nodes.jsonInput.value = JSON.stringify(bundledData, null, 2);
+      loadImportedPayload(bundledData);
+      return;
+    } catch (error) {
+      if (savedData) {
+        nodes.jsonInput.value = saved;
+        loadImportedPayload(savedData);
+        return;
+      }
+
+      setMessage("预置装备数据读取失败，请打开数据工具手动导入。", "warn");
+    }
   }
 
   init();
