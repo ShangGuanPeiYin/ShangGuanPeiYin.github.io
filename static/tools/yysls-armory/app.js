@@ -52,7 +52,6 @@
     weaponFilter: document.getElementById("weaponFilter"),
     searchInput: document.getElementById("searchInput"),
     resetFiltersButton: document.getElementById("resetFiltersButton"),
-    emptyEquipMessage: document.getElementById("emptyEquipMessage"),
     equipmentGrid: document.getElementById("equipmentGrid")
   };
 
@@ -330,19 +329,15 @@
     const current = currentEquipments();
 
     if (!current.length) {
-      nodes.emptyEquipMessage.classList.add("hidden");
       nodes.equipmentGrid.innerHTML = "";
       return;
     }
 
     if (!equipments.length) {
-      nodes.emptyEquipMessage.classList.remove("hidden");
-      nodes.emptyEquipMessage.textContent = "当前筛选条件下没有装备。你可以切换部位胶囊、清空搜索或重置筛选。";
       nodes.equipmentGrid.innerHTML = "";
       return;
     }
 
-    nodes.emptyEquipMessage.classList.add("hidden");
     nodes.equipmentGrid.innerHTML = equipments.map((item) => renderEquipmentCard(item)).join("");
     nodes.equipmentGrid.querySelectorAll("[data-delete-id]").forEach((node) => {
       node.addEventListener("click", () => {
