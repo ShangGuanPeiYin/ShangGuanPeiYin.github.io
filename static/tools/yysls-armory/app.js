@@ -48,7 +48,6 @@
     loadSavedButton: document.getElementById("loadSavedButton"),
     clearSavedButton: document.getElementById("clearSavedButton"),
     slotCapsules: document.getElementById("slotCapsules"),
-    slotSummary: document.getElementById("slotSummary"),
     classFilter: document.getElementById("classFilter"),
     weaponFilter: document.getElementById("weaponFilter"),
     searchInput: document.getElementById("searchInput"),
@@ -232,10 +231,6 @@
       });
     });
 
-    nodes.slotSummary.innerHTML = slotOrder
-      .filter((slot) => slotCounts[slot])
-      .map((slot) => `<span class="chip">${escapeHtml(slot)} ${slotCounts[slot]} 件</span>`)
-      .join("");
   }
 
   function renderStats() {
@@ -375,7 +370,6 @@
       nodes.slotCount.textContent = "0";
       nodes.filteredSummary.textContent = "0";
       nodes.slotCapsules.innerHTML = "";
-      nodes.slotSummary.innerHTML = "";
       nodes.equipmentGrid.innerHTML = "";
       fillSelect(nodes.classFilter, ["全部"], "全部");
       fillSelect(nodes.weaponFilter, ["全部"], "全部");
