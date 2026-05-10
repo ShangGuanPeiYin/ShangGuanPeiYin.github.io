@@ -1,7 +1,7 @@
 (function () {
   const STORAGE_KEY = "yysls_armory_import_data_v2";
   const ACCOUNT_KEY = "yysls_armory_selected_account_v2";
-  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json?v=20260510-5";
+  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json?v=20260510-6";
 
   const slotOrder = ["武器", "环", "佩", "冠胄", "胸甲", "胫甲", "腕甲"];
   const weaponTypeMap = {
