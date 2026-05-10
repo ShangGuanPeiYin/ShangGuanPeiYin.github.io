@@ -1,7 +1,7 @@
 (function () {
   const STORAGE_KEY = "yysls_armory_import_data_v1";
   const ACCOUNT_KEY = "yysls_armory_selected_account_v1";
-  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json?v=20260510-2";
+  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json?v=20260510-3";
 
   const slotFields = [
     ["weapon1", "主武器"],
@@ -106,7 +106,7 @@
   }
 
   function parseMaybeJson(text) {
-    const trimmed = String(text || "").trim();
+    const trimmed = String(text || "").replace(/\u0000/g, "").trim();
     if (!trimmed) return null;
     return JSON.parse(trimmed);
   }
@@ -558,7 +558,8 @@
     try {
       const response = await fetch(DEFAULT_DATA_URL, { cache: "no-store" });
       if (!response.ok) return false;
-      const data = await response.json();
+      const rawText = await response.text();
+      const data = parseMaybeJson(rawText);
       nodes.jsonInput.value = JSON.stringify(data, null, 2);
       loadImportedPayload(data);
       setMessage("已自动载入站内预置的装备数据。你也可以随时用自己的 JSON 覆盖它。", "info");
