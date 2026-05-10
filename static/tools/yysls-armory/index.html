@@ -149,11 +149,39 @@
         grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
       }
 
+      .toolbar-toggles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .toggle-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.76);
+        border: 1px solid rgba(53, 42, 24, 0.12);
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .toggle-button.active {
+        background: var(--ink);
+        color: #fff;
+      }
+
       .compact-box {
         padding: 18px;
         border-radius: 22px;
         background: rgba(255, 255, 255, 0.58);
         border: 1px solid rgba(53, 42, 24, 0.08);
+      }
+
+      .compact-box.hidden {
+        display: none;
       }
 
       .compact-box h3 {
@@ -515,8 +543,12 @@
         <div id="messageBox" class="notice info">
           还没有导入数据。先把 `localStorage` 导出的 JSON 粘贴进来，或者上传文件。
         </div>
+        <div class="toolbar-toggles">
+          <button class="toggle-button active" id="importToggle" type="button">导入数据</button>
+          <button class="toggle-button" id="filterToggle" type="button">账号与筛选</button>
+        </div>
         <div class="toolbar-grid">
-          <section class="compact-box">
+          <section class="compact-box" id="importBox">
             <h3>导入数据</h3>
             <p class="subtle">
               导入区保持轻量，页面重点留给装备库。支持上传 `.json/.txt` 或直接粘贴明文 JSON。
@@ -540,7 +572,7 @@
             </div>
           </section>
 
-          <section class="compact-box">
+          <section class="compact-box hidden" id="filterBox">
             <h3>账号与筛选</h3>
             <p class="subtle">账号、筛选和搜索集中在这里，不抢占装备库主区域。</p>
             <div class="fields" style="margin-top:14px;">

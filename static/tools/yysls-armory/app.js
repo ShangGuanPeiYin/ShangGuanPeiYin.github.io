@@ -43,6 +43,10 @@
     importButton: document.getElementById("importButton"),
     loadSavedButton: document.getElementById("loadSavedButton"),
     clearSavedButton: document.getElementById("clearSavedButton"),
+    importToggle: document.getElementById("importToggle"),
+    filterToggle: document.getElementById("filterToggle"),
+    importBox: document.getElementById("importBox"),
+    filterBox: document.getElementById("filterBox"),
     accountSelect: document.getElementById("accountSelect"),
     slotFilter: document.getElementById("slotFilter"),
     classFilter: document.getElementById("classFilter"),
@@ -80,6 +84,14 @@
   function setMessage(text, tone) {
     nodes.messageBox.textContent = text;
     nodes.messageBox.className = `notice ${tone}`;
+  }
+
+  function setToolbarPanel(mode) {
+    const importActive = mode === "import";
+    nodes.importBox.classList.toggle("hidden", !importActive);
+    nodes.filterBox.classList.toggle("hidden", importActive);
+    nodes.importToggle.classList.toggle("active", importActive);
+    nodes.filterToggle.classList.toggle("active", !importActive);
   }
 
   function parseMaybeJson(text) {
@@ -593,6 +605,14 @@
     refreshParsedData();
   });
 
+  nodes.importToggle.addEventListener("click", () => {
+    setToolbarPanel("import");
+  });
+
+  nodes.filterToggle.addEventListener("click", () => {
+    setToolbarPanel("filter");
+  });
+
   nodes.slotFilter.addEventListener("change", () => {
     state.selectedSlot = nodes.slotFilter.value;
     renderSummary();
@@ -612,6 +632,7 @@
   });
 
   function init() {
+    setToolbarPanel("import");
     fillSelect(nodes.slotFilter, ["全部"], "全部");
     fillSelect(nodes.classFilter, ["全部"], "全部");
     renderAccountOptions();
