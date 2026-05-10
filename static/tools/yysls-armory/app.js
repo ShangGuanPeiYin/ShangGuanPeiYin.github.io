@@ -428,7 +428,6 @@
       const data = parseMaybeJson(rawText);
       nodes.jsonInput.value = JSON.stringify(data, null, 2);
       loadImportedPayload(data);
-      setMessage("已自动载入站内预置的装备数据。", "info");
       return true;
     } catch (error) {
       setMessage("预置装备数据读取失败，请打开数据工具手动导入。", "warn");
