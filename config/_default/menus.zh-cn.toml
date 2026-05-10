@@ -23,12 +23,6 @@
   url = "/tools/yysls-armory/"
   weight = 36
 
-[[main]]
-  identifier = "github"
-  pre = "github"
-  url = "https://github.com/yourname"
-  weight = 40
-
 [[footer]]
   name = "文章"
   pageRef = "posts"
