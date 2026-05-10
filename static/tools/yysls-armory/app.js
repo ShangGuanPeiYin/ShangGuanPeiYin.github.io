@@ -320,8 +320,7 @@
     const current = currentEquipments();
 
     if (!current.length) {
-      nodes.emptyEquipMessage.classList.remove("hidden");
-      nodes.emptyEquipMessage.textContent = "当前角色还没有装备。你可以通过数据工具导入，或把导入 JSON 中对应账号的装备迁移进来。";
+      nodes.emptyEquipMessage.classList.add("hidden");
       nodes.equipmentGrid.innerHTML = "";
       return;
     }
