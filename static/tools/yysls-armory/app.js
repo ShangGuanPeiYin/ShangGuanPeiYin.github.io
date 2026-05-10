@@ -52,10 +52,6 @@
     weaponFilter: document.getElementById("weaponFilter"),
     searchInput: document.getElementById("searchInput"),
     resetFiltersButton: document.getElementById("resetFiltersButton"),
-    equipCount: document.getElementById("equipCount"),
-    filteredCount: document.getElementById("filteredCount"),
-    classCount: document.getElementById("classCount"),
-    slotCount: document.getElementById("slotCount"),
     filteredSummary: document.getElementById("filteredSummary"),
     emptyEquipMessage: document.getElementById("emptyEquipMessage"),
     equipmentGrid: document.getElementById("equipmentGrid")
@@ -233,19 +229,6 @@
 
   }
 
-  function renderStats() {
-    const equipments = currentEquipments();
-    const filtered = filteredEquipments();
-    const classes = [...new Set(equipments.flatMap((item) => item.availableClasses || []).filter(Boolean))];
-    const slots = [...new Set(equipments.map((item) => item.slotName).filter(Boolean))];
-
-    nodes.equipCount.textContent = String(equipments.length);
-    nodes.filteredCount.textContent = String(filtered.length);
-    nodes.classCount.textContent = String(classes.length);
-    nodes.slotCount.textContent = String(slots.length);
-    nodes.filteredSummary.textContent = String(filtered.length);
-  }
-
   function renderEquipmentCard(item) {
     const subStats = (item.subStats || [])
       .map(
@@ -354,7 +337,7 @@
   function renderInventory() {
     buildFilterOptions();
     renderSlotCapsules();
-    renderStats();
+    nodes.filteredSummary.textContent = String(filteredEquipments().length);
     renderEquipmentGrid();
   }
 
@@ -363,10 +346,6 @@
     renderWelcome();
 
     if (!state.accounts.length || !state.selectedAccount) {
-      nodes.equipCount.textContent = "0";
-      nodes.filteredCount.textContent = "0";
-      nodes.classCount.textContent = "0";
-      nodes.slotCount.textContent = "0";
       nodes.filteredSummary.textContent = "0";
       nodes.slotCapsules.innerHTML = "";
       nodes.equipmentGrid.innerHTML = "";
