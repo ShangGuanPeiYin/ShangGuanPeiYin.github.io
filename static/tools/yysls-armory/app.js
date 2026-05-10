@@ -1,7 +1,7 @@
 (function () {
   const STORAGE_KEY = "yysls_armory_import_data_v1";
   const ACCOUNT_KEY = "yysls_armory_selected_account_v1";
-  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json";
+  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json?v=20260510-2";
 
   const slotFields = [
     ["weapon1", "主武器"],
@@ -91,6 +91,7 @@
   }
 
   function setToolbarPanel(mode) {
+    if (!nodes.importBox || !nodes.filterBox || !nodes.importToggle || !nodes.filterToggle) return;
     const importActive = mode === "import";
     nodes.importBox.classList.toggle("hidden", !importActive);
     nodes.filterBox.classList.toggle("hidden", importActive);
@@ -99,6 +100,7 @@
   }
 
   function setModalOpen(open) {
+    if (!nodes.toolsModal) return;
     nodes.toolsModal.classList.toggle("hidden", !open);
     document.body.style.overflow = open ? "hidden" : "";
   }
@@ -566,109 +568,135 @@
     }
   }
 
-  nodes.importButton.addEventListener("click", () => {
-    const text = nodes.jsonInput.value.trim();
-    if (!text) {
-      setMessage("先粘贴 JSON，或者上传文件。", "warn");
-      return;
-    }
-    handleImportText(text);
-  });
-
-  nodes.fileInput.addEventListener("change", async (event) => {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      nodes.jsonInput.value = text;
+  if (nodes.importButton) {
+    nodes.importButton.addEventListener("click", () => {
+      const text = nodes.jsonInput.value.trim();
+      if (!text) {
+        setMessage("先粘贴 JSON，或者上传文件。", "warn");
+        return;
+      }
       handleImportText(text);
-    } catch (error) {
-      setMessage(`读取文件失败：${error.message}`, "warn");
-    }
-  });
+    });
+  }
 
-  nodes.loadSavedButton.addEventListener("click", () => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      setMessage("当前浏览器里还没有保存过导入数据。", "warn");
-      return;
-    }
-    nodes.jsonInput.value = saved;
-    handleImportText(saved);
-  });
+  if (nodes.fileInput) {
+    nodes.fileInput.addEventListener("change", async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        nodes.jsonInput.value = text;
+        handleImportText(text);
+      } catch (error) {
+        setMessage(`读取文件失败：${error.message}`, "warn");
+      }
+    });
+  }
 
-  nodes.clearSavedButton.addEventListener("click", () => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(ACCOUNT_KEY);
-    state.rawData = null;
-    state.accounts = [];
-    state.selectedAccount = "";
-    state.selectedSlot = "全部";
-    state.selectedClass = "全部";
-    state.searchText = "";
-    state.selectedSchemeKey = "";
-    state.parsed = null;
-    nodes.jsonInput.value = "";
-    nodes.fileInput.value = "";
-    nodes.searchInput.value = "";
-    renderAccountOptions();
-    fillSelect(nodes.slotFilter, ["全部"], "全部");
-    fillSelect(nodes.classFilter, ["全部"], "全部");
-    renderSummary();
-    renderEquipmentList();
-    renderSchemeList();
-    renderSchemeDetail();
-    setMessage("已清空当前浏览器里的装备管理缓存。", "info");
-  });
+  if (nodes.loadSavedButton) {
+    nodes.loadSavedButton.addEventListener("click", () => {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        setMessage("当前浏览器里还没有保存过导入数据。", "warn");
+        return;
+      }
+      nodes.jsonInput.value = saved;
+      handleImportText(saved);
+    });
+  }
 
-  nodes.accountSelect.addEventListener("change", () => {
-    state.selectedAccount = nodes.accountSelect.value;
-    state.selectedSchemeKey = "";
-    saveImportedData();
-    refreshParsedData();
-  });
+  if (nodes.clearSavedButton) {
+    nodes.clearSavedButton.addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACCOUNT_KEY);
+      state.rawData = null;
+      state.accounts = [];
+      state.selectedAccount = "";
+      state.selectedSlot = "全部";
+      state.selectedClass = "全部";
+      state.searchText = "";
+      state.selectedSchemeKey = "";
+      state.parsed = null;
+      if (nodes.jsonInput) nodes.jsonInput.value = "";
+      if (nodes.fileInput) nodes.fileInput.value = "";
+      if (nodes.searchInput) nodes.searchInput.value = "";
+      renderAccountOptions();
+      fillSelect(nodes.slotFilter, ["全部"], "全部");
+      fillSelect(nodes.classFilter, ["全部"], "全部");
+      renderSummary();
+      renderEquipmentList();
+      renderSchemeList();
+      renderSchemeDetail();
+      setMessage("已清空当前浏览器里的装备管理缓存。", "info");
+    });
+  }
 
-  nodes.importToggle.addEventListener("click", () => {
-    setToolbarPanel("import");
-  });
+  if (nodes.accountSelect) {
+    nodes.accountSelect.addEventListener("change", () => {
+      state.selectedAccount = nodes.accountSelect.value;
+      state.selectedSchemeKey = "";
+      saveImportedData();
+      refreshParsedData();
+    });
+  }
 
-  nodes.filterToggle.addEventListener("click", () => {
-    setToolbarPanel("filter");
-  });
+  if (nodes.importToggle) {
+    nodes.importToggle.addEventListener("click", () => {
+      setToolbarPanel("import");
+    });
+  }
 
-  nodes.openToolsButton.addEventListener("click", () => {
-    setModalOpen(true);
-  });
+  if (nodes.filterToggle) {
+    nodes.filterToggle.addEventListener("click", () => {
+      setToolbarPanel("filter");
+    });
+  }
 
-  nodes.closeToolsButton.addEventListener("click", () => {
-    setModalOpen(false);
-  });
+  if (nodes.openToolsButton) {
+    nodes.openToolsButton.addEventListener("click", () => {
+      setModalOpen(true);
+    });
+  }
 
-  nodes.toolsModal.addEventListener("click", (event) => {
-    if (event.target === nodes.toolsModal) setModalOpen(false);
-  });
+  if (nodes.closeToolsButton) {
+    nodes.closeToolsButton.addEventListener("click", () => {
+      setModalOpen(false);
+    });
+  }
+
+  if (nodes.toolsModal) {
+    nodes.toolsModal.addEventListener("click", (event) => {
+      if (event.target === nodes.toolsModal) setModalOpen(false);
+    });
+  }
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") setModalOpen(false);
   });
 
-  nodes.slotFilter.addEventListener("change", () => {
-    state.selectedSlot = nodes.slotFilter.value;
-    renderSummary();
-    renderEquipmentList();
-  });
+  if (nodes.slotFilter) {
+    nodes.slotFilter.addEventListener("change", () => {
+      state.selectedSlot = nodes.slotFilter.value;
+      renderSummary();
+      renderEquipmentList();
+    });
+  }
 
-  nodes.classFilter.addEventListener("change", () => {
-    state.selectedClass = nodes.classFilter.value;
-    renderSummary();
-    renderEquipmentList();
-  });
+  if (nodes.classFilter) {
+    nodes.classFilter.addEventListener("change", () => {
+      state.selectedClass = nodes.classFilter.value;
+      renderSummary();
+      renderEquipmentList();
+    });
+  }
 
-  nodes.searchInput.addEventListener("input", () => {
-    state.searchText = nodes.searchInput.value;
-    renderSummary();
-    renderEquipmentList();
-  });
+  if (nodes.searchInput) {
+    nodes.searchInput.addEventListener("input", () => {
+      state.searchText = nodes.searchInput.value;
+      renderSummary();
+      renderEquipmentList();
+    });
+  }
 
   async function init() {
     setModalOpen(false);
