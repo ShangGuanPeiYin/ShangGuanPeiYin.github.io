@@ -13,6 +13,18 @@
     ["hands", "腕甲"]
   ];
 
+  const weaponTypeMap = {
+    "1": "剑",
+    "2": "枪",
+    "3": "扇",
+    "4": "陌刀",
+    "5": "双刀",
+    "6": "伞",
+    "7": "绳镖",
+    "8": "唐横刀",
+    "9": "手甲"
+  };
+
   const state = {
     rawData: null,
     accounts: [],
@@ -58,6 +70,11 @@
     if (!stat || !stat.type) return "无";
     const suffix = stat.isPercent ? "%" : "";
     return `${stat.type} ${stat.value}${suffix}`;
+  }
+
+  function weaponTypeLabel(weaponTypeId) {
+    if (!weaponTypeId) return "未标注武器";
+    return weaponTypeMap[String(weaponTypeId)] || `武器类型 ${weaponTypeId}`;
   }
 
   function setMessage(text, tone) {
@@ -173,6 +190,79 @@
     });
   }
 
+  function groupEquipmentsBySlot(equipments) {
+    return equipments.reduce((acc, item) => {
+      const key = item.slotName || "未分类";
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    }, {});
+  }
+
+  function groupWeaponsByType(equipments) {
+    return equipments.reduce((acc, item) => {
+      const key = weaponTypeLabel(item.weaponTypeId);
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    }, {});
+  }
+
+  function renderEquipmentCard(item) {
+    const classPills = (item.availableClasses || [])
+      .map((name) => `<span class="pill teal">${escapeHtml(name)}</span>`)
+      .join("");
+
+    const flags = [
+      item.isChengyin ? '<span class="pill gold">承音</span>' : "",
+      item.isPurple ? '<span class="pill">紫装</span>' : "",
+      item.slotName === "武器" ? `<span class="pill">${escapeHtml(weaponTypeLabel(item.weaponTypeId))}</span>` : ""
+    ]
+      .filter(Boolean)
+      .join("");
+
+    const subStats = (item.subStats || [])
+      .map(
+        (stat) => `
+          <div class="chip">
+            <span>${escapeHtml(stat.type || "未知词条")}</span>
+            <strong>${escapeHtml(stat.value)}${stat.isPercent ? "%" : ""}</strong>
+          </div>
+        `
+      )
+      .join("");
+
+    return `
+      <article class="equipment-card">
+        <div class="equipment-top">
+          <div class="equipment-title">
+            <strong>${escapeHtml(item.name || "未命名装备")}</strong>
+            <div class="pill-row">
+              <span class="pill">${escapeHtml(item.slotName || "未知部位")}</span>
+              <span class="pill">ID ${escapeHtml(item.id)}</span>
+              ${flags}
+            </div>
+          </div>
+          <div class="pill-row">${classPills || '<span class="pill teal">未标注流派</span>'}</div>
+        </div>
+        <div class="scheme-grid">
+          <div class="stat-block">
+            <span class="label">主词条</span>
+            <strong>${escapeHtml(statText(item.mainStat))}</strong>
+          </div>
+          <div class="stat-block">
+            <span class="label">定音词条</span>
+            <strong>${escapeHtml(statText(item.dingyinStat))}</strong>
+          </div>
+        </div>
+        <div class="stat-block">
+          <span class="label">副词条</span>
+          <div class="substats">${subStats || '<span class="chip">无副词条</span>'}</div>
+        </div>
+      </article>
+    `;
+  }
+
   function renderSummary() {
     if (!state.parsed) {
       nodes.equipCount.textContent = "0";
@@ -207,59 +297,56 @@
       return;
     }
 
-    nodes.equipmentList.innerHTML = equipments
-      .map((item) => {
-        const classPills = (item.availableClasses || [])
-          .map((name) => `<span class="pill teal">${escapeHtml(name)}</span>`)
-          .join("");
+    const grouped = groupEquipmentsBySlot(equipments);
+    const orderedSlots = state.selectedSlot === "全部"
+      ? ["武器", "环", "佩", "冠胄", "胸甲", "胫甲", "腕甲"]
+      : [state.selectedSlot];
+    const fallbackSlots = Object.keys(grouped).filter((slot) => !orderedSlots.includes(slot));
+    const renderOrder = [...orderedSlots.filter((slot) => grouped[slot]), ...fallbackSlots];
 
-        const flags = [
-          item.isChengyin ? '<span class="pill gold">承音</span>' : "",
-          item.isPurple ? '<span class="pill">紫装</span>' : "",
-          item.weaponTypeId ? `<span class="pill">武器类型 ${escapeHtml(item.weaponTypeId)}</span>` : ""
-        ]
-          .filter(Boolean)
-          .join("");
+    nodes.equipmentList.innerHTML = renderOrder
+      .map((slot) => {
+        if (slot === "武器") {
+          const weaponsByType = groupWeaponsByType(grouped[slot]);
+          const orderedWeaponTypes = ["剑", "枪", "扇", "陌刀", "双刀", "伞", "绳镖", "唐横刀", "手甲"];
+          const fallbackWeaponTypes = Object.keys(weaponsByType).filter((type) => !orderedWeaponTypes.includes(type));
+          const weaponRenderOrder = [...orderedWeaponTypes.filter((type) => weaponsByType[type]), ...fallbackWeaponTypes];
 
-        const subStats = (item.subStats || [])
-          .map(
-            (stat) => `
-              <div class="chip">
-                <span>${escapeHtml(stat.type || "未知词条")}</span>
-                <strong>${escapeHtml(stat.value)}${stat.isPercent ? "%" : ""}</strong>
+          return `
+            <section class="category-section">
+              <div class="category-head">
+                <h3>${escapeHtml(slot)}</h3>
+                <span class="chip">${grouped[slot].length} 件</span>
               </div>
-            `
-          )
-          .join("");
+              ${weaponRenderOrder
+                .map(
+                  (weaponType) => `
+                    <section class="category-section">
+                      <div class="category-head">
+                        <h3>${escapeHtml(weaponType)}</h3>
+                        <span class="chip">${weaponsByType[weaponType].length} 件</span>
+                      </div>
+                      <div class="category-grid">
+                        ${weaponsByType[weaponType].map((item) => renderEquipmentCard(item)).join("")}
+                      </div>
+                    </section>
+                  `
+                )
+                .join("")}
+            </section>
+          `;
+        }
 
         return `
-          <article class="equipment-card">
-            <div class="equipment-top">
-              <div class="equipment-title">
-                <strong>${escapeHtml(item.name || "未命名装备")}</strong>
-                <div class="pill-row">
-                  <span class="pill">${escapeHtml(item.slotName || "未知部位")}</span>
-                  <span class="pill">ID ${escapeHtml(item.id)}</span>
-                  ${flags}
-                </div>
-              </div>
-              <div class="pill-row">${classPills || '<span class="pill teal">未标注流派</span>'}</div>
+          <section class="category-section">
+            <div class="category-head">
+              <h3>${escapeHtml(slot)}</h3>
+              <span class="chip">${grouped[slot].length} 件</span>
             </div>
-            <div class="scheme-grid">
-              <div class="stat-block">
-                <span class="label">主词条</span>
-                <strong>${escapeHtml(statText(item.mainStat))}</strong>
-              </div>
-              <div class="stat-block">
-                <span class="label">定音词条</span>
-                <strong>${escapeHtml(statText(item.dingyinStat))}</strong>
-              </div>
+            <div class="category-grid">
+              ${grouped[slot].map((item) => renderEquipmentCard(item)).join("")}
             </div>
-            <div class="stat-block">
-              <span class="label">副词条</span>
-              <div class="substats">${subStats || '<span class="chip">无副词条</span>'}</div>
-            </div>
-          </article>
+          </section>
         `;
       })
       .join("");

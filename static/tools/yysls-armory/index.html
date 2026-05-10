@@ -135,11 +135,52 @@
         color: var(--muted);
       }
 
+      .toolbar {
+        margin-top: 24px;
+        border-radius: 28px;
+        padding: 20px 24px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .toolbar-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+      }
+
+      .compact-box {
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.58);
+        border: 1px solid rgba(53, 42, 24, 0.08);
+      }
+
+      .compact-box h3 {
+        margin-bottom: 8px;
+        font-size: 1rem;
+      }
+
+      .compact-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .toolbar .fields {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar textarea {
+        min-height: 112px;
+      }
+
       .layout {
         margin-top: 24px;
         display: grid;
         gap: 20px;
-        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+        grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.7fr);
       }
 
       .stack {
@@ -274,6 +315,25 @@
         gap: 14px;
       }
 
+      .category-section {
+        display: grid;
+        gap: 14px;
+        padding-top: 8px;
+      }
+
+      .category-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .category-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .equipment-card,
       .scheme-card,
       .slot-card {
@@ -404,6 +464,7 @@
       }
 
       @media (max-width: 1120px) {
+        .toolbar-grid,
         .layout {
           grid-template-columns: 1fr;
         }
@@ -414,7 +475,8 @@
         .substats,
         .scheme-grid,
         .slots-grid,
-        .stats {
+        .stats,
+        .category-grid {
           grid-template-columns: 1fr;
         }
 
@@ -441,7 +503,7 @@
         <span class="badge">YANYUN ARMORY</span>
         <h1>燕云装备管理台</h1>
         <p class="subtle">
-          这是挂在博客里的装备子页面，用来接收从 Spongem 管理器导出的明文 JSON，整理装备库、筛选词条并还原配装方案。
+          这是挂在博客里的装备子页面，核心目标是把你的装备库按分类清楚整理出来，让你更快看装备、找装备、核对方案。
         </p>
         <div class="hero-actions">
           <a class="button primary" href="#importPanel">导入我的数据</a>
@@ -449,28 +511,21 @@
         </div>
       </section>
 
-      <div class="layout">
-        <section class="stack">
-          <section class="card panel" id="importPanel">
-            <div class="panel-head">
-              <div class="meta">
-                <h2>数据导入</h2>
-                <p class="subtle">
-                  支持直接粘贴浏览器控制台导出的明文 JSON，或者上传 `.json` / `.txt` 文件。导入后会自动识别账号并保存到当前浏览器。
-                </p>
-              </div>
-            </div>
-
-            <div id="messageBox" class="notice info">
-              还没有导入数据。先把 `localStorage` 导出的 JSON 粘贴进来，或者上传文件。
-            </div>
-
-            <div class="fields" style="margin-top:16px;">
+      <section class="toolbar panel" id="importPanel">
+        <div id="messageBox" class="notice info">
+          还没有导入数据。先把 `localStorage` 导出的 JSON 粘贴进来，或者上传文件。
+        </div>
+        <div class="toolbar-grid">
+          <section class="compact-box">
+            <h3>导入数据</h3>
+            <p class="subtle">
+              导入区保持轻量，页面重点留给装备库。支持上传 `.json/.txt` 或直接粘贴明文 JSON。
+            </p>
+            <div class="fields" style="margin-top:14px;">
               <label class="field">
                 <span>选择文件</span>
                 <div class="dropzone">
                   <input id="fileInput" type="file" accept=".json,.txt,application/json,text/plain" />
-                  <p class="subtle">如果你已经把数据保存成文件，这里可以直接读入。</p>
                 </div>
               </label>
               <label class="field">
@@ -478,23 +533,17 @@
                 <textarea id="jsonInput" placeholder='把形如 {"game_account_list":["云川渡"]...} 的明文 JSON 粘贴到这里'></textarea>
               </label>
             </div>
-
-            <div class="hero-actions" style="margin-top:16px;">
-              <button class="primary" id="importButton">导入并解析</button>
-              <button class="secondary" id="loadSavedButton">读取已保存数据</button>
-              <button class="ghost" id="clearSavedButton">清空本地缓存</button>
+            <div class="compact-actions">
+              <button class="primary" id="importButton">导入</button>
+              <button class="secondary" id="loadSavedButton">读取缓存</button>
+              <button class="ghost" id="clearSavedButton">清空缓存</button>
             </div>
           </section>
 
-          <section class="card panel">
-            <div class="panel-head">
-              <div class="meta">
-                <h2>账号与筛选</h2>
-                <p class="subtle">账号列表会从 `game_account_list` 自动识别，也会尝试用装备键名兜底推断。</p>
-              </div>
-            </div>
-
-            <div class="fields">
+          <section class="compact-box">
+            <h3>账号与筛选</h3>
+            <p class="subtle">账号、筛选和搜索集中在这里，不抢占装备库主区域。</p>
+            <div class="fields" style="margin-top:14px;">
               <label class="field">
                 <span>当前账号</span>
                 <select id="accountSelect"></select>
@@ -512,8 +561,14 @@
                 <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
               </label>
             </div>
+          </section>
+        </div>
+      </section>
 
-            <div class="stats" style="margin-top:18px;">
+      <div class="layout">
+        <section class="stack">
+          <section class="card panel">
+            <div class="stats">
               <div class="stat">
                 <small>当前账号装备数</small>
                 <strong id="equipCount">0</strong>
@@ -538,7 +593,7 @@
             <div class="panel-head">
               <div class="meta">
                 <h2>装备库</h2>
-                <p class="subtle">展示主词条、定音词条、副词条、承音状态和可用流派。这里先以管理与检索为主，不做自动评分。</p>
+                <p class="subtle">按装备分类整理展示。你可以先按部位总览，再查看每件装备的词条细节和流派归属。</p>
               </div>
               <div class="chip" id="filteredSummary">当前 0 件</div>
             </div>
