@@ -52,7 +52,6 @@
     weaponFilter: document.getElementById("weaponFilter"),
     searchInput: document.getElementById("searchInput"),
     resetFiltersButton: document.getElementById("resetFiltersButton"),
-    filteredSummary: document.getElementById("filteredSummary"),
     emptyEquipMessage: document.getElementById("emptyEquipMessage"),
     equipmentGrid: document.getElementById("equipmentGrid")
   };
@@ -345,7 +344,6 @@
   function renderInventory() {
     buildFilterOptions();
     renderSlotCapsules();
-    nodes.filteredSummary.textContent = String(filteredEquipments().length);
     renderEquipmentGrid();
   }
 
@@ -354,7 +352,6 @@
     renderWelcome();
 
     if (!state.accounts.length || !state.selectedAccount) {
-      nodes.filteredSummary.textContent = "0";
       nodes.slotCapsules.innerHTML = "";
       nodes.equipmentGrid.innerHTML = "";
       fillSelect(nodes.classFilter, ["全部"], "全部");
