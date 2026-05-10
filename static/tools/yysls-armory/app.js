@@ -1,6 +1,7 @@
 (function () {
   const STORAGE_KEY = "yysls_armory_import_data_v1";
   const ACCOUNT_KEY = "yysls_armory_selected_account_v1";
+  const DEFAULT_DATA_URL = "/tools/yysls-armory/mydata.json";
 
   const slotFields = [
     ["weapon1", "主武器"],
@@ -543,6 +544,20 @@
     }
   }
 
+  async function loadBundledData() {
+    try {
+      const response = await fetch(DEFAULT_DATA_URL, { cache: "no-store" });
+      if (!response.ok) return false;
+      const data = await response.json();
+      nodes.jsonInput.value = JSON.stringify(data, null, 2);
+      loadImportedPayload(data);
+      setMessage("已自动载入站内预置的装备数据。你也可以随时用自己的 JSON 覆盖它。", "info");
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   nodes.importButton.addEventListener("click", () => {
     const text = nodes.jsonInput.value.trim();
     if (!text) {
@@ -631,7 +646,7 @@
     renderEquipmentList();
   });
 
-  function init() {
+  async function init() {
     setToolbarPanel("import");
     fillSelect(nodes.slotFilter, ["全部"], "全部");
     fillSelect(nodes.classFilter, ["全部"], "全部");
@@ -649,7 +664,10 @@
       } catch (error) {
         setMessage(`发现旧缓存，但解析失败：${error.message}`, "warn");
       }
+      return;
     }
+
+    await loadBundledData();
   }
 
   init();
