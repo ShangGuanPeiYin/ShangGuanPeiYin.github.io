@@ -280,6 +280,13 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .inline-filters {
+        margin-top: 18px;
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .field {
         display: grid;
         gap: 8px;
@@ -540,6 +547,7 @@
 
       @media (max-width: 780px) {
         .fields,
+        .inline-filters,
         .substats,
         .scheme-grid,
         .slots-grid,
@@ -619,23 +627,11 @@
 
             <section class="compact-box hidden" id="filterBox">
               <h3>账号与筛选</h3>
-              <p class="subtle">账号、筛选和搜索集中在这里，不抢占装备库主区域。</p>
+              <p class="subtle">账号切换放在这里，高频筛选已经移回装备库主区域。</p>
               <div class="fields" style="margin-top:14px;">
                 <label class="field">
                   <span>当前账号</span>
                   <select id="accountSelect"></select>
-                </label>
-                <label class="field">
-                  <span>部位筛选</span>
-                  <select id="slotFilter"></select>
-                </label>
-                <label class="field">
-                  <span>流派筛选</span>
-                  <select id="classFilter"></select>
-                </label>
-                <label class="field">
-                  <span>名称搜索</span>
-                  <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
                 </label>
               </div>
             </section>
@@ -664,6 +660,21 @@
             <div style="margin-top:18px;">
               <div class="label" style="margin-bottom:8px;">部位分布</div>
               <div class="chip-row" id="slotSummary"></div>
+            </div>
+
+            <div class="inline-filters">
+              <label class="field">
+                <span>部位筛选</span>
+                <select id="slotFilter"></select>
+              </label>
+              <label class="field">
+                <span>流派筛选</span>
+                <select id="classFilter"></select>
+              </label>
+              <label class="field">
+                <span>名称搜索</span>
+                <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
+              </label>
             </div>
           </section>
 
