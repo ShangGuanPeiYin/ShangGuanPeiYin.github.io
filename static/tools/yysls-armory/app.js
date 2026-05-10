@@ -129,6 +129,26 @@
     }, 0);
   }
 
+  function equipmentCountForAccount(data, account) {
+    if (!data || !account) return 0;
+    const list = data[`game_equip_data_${account}`];
+    return Array.isArray(list) ? list.length : 0;
+  }
+
+  function pickPreferredAccount(data, accounts) {
+    const savedAccount = localStorage.getItem(ACCOUNT_KEY);
+    const candidates = [
+      data.last_selected_account,
+      savedAccount,
+      ...accounts
+    ].filter((account, index, list) => account && accounts.includes(account) && list.indexOf(account) === index);
+
+    const accountWithEquipments = candidates.find((account) => equipmentCountForAccount(data, account) > 0);
+    if (accountWithEquipments) return accountWithEquipments;
+
+    return candidates[0] || accounts[0] || "";
+  }
+
   function weaponTypeLabel(weaponTypeId) {
     if (!weaponTypeId) return "未标注武器";
     return weaponTypeMap[String(weaponTypeId)] || `武器类型 ${weaponTypeId}`;
@@ -372,11 +392,7 @@
 
     state.rawData = normalized;
     state.accounts = accounts;
-    const savedAccount = localStorage.getItem(ACCOUNT_KEY);
-    state.selectedAccount =
-      (normalized.last_selected_account && accounts.includes(normalized.last_selected_account) && normalized.last_selected_account) ||
-      (savedAccount && accounts.includes(savedAccount) && savedAccount) ||
-      accounts[0];
+    state.selectedAccount = pickPreferredAccount(normalized, accounts);
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
     state.selectedWeaponType = "全部";
