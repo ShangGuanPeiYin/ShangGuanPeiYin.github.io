@@ -135,8 +135,25 @@
         color: var(--muted);
       }
 
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(24, 18, 10, 0.48);
+        backdrop-filter: blur(10px);
+        z-index: 50;
+      }
+
+      .modal-backdrop.hidden {
+        display: none;
+      }
+
       .toolbar {
-        margin-top: 24px;
+        width: min(1040px, 100%);
+        max-height: min(88vh, 960px);
+        overflow: auto;
         border-radius: 28px;
         padding: 20px 24px;
         display: grid;
@@ -171,6 +188,29 @@
       .toggle-button.active {
         background: var(--ink);
         color: #fff;
+      }
+
+      .toolbar-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .toolbar-top h2 {
+        font-size: 1.1rem;
+      }
+
+      .close-button {
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid rgba(53, 42, 24, 0.12);
+        font-size: 1.2rem;
+        line-height: 1;
       }
 
       .compact-box {
@@ -534,66 +574,72 @@
           这是挂在博客里的装备子页面，核心目标是把你的装备库按分类清楚整理出来，让你更快看装备、找装备、核对方案。
         </p>
         <div class="hero-actions">
-          <a class="button primary" href="#importPanel">导入我的数据</a>
           <a class="button secondary" href="/tools/yysls-graduation/">打开毕业率计算器</a>
+          <button class="button primary" id="openToolsButton" type="button">导入与筛选</button>
         </div>
       </section>
 
-      <section class="toolbar panel" id="importPanel">
-        <div id="messageBox" class="notice info">
-          还没有导入数据。先把 `localStorage` 导出的 JSON 粘贴进来，或者上传文件。
-        </div>
-        <div class="toolbar-toggles">
-          <button class="toggle-button active" id="importToggle" type="button">导入数据</button>
-          <button class="toggle-button" id="filterToggle" type="button">账号与筛选</button>
-        </div>
-        <div class="toolbar-grid">
-          <section class="compact-box" id="importBox">
-            <h3>导入数据</h3>
-            <p class="subtle">
-              导入区保持轻量，页面重点留给装备库。支持上传 `.json/.txt` 或直接粘贴明文 JSON。
-            </p>
-            <div class="fields" style="margin-top:14px;">
-              <label class="field">
-                <span>选择文件</span>
-                <div class="dropzone">
-                  <input id="fileInput" type="file" accept=".json,.txt,application/json,text/plain" />
-                </div>
-              </label>
-              <label class="field">
-                <span>粘贴 JSON</span>
-                <textarea id="jsonInput" placeholder='把形如 {"game_account_list":["云川渡"]...} 的明文 JSON 粘贴到这里'></textarea>
-              </label>
-            </div>
-            <div class="compact-actions">
-              <button class="primary" id="importButton">导入</button>
-              <button class="secondary" id="loadSavedButton">读取缓存</button>
-              <button class="ghost" id="clearSavedButton">清空缓存</button>
-            </div>
-          </section>
+      <section class="modal-backdrop hidden" id="toolsModal">
+        <div class="toolbar panel">
+          <div class="toolbar-top">
+            <h2>导入与筛选</h2>
+            <button class="close-button" id="closeToolsButton" type="button" aria-label="关闭弹层">×</button>
+          </div>
+          <div id="messageBox" class="notice info">
+            还没有导入数据。先把 `localStorage` 导出的 JSON 粘贴进来，或者上传文件。
+          </div>
+          <div class="toolbar-toggles">
+            <button class="toggle-button active" id="importToggle" type="button">导入数据</button>
+            <button class="toggle-button" id="filterToggle" type="button">账号与筛选</button>
+          </div>
+          <div class="toolbar-grid">
+            <section class="compact-box" id="importBox">
+              <h3>导入数据</h3>
+              <p class="subtle">
+                支持上传 `.json/.txt` 或直接粘贴明文 JSON。这里是临时面板，不会长期占住装备库页面。
+              </p>
+              <div class="fields" style="margin-top:14px;">
+                <label class="field">
+                  <span>选择文件</span>
+                  <div class="dropzone">
+                    <input id="fileInput" type="file" accept=".json,.txt,application/json,text/plain" />
+                  </div>
+                </label>
+                <label class="field">
+                  <span>粘贴 JSON</span>
+                  <textarea id="jsonInput" placeholder='把形如 {"game_account_list":["云川渡"]...} 的明文 JSON 粘贴到这里'></textarea>
+                </label>
+              </div>
+              <div class="compact-actions">
+                <button class="primary" id="importButton">导入</button>
+                <button class="secondary" id="loadSavedButton">读取缓存</button>
+                <button class="ghost" id="clearSavedButton">清空缓存</button>
+              </div>
+            </section>
 
-          <section class="compact-box hidden" id="filterBox">
-            <h3>账号与筛选</h3>
-            <p class="subtle">账号、筛选和搜索集中在这里，不抢占装备库主区域。</p>
-            <div class="fields" style="margin-top:14px;">
-              <label class="field">
-                <span>当前账号</span>
-                <select id="accountSelect"></select>
-              </label>
-              <label class="field">
-                <span>部位筛选</span>
-                <select id="slotFilter"></select>
-              </label>
-              <label class="field">
-                <span>流派筛选</span>
-                <select id="classFilter"></select>
-              </label>
-              <label class="field">
-                <span>名称搜索</span>
-                <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
-              </label>
-            </div>
-          </section>
+            <section class="compact-box hidden" id="filterBox">
+              <h3>账号与筛选</h3>
+              <p class="subtle">账号、筛选和搜索集中在这里，不抢占装备库主区域。</p>
+              <div class="fields" style="margin-top:14px;">
+                <label class="field">
+                  <span>当前账号</span>
+                  <select id="accountSelect"></select>
+                </label>
+                <label class="field">
+                  <span>部位筛选</span>
+                  <select id="slotFilter"></select>
+                </label>
+                <label class="field">
+                  <span>流派筛选</span>
+                  <select id="classFilter"></select>
+                </label>
+                <label class="field">
+                  <span>名称搜索</span>
+                  <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
+                </label>
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 

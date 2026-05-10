@@ -38,6 +38,9 @@
   };
 
   const nodes = {
+    toolsModal: document.getElementById("toolsModal"),
+    openToolsButton: document.getElementById("openToolsButton"),
+    closeToolsButton: document.getElementById("closeToolsButton"),
     messageBox: document.getElementById("messageBox"),
     fileInput: document.getElementById("fileInput"),
     jsonInput: document.getElementById("jsonInput"),
@@ -93,6 +96,11 @@
     nodes.filterBox.classList.toggle("hidden", importActive);
     nodes.importToggle.classList.toggle("active", importActive);
     nodes.filterToggle.classList.toggle("active", !importActive);
+  }
+
+  function setModalOpen(open) {
+    nodes.toolsModal.classList.toggle("hidden", !open);
+    document.body.style.overflow = open ? "hidden" : "";
   }
 
   function parseMaybeJson(text) {
@@ -628,6 +636,22 @@
     setToolbarPanel("filter");
   });
 
+  nodes.openToolsButton.addEventListener("click", () => {
+    setModalOpen(true);
+  });
+
+  nodes.closeToolsButton.addEventListener("click", () => {
+    setModalOpen(false);
+  });
+
+  nodes.toolsModal.addEventListener("click", (event) => {
+    if (event.target === nodes.toolsModal) setModalOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setModalOpen(false);
+  });
+
   nodes.slotFilter.addEventListener("change", () => {
     state.selectedSlot = nodes.slotFilter.value;
     renderSummary();
@@ -647,6 +671,7 @@
   });
 
   async function init() {
+    setModalOpen(false);
     setToolbarPanel("import");
     fillSelect(nodes.slotFilter, ["全部"], "全部");
     fillSelect(nodes.classFilter, ["全部"], "全部");
