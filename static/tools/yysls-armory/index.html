@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>燕云装备管理台</title>
+    <meta
+      name="description"
+      content="在博客里管理《燕云十六声》装备库，支持导入 Spongem 明文 JSON、筛选装备并还原配装方案。"
+    />
+    <style>
+      :root {
+        --bg: #f3ede2;
+        --bg-2: #e7dcc7;
+        --panel: rgba(255, 250, 243, 0.9);
+        --line: rgba(53, 42, 24, 0.12);
+        --ink: #201a13;
+        --muted: #726656;
+        --accent: #8a3f20;
+        --accent-2: #1f5f59;
+        --accent-3: #c5872a;
+        --danger: #b33d31;
+        --shadow: 0 24px 60px rgba(41, 29, 13, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(138, 63, 32, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(31, 95, 89, 0.12), transparent 30%),
+          linear-gradient(180deg, #fbf7ef 0%, var(--bg) 48%, var(--bg-2) 100%);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(1440px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 28px 0 64px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      .hero {
+        border-radius: 32px;
+        padding: 28px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .badge {
+        width: fit-content;
+        padding: 8px 12px;
+        border-radius: 999px;
+        color: var(--accent);
+        background: rgba(138, 63, 32, 0.12);
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.2rem, 4.8vw, 4rem);
+        line-height: 1.02;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .subtle {
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .button,
+      button,
+      select,
+      textarea,
+      input {
+        font: inherit;
+      }
+
+      .button,
+      button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-weight: 700;
+      }
+
+      .button.primary,
+      button.primary {
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .button.secondary,
+      button.secondary {
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+
+      button.ghost {
+        background: transparent;
+        border: 1px dashed rgba(53, 42, 24, 0.18);
+        color: var(--muted);
+      }
+
+      .layout {
+        margin-top: 24px;
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+      }
+
+      .stack {
+        display: grid;
+        gap: 20px;
+      }
+
+      .card {
+        border-radius: 28px;
+        padding: 24px;
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .panel-head .meta {
+        display: grid;
+        gap: 8px;
+      }
+
+      .fields {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field span {
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      select,
+      textarea,
+      input[type="text"] {
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid rgba(53, 42, 24, 0.14);
+        background: rgba(255, 255, 255, 0.86);
+        color: var(--ink);
+        padding: 12px 14px;
+      }
+
+      textarea {
+        min-height: 180px;
+        resize: vertical;
+      }
+
+      .dropzone {
+        display: grid;
+        gap: 10px;
+        padding: 18px;
+        border-radius: 22px;
+        border: 1px dashed rgba(53, 42, 24, 0.18);
+        background: rgba(255, 255, 255, 0.56);
+      }
+
+      .dropzone input[type="file"] {
+        padding: 0;
+        background: transparent;
+        border: 0;
+      }
+
+      .notice {
+        padding: 14px 16px;
+        border-radius: 18px;
+        line-height: 1.6;
+      }
+
+      .notice.info {
+        background: rgba(31, 95, 89, 0.1);
+        color: var(--accent-2);
+      }
+
+      .notice.warn {
+        background: rgba(179, 61, 49, 0.1);
+        color: var(--danger);
+      }
+
+      .stats {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .stat {
+        padding: 18px;
+        border-radius: 22px;
+        background: linear-gradient(155deg, rgba(32, 26, 19, 0.95), rgba(62, 49, 33, 0.92));
+        color: #fff;
+      }
+
+      .stat small {
+        display: block;
+        margin-bottom: 8px;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .stat strong {
+        font-size: clamp(1.6rem, 4vw, 2.5rem);
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 13px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(53, 42, 24, 0.1);
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .equipment-card,
+      .scheme-card,
+      .slot-card {
+        padding: 18px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(53, 42, 24, 0.08);
+      }
+
+      .equipment-card {
+        display: grid;
+        gap: 14px;
+      }
+
+      .equipment-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .equipment-title {
+        display: grid;
+        gap: 6px;
+      }
+
+      .equipment-title strong {
+        font-size: 1.08rem;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-size: 0.85rem;
+        background: rgba(138, 63, 32, 0.08);
+        color: var(--accent);
+      }
+
+      .pill.teal {
+        background: rgba(31, 95, 89, 0.1);
+        color: var(--accent-2);
+      }
+
+      .pill.gold {
+        background: rgba(197, 135, 42, 0.14);
+        color: #8b5a14;
+      }
+
+      .stat-block {
+        display: grid;
+        gap: 8px;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .substats {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px solid rgba(53, 42, 24, 0.08);
+      }
+
+      .line:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .scheme-card {
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .scheme-card:hover,
+      .scheme-card.active {
+        transform: translateY(-2px);
+        border-color: rgba(138, 63, 32, 0.28);
+        box-shadow: 0 18px 36px rgba(41, 29, 13, 0.08);
+      }
+
+      .scheme-meta {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .scheme-grid,
+      .slots-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .slot-card {
+        display: grid;
+        gap: 8px;
+      }
+
+      .empty {
+        padding: 28px 20px;
+        border-radius: 24px;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.56);
+        color: var(--muted);
+        border: 1px dashed rgba(53, 42, 24, 0.16);
+      }
+
+      .footer-note {
+        margin-top: 22px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      @media (max-width: 1120px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 780px) {
+        .fields,
+        .substats,
+        .scheme-grid,
+        .slots-grid,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .equipment-top {
+          flex-direction: column;
+        }
+
+        .page {
+          width: min(100% - 20px, 1440px);
+          padding-top: 18px;
+        }
+
+        .hero,
+        .card {
+          padding: 20px;
+          border-radius: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero panel">
+        <span class="badge">YANYUN ARMORY</span>
+        <h1>燕云装备管理台</h1>
+        <p class="subtle">
+          这是挂在博客里的装备子页面，用来接收从 Spongem 管理器导出的明文 JSON，整理装备库、筛选词条并还原配装方案。
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#importPanel">导入我的数据</a>
+          <a class="button secondary" href="/tools/yysls-graduation/">打开毕业率计算器</a>
+        </div>
+      </section>
+
+      <div class="layout">
+        <section class="stack">
+          <section class="card panel" id="importPanel">
+            <div class="panel-head">
+              <div class="meta">
+                <h2>数据导入</h2>
+                <p class="subtle">
+                  支持直接粘贴浏览器控制台导出的明文 JSON，或者上传 `.json` / `.txt` 文件。导入后会自动识别账号并保存到当前浏览器。
+                </p>
+              </div>
+            </div>
+
+            <div id="messageBox" class="notice info">
+              还没有导入数据。先把 `localStorage` 导出的 JSON 粘贴进来，或者上传文件。
+            </div>
+
+            <div class="fields" style="margin-top:16px;">
+              <label class="field">
+                <span>选择文件</span>
+                <div class="dropzone">
+                  <input id="fileInput" type="file" accept=".json,.txt,application/json,text/plain" />
+                  <p class="subtle">如果你已经把数据保存成文件，这里可以直接读入。</p>
+                </div>
+              </label>
+              <label class="field">
+                <span>粘贴 JSON</span>
+                <textarea id="jsonInput" placeholder='把形如 {"game_account_list":["云川渡"]...} 的明文 JSON 粘贴到这里'></textarea>
+              </label>
+            </div>
+
+            <div class="hero-actions" style="margin-top:16px;">
+              <button class="primary" id="importButton">导入并解析</button>
+              <button class="secondary" id="loadSavedButton">读取已保存数据</button>
+              <button class="ghost" id="clearSavedButton">清空本地缓存</button>
+            </div>
+          </section>
+
+          <section class="card panel">
+            <div class="panel-head">
+              <div class="meta">
+                <h2>账号与筛选</h2>
+                <p class="subtle">账号列表会从 `game_account_list` 自动识别，也会尝试用装备键名兜底推断。</p>
+              </div>
+            </div>
+
+            <div class="fields">
+              <label class="field">
+                <span>当前账号</span>
+                <select id="accountSelect"></select>
+              </label>
+              <label class="field">
+                <span>部位筛选</span>
+                <select id="slotFilter"></select>
+              </label>
+              <label class="field">
+                <span>流派筛选</span>
+                <select id="classFilter"></select>
+              </label>
+              <label class="field">
+                <span>名称搜索</span>
+                <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
+              </label>
+            </div>
+
+            <div class="stats" style="margin-top:18px;">
+              <div class="stat">
+                <small>当前账号装备数</small>
+                <strong id="equipCount">0</strong>
+              </div>
+              <div class="stat">
+                <small>可用配装方案数</small>
+                <strong id="schemeCount">0</strong>
+              </div>
+              <div class="stat">
+                <small>当前流派标签数</small>
+                <strong id="classCount">0</strong>
+              </div>
+            </div>
+
+            <div style="margin-top:18px;">
+              <div class="label" style="margin-bottom:8px;">部位分布</div>
+              <div class="chip-row" id="slotSummary"></div>
+            </div>
+          </section>
+
+          <section class="card panel">
+            <div class="panel-head">
+              <div class="meta">
+                <h2>装备库</h2>
+                <p class="subtle">展示主词条、定音词条、副词条、承音状态和可用流派。这里先以管理与检索为主，不做自动评分。</p>
+              </div>
+              <div class="chip" id="filteredSummary">当前 0 件</div>
+            </div>
+
+            <div id="equipmentList" class="list"></div>
+          </section>
+        </section>
+
+        <aside class="stack">
+          <section class="card panel">
+            <div class="panel-head">
+              <div class="meta">
+                <h2>配装方案</h2>
+                <p class="subtle">点击方案后，会根据保存的装备 ID 从当前账号装备库里还原出完整装备详情。</p>
+              </div>
+            </div>
+
+            <div id="schemeList" class="list"></div>
+          </section>
+
+          <section class="card panel">
+            <div class="panel-head">
+              <div class="meta">
+                <h2>方案详情</h2>
+                <p class="subtle">这里展示方案配置、心法、套装、借定音以及 8 个装备位对应的实际装备。</p>
+              </div>
+            </div>
+
+            <div id="schemeDetail"></div>
+            <p class="footer-note">
+              当前版本是博客内的第一版管理页。后续可以继续叠加评分、毕业率、收益对比、OCR 和自动配装。
+            </p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <script src="/tools/yysls-armory/app.js"></script>
+  </body>
+</html>

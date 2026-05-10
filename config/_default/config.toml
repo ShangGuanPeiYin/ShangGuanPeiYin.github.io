@@ -7,6 +7,30 @@ baseURL = "https://example.com/"
 defaultContentLanguage = "zh-cn"
 disableLanguages = []
 
+[languages]
+  [languages.zh-cn]
+    languageName = "简体中文"
+    languageCode = "zh-cn"
+    weight = 9
+    title = "我的博客"
+
+    [languages.zh-cn.params]
+      displayName = "简体中文"
+      isoCode = "zh-cn"
+      rtl = false
+      dateFormat = "2006-01-02"
+      logo = "img/blowfish_logo_transparent.png"
+      description = "使用 Hugo 和 Blowfish 搭建的个人博客。"
+
+    [languages.zh-cn.params.author]
+      name = "你的名字"
+      image = "img/blowfish_logo.png"
+      headline = "记录技术、写作与生活。"
+      bio = "欢迎来到我的个人博客，这里会分享文章、笔记和项目。"
+      links = [
+        { github = "https://github.com/yourname" },
+      ]
+
 # pluralizeListTitles = "true" # hugo function useful for non-english languages, find out more in  https://gohugo.io/getting-started/configuration/#pluralizelisttitles
 
 enableRobotsTXT = true
