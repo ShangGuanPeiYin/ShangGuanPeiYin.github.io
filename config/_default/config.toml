@@ -23,7 +23,7 @@ disableLanguages = []
       description = "使用 Hugo 和 Blowfish 搭建的个人博客。"
 
     [languages.zh-cn.params.author]
-      name = "你的名字"
+      name = "潜龙在渊"
       image = "img/sabito.png"
       headline = "记录技术、写作与生活。"
       bio = "欢迎来到我的个人博客，这里会分享文章、笔记和项目。"
