@@ -250,6 +250,13 @@
         gap: 14px;
       }
 
+      .toolbar-main {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) 420px;
+        align-items: end;
+      }
+
       .capsule-bar {
         display: flex;
         flex-wrap: wrap;
@@ -277,7 +284,7 @@
       .filter-row {
         display: grid;
         gap: 14px;
-        grid-template-columns: 220px 220px minmax(0, 1fr) auto;
+        grid-template-columns: 160px minmax(0, 1fr) auto;
       }
 
       .field {
@@ -558,6 +565,7 @@
       @media (max-width: 980px) {
         .header-top,
         .filter-row,
+        .toolbar-main,
         .modal-grid {
           grid-template-columns: 1fr;
         }
@@ -640,20 +648,21 @@
               <h2>部位筛选</h2>
             </div>
           </div>
-          <div class="capsule-bar" id="slotCapsules"></div>
-        </div>
-
-        <div class="filter-row">
-          <label class="field">
-            <span>流派筛选</span>
-            <select id="classFilter"></select>
-          </label>
-          <label class="field">
-            <span>名称搜索</span>
-            <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
-          </label>
-          <div class="toolbar-actions">
-            <button class="secondary" id="resetFiltersButton" type="button">重置筛选</button>
+          <div class="toolbar-main">
+            <div class="capsule-bar" id="slotCapsules"></div>
+            <div class="filter-row">
+              <label class="field">
+                <span>流派筛选</span>
+                <select id="classFilter"></select>
+              </label>
+              <label class="field">
+                <span>名称搜索</span>
+                <input id="searchInput" type="text" placeholder="按装备备注名筛选" />
+              </label>
+              <div class="toolbar-actions">
+                <button class="secondary" id="resetFiltersButton" type="button">重置筛选</button>
+              </div>
+            </div>
           </div>
         </div>
 
