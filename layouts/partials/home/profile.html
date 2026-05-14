@@ -13,8 +13,9 @@
     position: relative;
     overflow: hidden;
     width: 100vw;
-    min-height: calc(100vh - 148px);
-    padding: clamp(1.2rem, 2vw, 2rem);
+    margin-top: -148px;
+    min-height: 100vh;
+    padding: calc(148px + clamp(1.2rem, 2vw, 2rem)) clamp(1.2rem, 2vw, 2rem) clamp(1.2rem, 2vw, 2rem);
     background: #07111d;
   }
 
@@ -102,8 +103,8 @@
 
   @media (max-width: 768px) {
     .rain-home-scene {
-      min-height: auto;
-      padding: 1rem;
+      min-height: 100vh;
+      padding: calc(148px + 1rem) 1rem 1rem;
     }
 
     .rain-home-card,
