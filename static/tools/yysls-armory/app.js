@@ -220,7 +220,7 @@
       return acc;
     }, {});
 
-    const renderOrder = ["全部", ...slotOrder.filter((slot) => slotCounts[slot])];
+    const renderOrder = ["全部", ...slotOrder];
     const fallback = Object.keys(slotCounts).filter((slot) => !slotOrder.includes(slot));
     const labels = [...renderOrder, ...fallback];
 
@@ -244,6 +244,23 @@
       });
     });
 
+  }
+
+  function renderEmptyEquipmentCard(text) {
+    nodes.equipmentGrid.innerHTML = `
+      <article class="equipment-card">
+        <div class="equipment-card-title">
+          <strong>无</strong>
+          <div class="pill-row">
+            <span class="pill">当前没有装备</span>
+          </div>
+        </div>
+        <div class="data-block">
+          <span class="label">说明</span>
+          <strong>${escapeHtml(text)}</strong>
+        </div>
+      </article>
+    `;
   }
 
   function renderEquipmentCard(item) {
@@ -320,12 +337,12 @@
     const current = currentEquipments();
 
     if (!current.length) {
-      nodes.equipmentGrid.innerHTML = "";
+      renderEmptyEquipmentCard("当前角色还没有装备，你可以先导入 JSON，或者新建角色后再慢慢维护。");
       return;
     }
 
     if (!equipments.length) {
-      nodes.equipmentGrid.innerHTML = "";
+      renderEmptyEquipmentCard("当前筛选条件下没有装备。");
       return;
     }
 
@@ -344,7 +361,6 @@
   function renderWelcome() {
     const hasAccounts = state.accounts.length > 0;
     nodes.welcomeState.classList.toggle("hidden", hasAccounts);
-    nodes.inventoryShell.classList.toggle("hidden", !hasAccounts);
   }
 
   function renderInventory() {
@@ -358,10 +374,9 @@
     renderWelcome();
 
     if (!state.accounts.length || !state.selectedAccount) {
-      nodes.slotCapsules.innerHTML = "";
-      nodes.equipmentGrid.innerHTML = "";
-      fillSelect(nodes.classFilter, ["全部"], "全部");
-      fillSelect(nodes.weaponFilter, ["全部"], "全部");
+      buildFilterOptions();
+      renderSlotCapsules();
+      renderEquipmentGrid();
       return;
     }
 
