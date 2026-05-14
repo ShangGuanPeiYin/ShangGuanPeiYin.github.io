@@ -12,7 +12,7 @@ disableLanguages = []
     languageName = "简体中文"
     languageCode = "zh-cn"
     weight = 9
-    title = "我的博客"
+    title = "野鹤的博客"
 
     [languages.zh-cn.params]
       displayName = "简体中文"
