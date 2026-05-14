@@ -3,14 +3,23 @@
 {{ $rainScript := resources.Get "js/home-rain.js" | resources.Minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm | default "sha512") }}
 
 <style>
+  body:has([data-rain-home]) {
+    background: #07111d !important;
+  }
+
+  #main-content:has([data-rain-home]) {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+
   .rain-home-scene {
     position: relative;
     overflow: hidden;
-    border-radius: 2rem;
-    min-height: calc(100vh - 9rem);
-    padding: clamp(1.4rem, 2vw, 2rem);
+    width: 100vw;
+    min-height: calc(100vh - 148px);
+    padding: clamp(1.2rem, 2vw, 2rem);
     background: #07111d;
-    box-shadow: 0 32px 90px rgba(6, 12, 24, 0.32);
   }
 
   .rain-home-bg,
@@ -98,7 +107,6 @@
   @media (max-width: 768px) {
     .rain-home-scene {
       min-height: auto;
-      border-radius: 1.5rem;
       padding: 1rem;
     }
 
