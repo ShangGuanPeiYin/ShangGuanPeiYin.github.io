@@ -41,6 +41,7 @@
     accountBox: document.getElementById("accountBox"),
     fileInput: document.getElementById("fileInput"),
     jsonInput: document.getElementById("jsonInput"),
+    importStatus: document.getElementById("importStatus"),
     importButton: document.getElementById("importButton"),
     exportButton: document.getElementById("exportButton"),
     downloadButton: document.getElementById("downloadButton"),
@@ -68,9 +69,21 @@
     nodes.messageBox.className = `status-banner ${tone}`;
   }
 
+  function setImportStatus(text, tone) {
+    if (!nodes.importStatus) return;
+    if (!text) {
+      nodes.importStatus.textContent = "";
+      nodes.importStatus.className = "status-banner info hidden";
+      return;
+    }
+    nodes.importStatus.textContent = text;
+    nodes.importStatus.className = `status-banner ${tone}`;
+  }
+
   function setDataModalOpen(open) {
     nodes.dataModal.classList.toggle("hidden", !open);
     document.body.style.overflow = open ? "hidden" : "";
+    if (!open) setImportStatus("", "info");
   }
 
   function setDataTab(mode) {
@@ -388,6 +401,7 @@
     const accounts = normalized.game_account_list || [];
     if (!accounts.length) {
       setMessage("导入成功，但没有识别到角色。请确认 JSON 中包含 game_account_list 或 game_equip_data_账号名。", "warn");
+      setImportStatus("导入失败：没有识别到角色。", "warn");
       return;
     }
 
@@ -402,6 +416,7 @@
     saveRawData();
     renderAll();
     setMessage(`已载入 ${state.selectedAccount} 的装备数据，共识别 ${accounts.length} 个角色。`, "info");
+    setImportStatus("导入成功。", "info");
   }
 
   function handleImportText(text) {
@@ -411,6 +426,7 @@
       loadImportedPayload(data);
     } catch (error) {
       setMessage(`导入失败：${error.message}`, "warn");
+      setImportStatus(`导入失败：${error.message}`, "warn");
     }
   }
 
@@ -500,6 +516,7 @@
   });
 
   nodes.openDataModalButton.addEventListener("click", () => {
+    setImportStatus("", "info");
     setDataModalOpen(true);
     setDataTab("import");
   });
@@ -530,9 +547,11 @@
     try {
       const text = await file.text();
       nodes.jsonInput.value = text;
+      setImportStatus("", "info");
       handleImportText(text);
     } catch (error) {
       setMessage(`读取文件失败：${error.message}`, "warn");
+      setImportStatus(`读取文件失败：${error.message}`, "warn");
     }
   });
 
@@ -540,6 +559,7 @@
     const text = nodes.jsonInput.value.trim();
     if (!text) {
       setMessage("先粘贴 JSON，或者上传文件。", "warn");
+      setImportStatus("导入失败：先粘贴 JSON，或者上传文件。", "warn");
       return;
     }
     handleImportText(text);

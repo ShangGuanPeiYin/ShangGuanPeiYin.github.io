@@ -195,6 +195,10 @@
         color: var(--danger);
       }
 
+      .status-banner.hidden {
+        display: none;
+      }
+
       .welcome-state {
         margin-top: 20px;
         padding: 32px 26px;
@@ -703,6 +707,7 @@
               <button class="secondary" id="exportButton" type="button">导出当前数据</button>
               <button class="secondary" id="downloadButton" type="button">下载为文件</button>
             </div>
+            <div id="importStatus" class="status-banner info hidden" style="margin-top: 14px;"></div>
           </section>
 
           <section class="modal-box hidden" id="accountBox">
@@ -720,6 +725,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260514-1"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260514-2"></script>
   </body>
 </html>
