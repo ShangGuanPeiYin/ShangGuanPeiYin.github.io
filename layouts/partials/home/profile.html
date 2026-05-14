@@ -1,0 +1,176 @@
+{{ $disableImageOptimization := .Site.Params.disableImageOptimization | default false }}
+{{ $background := resources.Get "img/home-rain-bg.webp" }}
+{{ $rainScript := resources.Get "js/home-rain.js" | resources.Minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm | default "sha512") }}
+
+<style>
+  .rain-home-scene {
+    position: relative;
+    overflow: hidden;
+    border-radius: 2rem;
+    min-height: calc(100vh - 9rem);
+    padding: clamp(1.4rem, 2vw, 2rem);
+    background: #07111d;
+    box-shadow: 0 32px 90px rgba(6, 12, 24, 0.32);
+  }
+
+  .rain-home-bg,
+  .rain-home-canvas,
+  .rain-home-overlay {
+    position: absolute;
+    inset: 0;
+  }
+
+  .rain-home-bg {
+    background-image:
+      linear-gradient(180deg, rgba(5, 13, 26, 0.1) 0%, rgba(5, 13, 26, 0.22) 100%),
+      url('{{ with $background }}{{ .RelPermalink }}{{ end }}');
+    background-size: cover;
+    background-position: center center;
+    transform: scale(1.02);
+  }
+
+  .rain-home-canvas {
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .rain-home-overlay {
+    z-index: 2;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 28% 38%, rgba(104, 232, 255, 0.18), transparent 20%),
+      radial-gradient(circle at 72% 24%, rgba(166, 231, 255, 0.13), transparent 18%),
+      radial-gradient(circle at center, transparent 42%, rgba(2, 9, 21, 0.28) 100%),
+      linear-gradient(180deg, rgba(4, 10, 26, 0.2) 0%, rgba(4, 10, 26, 0.48) 100%);
+  }
+
+  .rain-home-content {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .rain-home-card,
+  .rain-home-recent {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, rgba(8, 18, 35, 0.48), rgba(8, 18, 35, 0.36));
+    backdrop-filter: blur(16px);
+    box-shadow: 0 24px 60px rgba(5, 11, 23, 0.22);
+  }
+
+  .rain-home-card {
+    max-width: 860px;
+    margin: 0 auto;
+    border-radius: 2rem;
+    padding: clamp(1.5rem, 2vw, 2.4rem);
+  }
+
+  .rain-home-recent {
+    border-radius: 1.75rem;
+    padding: clamp(1rem, 1.8vw, 1.5rem);
+  }
+
+  .rain-home-card h1,
+  .rain-home-card h2,
+  .rain-home-card p,
+  .rain-home-card .prose,
+  .rain-home-card .prose a {
+    color: #eef6ff;
+  }
+
+  .rain-home-card h2 {
+    color: rgba(229, 240, 255, 0.8);
+  }
+
+  .rain-home-card .prose :where(strong, b) {
+    color: #ffffff;
+  }
+
+  .rain-home-card .prose :where(a) {
+    text-decoration-color: rgba(148, 216, 255, 0.65);
+  }
+
+  .rain-home-card .prose :where(a:hover) {
+    color: #dff4ff;
+  }
+
+  @media (max-width: 768px) {
+    .rain-home-scene {
+      min-height: auto;
+      border-radius: 1.5rem;
+      padding: 1rem;
+    }
+
+    .rain-home-card,
+    .rain-home-recent {
+      border-radius: 1.35rem;
+      padding: 1rem;
+    }
+  }
+</style>
+
+<section class="rain-home-scene" data-rain-home>
+  <div class="rain-home-bg"></div>
+  <canvas class="rain-home-canvas" data-rain-canvas></canvas>
+  <div class="rain-home-overlay"></div>
+
+  <div class="rain-home-content">
+    <article class="rain-home-card">
+      <article
+        class="{{ if not .Site.Params.homepage.showRecent }}
+          h-full
+        {{ end }} flex flex-col items-center justify-center text-center">
+        <header class="relative px-1 py-1 flex flex-col items-center mb-3">
+          {{ with .Site.Params.Author.image }}
+            {{ $authorImage := "" }}
+            {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
+              {{ $authorImage = resources.GetRemote . }}
+            {{ else }}
+              {{ $authorImage = resources.Get . }}
+            {{ end }}
+            {{ if $authorImage }}
+              {{ $final := $authorImage }}
+              {{ $squareImage := $authorImage }}
+              {{ if not (or $disableImageOptimization (eq $authorImage.MediaType.SubType "svg")) }}
+                {{ $final = $authorImage.Fill (print "288x288 q" ( $.Site.Params.Author.imagequality | default "96" )) }}
+                {{ $shortSide := int (math.Min $authorImage.Width $authorImage.Height) }}
+                {{ $squareImage = $authorImage.Crop (printf "%dx%d" $shortSide $shortSide ) }}
+              {{ end }}
+              <img
+                class="mb-2 h-36 w-36 rounded-full"
+                width="144"
+                height="144"
+                alt="{{ $.Site.Params.Author.name | default `Author` }}"
+                src="{{ $final.RelPermalink }}"
+                data-zoom-src="{{ $squareImage.RelPermalink }}">
+            {{ end }}
+          {{ end }}
+          <h1 class="text-4xl font-extrabold">
+            {{ .Site.Params.Author.name | default .Site.Title }}
+          </h1>
+          {{ with .Site.Params.Author.headline }}
+            <h2 class="text-xl">
+              {{ . | markdownify }}
+            </h2>
+          {{ end }}
+          <div class="mt-1 text-2xl">
+            {{ partialCached "author-links.html" . }}
+          </div>
+        </header>
+        <section class="prose dark:prose-invert w-full">{{ .Content }}</section>
+      </article>
+    </article>
+
+    {{ if .Site.Params.homepage.showRecent }}
+      <section class="rain-home-recent">
+        {{ partial "recent-articles/main.html" . }}
+      </section>
+    {{ end }}
+  </div>
+</section>
+
+<script
+  type="text/javascript"
+  src="{{ $rainScript.RelPermalink }}"
+  integrity="{{ $rainScript.Data.Integrity }}"></script>
