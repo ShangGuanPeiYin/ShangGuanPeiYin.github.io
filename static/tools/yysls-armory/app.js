@@ -26,7 +26,6 @@
 
   const nodes = {
     messageBox: document.getElementById("messageBox"),
-    welcomeState: document.getElementById("welcomeState"),
     inventoryShell: document.getElementById("inventoryShell"),
     accountSelect: document.getElementById("accountSelect"),
     createAccountButton: document.getElementById("createAccountButton"),
@@ -359,11 +358,6 @@
     });
   }
 
-  function renderWelcome() {
-    const hasAccounts = state.accounts.length > 0;
-    nodes.welcomeState.classList.toggle("hidden", hasAccounts);
-  }
-
   function renderInventory() {
     buildFilterOptions();
     renderSlotCapsules();
@@ -372,7 +366,6 @@
 
   function renderAll() {
     renderAccountOptions();
-    renderWelcome();
 
     if (!state.accounts.length || !state.selectedAccount) {
       buildFilterOptions();
