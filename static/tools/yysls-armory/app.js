@@ -21,7 +21,6 @@
     selectedAccount: "",
     selectedSlot: "全部",
     selectedClass: "全部",
-    selectedWeaponType: "全部",
     searchText: ""
   };
 
@@ -49,7 +48,6 @@
     clearSavedButton: document.getElementById("clearSavedButton"),
     slotCapsules: document.getElementById("slotCapsules"),
     classFilter: document.getElementById("classFilter"),
-    weaponFilter: document.getElementById("weaponFilter"),
     searchInput: document.getElementById("searchInput"),
     resetFiltersButton: document.getElementById("resetFiltersButton"),
     equipmentGrid: document.getElementById("equipmentGrid")
@@ -198,16 +196,9 @@
   function buildFilterOptions() {
     const equipments = currentEquipments();
     const classes = [...new Set(equipments.flatMap((item) => item.availableClasses || []).filter(Boolean))];
-    const weaponTypes = [...new Set(
-      equipments
-        .filter((item) => item.slotName === "武器")
-        .map((item) => weaponTypeLabel(item.weaponTypeId))
-    )];
 
     fillSelect(nodes.classFilter, ["全部", ...classes], state.selectedClass);
-    fillSelect(nodes.weaponFilter, ["全部", ...weaponTypes], state.selectedWeaponType);
     state.selectedClass = nodes.classFilter.value || "全部";
-    state.selectedWeaponType = nodes.weaponFilter.value || "全部";
   }
 
   function filteredEquipments() {
@@ -216,12 +207,9 @@
       const matchClass =
         state.selectedClass === "全部" ||
         (Array.isArray(item.availableClasses) && item.availableClasses.includes(state.selectedClass));
-      const matchWeaponType =
-        state.selectedWeaponType === "全部" ||
-        (item.slotName === "武器" && weaponTypeLabel(item.weaponTypeId) === state.selectedWeaponType);
       const search = state.searchText.trim().toLowerCase();
       const matchSearch = !search || String(item.name || "").toLowerCase().includes(search);
-      return matchSlot && matchClass && matchWeaponType && matchSearch;
+      return matchSlot && matchClass && matchSearch;
     });
   }
 
@@ -410,7 +398,6 @@
     state.selectedAccount = pickPreferredAccount(normalized, accounts);
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
-    state.selectedWeaponType = "全部";
     state.searchText = "";
     if (nodes.searchInput) nodes.searchInput.value = "";
     saveRawData();
@@ -592,7 +579,6 @@
     state.selectedAccount = "";
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
-    state.selectedWeaponType = "全部";
     state.searchText = "";
     nodes.jsonInput.value = "";
     nodes.searchInput.value = "";
@@ -605,11 +591,6 @@
     renderInventory();
   });
 
-  nodes.weaponFilter.addEventListener("change", () => {
-    state.selectedWeaponType = nodes.weaponFilter.value;
-    renderInventory();
-  });
-
   nodes.searchInput.addEventListener("input", () => {
     state.searchText = nodes.searchInput.value;
     renderInventory();
@@ -618,7 +599,6 @@
   nodes.resetFiltersButton.addEventListener("click", () => {
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
-    state.selectedWeaponType = "全部";
     state.searchText = "";
     nodes.searchInput.value = "";
     renderInventory();
@@ -628,7 +608,6 @@
     setDataModalOpen(false);
     setDataTab("import");
     fillSelect(nodes.classFilter, ["全部"], "全部");
-    fillSelect(nodes.weaponFilter, ["全部"], "全部");
     renderAll();
 
     const saved = localStorage.getItem(STORAGE_KEY);
