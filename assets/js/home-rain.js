@@ -1,6 +1,7 @@
 (function () {
   function initRainScene(root) {
     const canvas = root.querySelector("[data-rain-canvas]");
+    const background = root.querySelector("[data-rain-bg]");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
@@ -10,29 +11,36 @@
     const mobile = window.matchMedia("(max-width: 768px)");
 
     let drops = [];
+    let foregroundDrops = [];
     let width = 0;
     let height = 0;
     let dpr = 1;
     let frameId = 0;
     let paused = false;
+    let parallaxX = 0;
+    let parallaxY = 0;
 
     function getConfig() {
       if (mobile.matches) {
         return {
           count: 70,
+          foregroundCount: 16,
           speedMin: 8,
           speedMax: 15,
           lengthMin: 18,
-          lengthMax: 40
+          lengthMax: 40,
+          parallaxRange: 4
         };
       }
 
       return {
         count: 150,
+        foregroundCount: 28,
         speedMin: 10,
         speedMax: 22,
         lengthMin: 22,
-        lengthMax: 60
+        lengthMax: 60,
+        parallaxRange: 8
       };
     }
 
@@ -53,7 +61,20 @@
       };
     }
 
+    function createForegroundDrop(initial) {
+      return {
+        x: Math.random() * width,
+        y: initial ? Math.random() * height : -80 - Math.random() * height * 0.35,
+        length: 60 + Math.random() * 70,
+        speed: 18 + Math.random() * 16,
+        drift: 10 + Math.random() * 10,
+        opacity: 0.09 + Math.random() * 0.13,
+        thickness: 1.8 + Math.random() * 1.7
+      };
+    }
+
     function resize() {
+      const config = getConfig();
       width = Math.max(1, Math.floor(root.clientWidth));
       height = Math.max(1, Math.floor(root.clientHeight));
       dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -64,8 +85,11 @@
       canvas.style.height = height + "px";
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drops = Array.from({ length: getConfig().count }, function () {
+      drops = Array.from({ length: config.count }, function () {
         return createDrop(true);
+      });
+      foregroundDrops = Array.from({ length: config.foregroundCount }, function () {
+        return createForegroundDrop(true);
       });
     }
 
@@ -87,6 +111,25 @@
           Object.assign(drop, createDrop(false));
         }
       }
+
+      ctx.save();
+      ctx.filter = "blur(1.6px)";
+      for (const drop of foregroundDrops) {
+        ctx.beginPath();
+        ctx.lineWidth = drop.thickness;
+        ctx.strokeStyle = "rgba(240, 247, 255," + drop.opacity.toFixed(3) + ")";
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x - drop.drift, drop.y + drop.length);
+        ctx.stroke();
+
+        drop.y += drop.speed;
+        drop.x -= drop.drift * 0.12;
+
+        if (drop.y > height + drop.length || drop.x < -48) {
+          Object.assign(drop, createForegroundDrop(false));
+        }
+      }
+      ctx.restore();
     }
 
     function tick() {
@@ -100,6 +143,24 @@
       paused = document.hidden;
     }
 
+    function handlePointerMove(event) {
+      if (!background || mobile.matches || reduceMotion.matches) return;
+      const rect = root.getBoundingClientRect();
+      const ratioX = (event.clientX - rect.left) / rect.width - 0.5;
+      const ratioY = (event.clientY - rect.top) / rect.height - 0.5;
+      const range = getConfig().parallaxRange;
+      parallaxX = ratioX * range * -1;
+      parallaxY = ratioY * range * -1;
+      background.style.transform = "translate3d(" + parallaxX.toFixed(2) + "px," + parallaxY.toFixed(2) + "px,0) scale(1.04)";
+    }
+
+    function resetParallax() {
+      if (!background) return;
+      parallaxX = 0;
+      parallaxY = 0;
+      background.style.transform = "translate3d(0,0,0) scale(1.04)";
+    }
+
     resize();
     handleVisibility();
 
@@ -108,12 +169,16 @@
 
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("orientationchange", resize);
+    root.addEventListener("pointermove", handlePointerMove);
+    root.addEventListener("pointerleave", resetParallax);
     frameId = window.requestAnimationFrame(tick);
 
     return function cleanup() {
       resizeObserver.disconnect();
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("orientationchange", resize);
+      root.removeEventListener("pointermove", handlePointerMove);
+      root.removeEventListener("pointerleave", resetParallax);
       window.cancelAnimationFrame(frameId);
     };
   }

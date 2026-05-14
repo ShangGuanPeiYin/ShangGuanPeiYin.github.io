@@ -32,7 +32,9 @@
       url('{{ with $background }}{{ .RelPermalink }}{{ end }}');
     background-size: cover;
     background-position: center center;
-    transform: scale(1.02);
+    transform: translate3d(0, 0, 0) scale(1.04);
+    transition: transform 220ms ease-out;
+    will-change: transform;
   }
 
   .rain-home-canvas {
@@ -116,7 +118,7 @@
 </style>
 
 <section class="rain-home-scene" data-rain-home>
-  <div class="rain-home-bg"></div>
+  <div class="rain-home-bg" data-rain-bg></div>
   <canvas class="rain-home-canvas" data-rain-canvas></canvas>
   <div class="rain-home-overlay"></div>
 
