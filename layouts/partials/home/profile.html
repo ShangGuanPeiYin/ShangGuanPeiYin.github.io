@@ -3,10 +3,6 @@
 {{ $rainScript := resources.Get "js/home-rain.js" | resources.Minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm | default "sha512") }}
 
 <style>
-  body:has([data-rain-home]) {
-    background: #07111d !important;
-  }
-
   #main-content:has([data-rain-home]) {
     width: 100vw;
     margin-left: calc(50% - 50vw);
