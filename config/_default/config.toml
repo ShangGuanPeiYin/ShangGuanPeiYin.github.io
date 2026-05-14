@@ -19,7 +19,7 @@ disableLanguages = []
       isoCode = "zh-cn"
       rtl = false
       dateFormat = "2006-01-02"
-      logo = "img/sabito.png"
+      logo = "img/sabito-logo.png"
       description = "使用 Hugo 和 Blowfish 搭建的个人博客。"
 
     [languages.zh-cn.params.author]
