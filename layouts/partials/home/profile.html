@@ -111,13 +111,9 @@
 
   .rain-home-profile .prose .home-manifesto {
     margin: 0 auto 1.25rem;
-    width: fit-content;
-    max-width: min(100%, 16ch);
-    padding: 0.6rem 1.15rem;
-    border: 1px solid rgba(226, 242, 255, 0.22);
-    border-radius: 999px;
-    background: linear-gradient(135deg, rgba(10, 22, 41, 0.42), rgba(24, 52, 78, 0.18));
-    box-shadow: 0 16px 42px rgba(3, 10, 20, 0.18);
+    width: max-content;
+    max-width: 100%;
+    padding: 0;
     color: #ffffff;
     font-size: clamp(1.5rem, 3vw, 2.5rem);
     font-style: italic;
@@ -125,7 +121,8 @@
     letter-spacing: 0.08em;
     line-height: 1.1;
     text-transform: lowercase;
-    text-wrap: balance;
+    white-space: nowrap;
+    text-shadow: 0 10px 30px rgba(3, 10, 20, 0.35);
   }
 
   .rain-home-profile .prose .home-manifesto::first-letter {
@@ -169,8 +166,8 @@
     }
 
     .rain-home-profile .prose .home-manifesto {
-      padding: 0.55rem 0.95rem;
       letter-spacing: 0.05em;
+      white-space: normal;
     }
   }
 </style>
