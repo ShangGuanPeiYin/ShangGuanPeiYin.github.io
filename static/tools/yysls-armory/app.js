@@ -459,9 +459,6 @@
 
       <section class="editor-substats">
         <div class="section-head">
-          <div>
-            <h3>副词条</h3>
-          </div>
           <button class="secondary" id="addSubstatButton" type="button">+ 添加副词条</button>
         </div>
         <div id="substatEditorRows">${renderSubstatRows(item.subStats || [])}</div>
