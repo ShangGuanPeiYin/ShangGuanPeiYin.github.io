@@ -3,6 +3,15 @@
   const ACCOUNT_KEY = "yysls_armory_selected_account_v2";
 
   const slotOrder = ["武器", "环", "佩", "冠胄", "胸甲", "胫甲", "腕甲"];
+  const slotIdMap = {
+    武器: "1",
+    环: "3",
+    佩: "4",
+    冠胄: "5",
+    胸甲: "6",
+    胫甲: "7",
+    腕甲: "8"
+  };
   const weaponTypeMap = {
     "1": "剑",
     "2": "枪",
@@ -14,6 +23,36 @@
     "8": "横刀",
     "9": "拳甲"
   };
+  const defaultStatTypes = [
+    "最大外功攻击",
+    "最小外功攻击",
+    "最小无相攻击",
+    "最大无相攻击",
+    "精准率",
+    "会心率",
+    "会意率",
+    "劲",
+    "敏",
+    "势",
+    "全武学增效",
+    "对首领单位增伤",
+    "对玩家单位增效",
+    "外功穿透",
+    "属攻穿透",
+    "无相穿透",
+    "指定武学技能增伤",
+    "单体类奇术增伤",
+    "群体类奇术增伤",
+    "剑武学增效",
+    "枪武学增效",
+    "伞武学增效",
+    "扇武学增效",
+    "绳标武学增效",
+    "双刀武学增效",
+    "陌刀武学增效",
+    "横刀武学增效",
+    "拳甲武学增效"
+  ];
 
   const state = {
     rawData: null,
@@ -21,7 +60,8 @@
     selectedAccount: "",
     selectedSlot: "全部",
     selectedClass: "全部",
-    searchText: ""
+    searchText: "",
+    editingEquipmentId: null
   };
 
   const nodes = {
@@ -49,7 +89,11 @@
     classFilter: document.getElementById("classFilter"),
     searchInput: document.getElementById("searchInput"),
     resetFiltersButton: document.getElementById("resetFiltersButton"),
-    equipmentGrid: document.getElementById("equipmentGrid")
+    equipmentGrid: document.getElementById("equipmentGrid"),
+    equipmentEditorModal: document.getElementById("equipmentEditorModal"),
+    equipmentEditorTitle: document.getElementById("equipmentEditorTitle"),
+    equipmentEditorForm: document.getElementById("equipmentEditorForm"),
+    closeEquipmentEditorButton: document.getElementById("closeEquipmentEditorButton")
   };
 
   function escapeHtml(value) {
@@ -79,8 +123,21 @@
 
   function setDataModalOpen(open) {
     nodes.dataModal.classList.toggle("hidden", !open);
-    document.body.style.overflow = open ? "hidden" : "";
+    syncBodyScroll();
     if (!open) setImportStatus("", "info");
+  }
+
+  function setEquipmentEditorOpen(open) {
+    nodes.equipmentEditorModal.classList.toggle("hidden", !open);
+    if (!open) state.editingEquipmentId = null;
+    syncBodyScroll();
+  }
+
+  function syncBodyScroll() {
+    const hasOpenModal =
+      !nodes.dataModal.classList.contains("hidden") ||
+      !nodes.equipmentEditorModal.classList.contains("hidden");
+    document.body.style.overflow = hasOpenModal ? "hidden" : "";
   }
 
   function setDataTab(mode) {
@@ -157,6 +214,335 @@
   function statText(stat) {
     if (!stat || !stat.type) return "无";
     return `${stat.type} ${stat.value}${stat.isPercent ? "%" : ""}`;
+  }
+
+  function slotIdForName(name) {
+    return slotIdMap[name] || "";
+  }
+
+  function inferPercent(type) {
+    return /(率|增伤|增效|加成)$/.test(String(type || ""));
+  }
+
+  function normalizeStat(stat) {
+    return {
+      type: stat && stat.type ? stat.type : "",
+      value: stat && typeof stat.value !== "undefined" ? stat.value : 0,
+      isPercent: stat && typeof stat.isPercent === "boolean" ? stat.isPercent : inferPercent(stat && stat.type)
+    };
+  }
+
+  function collectStatTypes() {
+    const values = new Set(defaultStatTypes);
+    if (!state.rawData) return [...values];
+
+    Object.keys(state.rawData)
+      .filter((key) => key.startsWith("game_equip_data_"))
+      .forEach((key) => {
+        const list = state.rawData[key];
+        if (!Array.isArray(list)) return;
+        list.forEach((item) => {
+          [item.mainStat, item.dingyinStat, ...(item.subStats || [])].forEach((stat) => {
+            if (stat && stat.type) values.add(stat.type);
+          });
+        });
+      });
+
+    return [...values].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+  }
+
+  function findEquipmentById(id) {
+    return currentEquipments().find((item) => String(item.id) === String(id)) || null;
+  }
+
+  function selectHtmlOptions(values, selectedValue, includeEmpty) {
+    const options = includeEmpty ? ['<option value="">未设置</option>'] : [];
+    values.forEach((value) => {
+      const selected = String(value) === String(selectedValue) ? " selected" : "";
+      options.push(`<option value="${escapeHtml(value)}"${selected}>${escapeHtml(value)}</option>`);
+    });
+    return options.join("");
+  }
+
+  function weaponTypeOptionsHtml(selectedValue) {
+    const options = ['<option value="">未设置</option>'];
+    Object.entries(weaponTypeMap).forEach(([id, name]) => {
+      const selected = String(id) === String(selectedValue) ? " selected" : "";
+      options.push(`<option value="${escapeHtml(id)}"${selected}>${escapeHtml(name)}</option>`);
+    });
+    return options.join("");
+  }
+
+  function renderStatEditor(prefix, title, stat, includeEmpty) {
+    const normalized = normalizeStat(stat);
+    return `
+      <section class="editor-stat-card">
+        <h3>${escapeHtml(title)}</h3>
+        <label class="field">
+          <span>词条类型</span>
+          <select name="${prefix}Type">
+            ${selectHtmlOptions(collectStatTypes(), normalized.type, includeEmpty)}
+          </select>
+        </label>
+        <div class="editor-grid">
+          <label class="field">
+            <span>数值</span>
+            <input name="${prefix}Value" type="number" step="0.1" value="${escapeHtml(normalized.value)}" />
+          </label>
+          <label class="editor-check">
+            <input name="${prefix}IsPercent" type="checkbox" ${normalized.isPercent ? "checked" : ""} />
+            <span>按百分比显示</span>
+          </label>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderSubstatRows(subStats) {
+    const statTypes = collectStatTypes();
+    const rows = (subStats && subStats.length ? subStats : [normalizeStat(null)])
+      .map((stat, index) => {
+        const normalized = normalizeStat(stat);
+        return `
+          <div class="substat-editor-row" data-substat-row="${index}">
+            <label class="field">
+              <span>副词条 ${index + 1}</span>
+              <select name="subType">
+                ${selectHtmlOptions(statTypes, normalized.type, true)}
+              </select>
+            </label>
+            <label class="field">
+              <span>数值</span>
+              <input name="subValue" type="number" step="0.1" value="${escapeHtml(normalized.value)}" />
+            </label>
+            <label class="editor-check">
+              <input name="subPercent" type="checkbox" ${normalized.isPercent ? "checked" : ""} />
+              <span>百分比</span>
+            </label>
+            <button class="danger editor-inline-action" type="button" data-remove-substat="${index}">删除</button>
+          </div>
+        `;
+      })
+      .join("");
+
+    return rows;
+  }
+
+  function mountEquipmentEditor(item) {
+    const classesText = Array.isArray(item.availableClasses) ? item.availableClasses.join("，") : "";
+    const statTypes = collectStatTypes();
+    const mainStat = normalizeStat(item.mainStat);
+    const dingyinStat = normalizeStat(item.dingyinStat);
+
+    nodes.equipmentEditorTitle.textContent = `编辑装备 · ${item.name || "未命名装备"}`;
+    nodes.equipmentEditorForm.innerHTML = `
+      <div class="editor-grid">
+        <label class="field">
+          <span>装备备注名</span>
+          <input id="editorName" type="text" value="${escapeHtml(item.name || "")}" />
+        </label>
+        <label class="field">
+          <span>部位</span>
+          <select id="editorSlotName">
+            ${selectHtmlOptions(slotOrder, item.slotName || "", false)}
+          </select>
+        </label>
+      </div>
+
+      <div class="editor-grid">
+        <label class="field" id="editorWeaponTypeField">
+          <span>武器类型</span>
+          <select id="editorWeaponTypeId">
+            ${weaponTypeOptionsHtml(item.weaponTypeId || "")}
+          </select>
+        </label>
+        <label class="field">
+          <span>适用流派</span>
+          <input id="editorClasses" type="text" value="${escapeHtml(classesText)}" placeholder="用逗号或顿号分隔，例如：破竹风，破竹尘" />
+        </label>
+      </div>
+
+      <div class="editor-toggle-row">
+        <label class="editor-check">
+          <input id="editorIsChengyin" type="checkbox" ${item.isChengyin ? "checked" : ""} />
+          <span>已承音</span>
+        </label>
+        <label class="editor-check">
+          <input id="editorIsPurple" type="checkbox" ${item.isPurple ? "checked" : ""} />
+          <span>紫装</span>
+        </label>
+      </div>
+
+      <div class="editor-grid">
+        <section class="editor-stat-card">
+          <h3>主词条</h3>
+          <label class="field">
+            <span>词条类型</span>
+            <select id="editorMainType">
+              ${selectHtmlOptions(statTypes, mainStat.type, false)}
+            </select>
+          </label>
+          <div class="editor-grid">
+            <label class="field">
+              <span>数值</span>
+              <input id="editorMainValue" type="number" step="0.1" value="${escapeHtml(mainStat.value)}" />
+            </label>
+            <label class="editor-check">
+              <input id="editorMainPercent" type="checkbox" ${mainStat.isPercent ? "checked" : ""} />
+              <span>按百分比显示</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="editor-stat-card">
+          <h3>定音词条</h3>
+          <label class="field">
+            <span>词条类型</span>
+            <select id="editorDingyinType">
+              ${selectHtmlOptions(statTypes, dingyinStat.type, true)}
+            </select>
+          </label>
+          <div class="editor-grid">
+            <label class="field">
+              <span>数值</span>
+              <input id="editorDingyinValue" type="number" step="0.1" value="${escapeHtml(dingyinStat.value)}" />
+            </label>
+            <label class="editor-check">
+              <input id="editorDingyinPercent" type="checkbox" ${dingyinStat.isPercent ? "checked" : ""} />
+              <span>按百分比显示</span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <section class="editor-substats">
+        <div class="section-head">
+          <div>
+            <h3>副词条</h3>
+            <p class="subtle">每条副词条都可以直接改类型、数值和是否按百分比显示。</p>
+          </div>
+          <button class="secondary" id="addSubstatButton" type="button">+ 添加副词条</button>
+        </div>
+        <div id="substatEditorRows">${renderSubstatRows(item.subStats || [])}</div>
+      </section>
+
+      <div class="editor-footer">
+        <button class="danger" id="deleteEquipmentButton" type="button">删除这件装备</button>
+        <div class="modal-actions" style="margin-top: 0;">
+          <button class="secondary" id="cancelEquipmentEditorButton" type="button">取消</button>
+          <button class="primary" id="saveEquipmentEditorButton" type="button">保存修改</button>
+        </div>
+      </div>
+    `;
+
+    const weaponField = document.getElementById("editorWeaponTypeField");
+    const slotSelect = document.getElementById("editorSlotName");
+    const substatRows = document.getElementById("substatEditorRows");
+
+    function syncWeaponField() {
+      weaponField.classList.toggle("hidden", slotSelect.value !== "武器");
+    }
+
+    function bindSubstatRowActions() {
+      substatRows.querySelectorAll("[data-remove-substat]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const row = button.closest(".substat-editor-row");
+          if (row) row.remove();
+        });
+      });
+    }
+
+    slotSelect.addEventListener("change", syncWeaponField);
+    syncWeaponField();
+
+    document.getElementById("addSubstatButton").addEventListener("click", () => {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = renderSubstatRows([normalizeStat(null)]);
+      substatRows.appendChild(wrapper.firstElementChild);
+      bindSubstatRowActions();
+    });
+
+    document.getElementById("cancelEquipmentEditorButton").addEventListener("click", () => {
+      setEquipmentEditorOpen(false);
+    });
+
+    document.getElementById("deleteEquipmentButton").addEventListener("click", () => {
+      if (window.confirm("确定要删除这件装备吗？此操作会直接写入当前浏览器缓存。")) {
+        deleteEquipment(item.id);
+        setEquipmentEditorOpen(false);
+      }
+    });
+
+    document.getElementById("saveEquipmentEditorButton").addEventListener("click", () => {
+      saveEquipmentEdit(item.id);
+    });
+
+    bindSubstatRowActions();
+  }
+
+  function openEquipmentEditor(id) {
+    const item = findEquipmentById(id);
+    if (!item) {
+      setMessage("没有找到这件装备，可能它已经被删除。", "warn");
+      return;
+    }
+    state.editingEquipmentId = String(id);
+    mountEquipmentEditor(item);
+    setEquipmentEditorOpen(true);
+  }
+
+  function readEditorStat(typeId, valueId, percentId) {
+    const type = document.getElementById(typeId).value;
+    return {
+      type,
+      value: Number(document.getElementById(valueId).value || 0),
+      isPercent: document.getElementById(percentId).checked
+    };
+  }
+
+  function saveEquipmentEdit(id) {
+    if (!state.rawData || !state.selectedAccount) return;
+    const equipKey = `game_equip_data_${state.selectedAccount}`;
+    const list = currentEquipments();
+    const index = list.findIndex((item) => String(item.id) === String(id));
+    if (index < 0) return;
+
+    const slotName = document.getElementById("editorSlotName").value;
+    const weaponRaw = document.getElementById("editorWeaponTypeId").value;
+    const weaponTypeId = slotName === "武器" ? String(weaponRaw || "").split(":")[0] || null : null;
+    const classes = document.getElementById("editorClasses").value
+      .split(/[，,、\n]/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    const subStats = Array.from(document.querySelectorAll("#substatEditorRows .substat-editor-row"))
+      .map((row) => ({
+        type: row.querySelector('[name="subType"]').value,
+        value: Number(row.querySelector('[name="subValue"]').value || 0),
+        isPercent: row.querySelector('[name="subPercent"]').checked
+      }))
+      .filter((stat) => stat.type);
+
+    const updatedItem = {
+      ...list[index],
+      name: document.getElementById("editorName").value.trim() || "未命名装备",
+      slotName,
+      slotId: slotIdForName(slotName),
+      weaponTypeId,
+      isChengyin: document.getElementById("editorIsChengyin").checked,
+      isPurple: document.getElementById("editorIsPurple").checked,
+      availableClasses: classes,
+      mainStat: readEditorStat("editorMainType", "editorMainValue", "editorMainPercent"),
+      dingyinStat: readEditorStat("editorDingyinType", "editorDingyinValue", "editorDingyinPercent"),
+      subStats
+    };
+
+    state.rawData[equipKey] = [...list];
+    state.rawData[equipKey][index] = updatedItem;
+    saveRawData();
+    renderAll();
+    setEquipmentEditorOpen(false);
+    setMessage(`已更新装备：${updatedItem.name}。`, "info");
   }
 
   function currentEquipments() {
@@ -283,7 +669,7 @@
       item.slotName === "武器" ? `<span class="pill">${escapeHtml(weaponTypeLabel(item.weaponTypeId))}</span>` : "";
 
     return `
-      <article class="equipment-card">
+      <article class="equipment-card" data-edit-id="${escapeHtml(item.id)}">
         <div class="equipment-card-top">
           <div class="equipment-card-title">
             <strong>${escapeHtml(item.name || "未命名装备")}</strong>
@@ -315,7 +701,7 @@
         </div>
 
         <div class="card-actions">
-          <span class="ghost-text">部位：${escapeHtml(item.slotName || "未分类")}</span>
+          <span class="edit-hint">点击卡片可编辑词条与数值</span>
           <button class="danger" type="button" data-delete-id="${escapeHtml(item.id)}">删除装备</button>
         </div>
       </article>
@@ -347,8 +733,15 @@
     }
 
     nodes.equipmentGrid.innerHTML = equipments.map((item) => renderEquipmentCard(item)).join("");
-    nodes.equipmentGrid.querySelectorAll("[data-delete-id]").forEach((node) => {
+    nodes.equipmentGrid.querySelectorAll("[data-edit-id]").forEach((node) => {
       node.addEventListener("click", () => {
+        const equipId = node.getAttribute("data-edit-id");
+        if (equipId) openEquipmentEditor(equipId);
+      });
+    });
+    nodes.equipmentGrid.querySelectorAll("[data-delete-id]").forEach((node) => {
+      node.addEventListener("click", (event) => {
+        event.stopPropagation();
         const equipId = node.getAttribute("data-delete-id");
         if (!equipId) return;
         if (window.confirm("确定要删除这件装备吗？此操作会直接写入当前浏览器缓存。")) {
@@ -509,8 +902,18 @@
     if (event.target === nodes.dataModal) setDataModalOpen(false);
   });
 
+  nodes.closeEquipmentEditorButton.addEventListener("click", () => {
+    setEquipmentEditorOpen(false);
+  });
+
+  nodes.equipmentEditorModal.addEventListener("click", (event) => {
+    if (event.target === nodes.equipmentEditorModal) setEquipmentEditorOpen(false);
+  });
+
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") setDataModalOpen(false);
+    if (event.key !== "Escape") return;
+    if (!nodes.equipmentEditorModal.classList.contains("hidden")) setEquipmentEditorOpen(false);
+    if (!nodes.dataModal.classList.contains("hidden")) setDataModalOpen(false);
   });
 
   nodes.importTabButton.addEventListener("click", () => {
@@ -599,6 +1002,7 @@
 
   async function init() {
     setDataModalOpen(false);
+    setEquipmentEditorOpen(false);
     setDataTab("import");
     fillSelect(nodes.classFilter, ["全部"], "全部");
     renderAll();

@@ -28,6 +28,10 @@
         box-sizing: border-box;
       }
 
+      .hidden {
+        display: none !important;
+      }
+
       body {
         margin: 0;
         color: var(--ink);
@@ -335,6 +339,17 @@
         border-radius: 24px;
         background: var(--surface-2);
         border: 1px solid rgba(20, 33, 45, 0.08);
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          border-color 180ms ease;
+      }
+
+      .equipment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 22px 42px rgba(17, 29, 43, 0.1);
+        border-color: rgba(31, 106, 165, 0.22);
       }
 
       .equipment-card-top {
@@ -424,6 +439,12 @@
       .ghost-text {
         color: var(--muted);
         font-size: 0.88rem;
+      }
+
+      .edit-hint {
+        color: var(--accent);
+        font-size: 0.85rem;
+        font-weight: 700;
       }
 
       .modal-backdrop {
@@ -539,6 +560,78 @@
         margin-top: 12px;
       }
 
+      .editor-shell {
+        display: grid;
+        gap: 16px;
+      }
+
+      .editor-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .editor-stat-card {
+        padding: 16px;
+        border-radius: 20px;
+        background: rgba(247, 250, 252, 0.92);
+        border: 1px solid var(--line);
+        display: grid;
+        gap: 12px;
+      }
+
+      .editor-stat-card h3,
+      .editor-substats h3 {
+        font-size: 1rem;
+      }
+
+      .editor-toggle-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .editor-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(247, 250, 252, 0.96);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      .editor-check input {
+        width: auto;
+        margin: 0;
+      }
+
+      .editor-substats {
+        display: grid;
+        gap: 12px;
+      }
+
+      .substat-editor-row {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: minmax(0, 1.3fr) 140px 120px auto;
+        align-items: end;
+      }
+
+      .editor-inline-action {
+        align-self: stretch;
+        min-width: 0;
+      }
+
+      .editor-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
       textarea {
         min-height: 220px;
         resize: vertical;
@@ -555,7 +648,8 @@
         .header-top,
         .filter-row,
         .toolbar-main,
-        .modal-grid {
+        .modal-grid,
+        .editor-grid {
           grid-template-columns: 1fr;
         }
 
@@ -580,12 +674,14 @@
         .stats-row,
         .equipment-grid,
         .data-grid,
-        .substats {
+        .substats,
+        .substat-editor-row {
           grid-template-columns: 1fr;
         }
 
         .equipment-card-top,
-        .card-actions {
+        .card-actions,
+        .editor-footer {
           flex-direction: column;
           align-items: flex-start;
         }
@@ -708,6 +804,19 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260514-2"></script>
+    <section class="modal-backdrop hidden" id="equipmentEditorModal">
+      <div class="modal-panel panel">
+        <div class="modal-head">
+          <div>
+            <h2 id="equipmentEditorTitle">编辑装备</h2>
+            <p class="subtle">点击卡片后可直接修改主词条、副词条、备注名和相关数值。</p>
+          </div>
+          <button class="close-button" id="closeEquipmentEditorButton" type="button" aria-label="关闭装备编辑">×</button>
+        </div>
+        <div id="equipmentEditorForm" class="editor-shell"></div>
+      </div>
+    </section>
+
+    <script src="/tools/yysls-armory/app.js?v=20260515-1"></script>
   </body>
 </html>
