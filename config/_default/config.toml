@@ -25,7 +25,6 @@ disableLanguages = []
     [languages.zh-cn.params.author]
       name = "潜龙在渊"
       image = "img/sabito.png"
-      headline = "记录技术、写作与生活。"
       bio = "欢迎来到我的个人博客，这里会分享文章、笔记和项目。"
 
 # pluralizeListTitles = "true" # hugo function useful for non-english languages, find out more in  https://gohugo.io/getting-started/configuration/#pluralizelisttitles
