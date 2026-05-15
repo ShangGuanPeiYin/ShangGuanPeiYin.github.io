@@ -1,6 +1,7 @@
 (function () {
   const STORAGE_KEY = "yysls_armory_import_data_v2";
   const ACCOUNT_KEY = "yysls_armory_selected_account_v2";
+  const FIXED_SUBSTAT_COUNT = 4;
 
   const slotOrder = ["武器", "环", "佩", "冠胄", "胸甲", "胫甲", "腕甲"];
   const slotIdMap = {
@@ -202,6 +203,10 @@
       const equipKey = `game_equip_data_${account}`;
       const simKey = `game_sim_data_${account}`;
       if (!Array.isArray(normalized[equipKey])) normalized[equipKey] = [];
+      normalized[equipKey] = normalized[equipKey].map((item) => ({
+        ...item,
+        subStats: normalizeSubStats(item.subStats)
+      }));
       if (!normalized[simKey] || typeof normalized[simKey] !== "object") {
         normalized[simKey] = {
           currentClass: "",
@@ -324,8 +329,8 @@
 
   function normalizeSubStats(subStats) {
     const normalized = Array.isArray(subStats) ? subStats.map((stat) => normalizeStat(stat)) : [];
-    while (normalized.length < 4) normalized.push(normalizeStat(null));
-    return normalized.slice(0, 4);
+    while (normalized.length < FIXED_SUBSTAT_COUNT) normalized.push(normalizeStat(null));
+    return normalized.slice(0, FIXED_SUBSTAT_COUNT);
   }
 
   function renderSubstatRows(subStats) {
@@ -595,13 +600,13 @@
       .map((input) => input.value)
       .filter(Boolean);
 
-    const subStats = Array.from(document.querySelectorAll("#substatEditorRows .substat-editor-row"))
+    const subStats = normalizeSubStats(Array.from(document.querySelectorAll("#substatEditorRows .substat-editor-row"))
       .map((row) => ({
         type: row.querySelector('[name="subType"]').value,
         value: Number(row.querySelector('[name="subValue"]').value || 0),
         isPercent: inferPercent(row.querySelector('[name="subType"]').value)
       }))
-      .slice(0, 4);
+    );
 
     const updatedItem = {
       ...list[index],
@@ -729,12 +734,12 @@
   }
 
   function renderEquipmentCard(item) {
-    const subStats = (item.subStats || [])
+    const subStats = normalizeSubStats(item.subStats)
       .map(
         (stat) => `
           <div class="substat-chip">
-            <span>${escapeHtml(stat.type || "未知词条")}</span>
-            <strong>${escapeHtml(stat.value)}${stat.isPercent ? "%" : ""}</strong>
+            <span>${escapeHtml(stat.type || "空词条")}</span>
+            <strong>${stat.type ? `${escapeHtml(stat.value)}${stat.isPercent ? "%" : ""}` : "-"}</strong>
           </div>
         `
       )
@@ -770,7 +775,7 @@
 
         <div class="data-block">
           <span class="label">副词条</span>
-          <div class="substats">${subStats || '<div class="substat-chip"><span>无副词条</span><strong>-</strong></div>'}</div>
+          <div class="substats">${subStats}</div>
         </div>
 
         <div class="card-actions">
