@@ -627,12 +627,15 @@
       .editor-substats {
         display: grid;
         gap: 8px;
+        justify-items: start;
       }
 
       .substat-editor-row {
         display: grid;
         gap: 8px;
-        grid-template-columns: minmax(0, 1.55fr) 110px auto;
+        width: fit-content;
+        max-width: 100%;
+        grid-template-columns: minmax(260px, 360px) 96px auto;
         align-items: end;
       }
 
