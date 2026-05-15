@@ -601,6 +601,15 @@
         font-size: 0.96rem;
       }
 
+      .editor-stat-row {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: minmax(140px, 190px) 72px;
+        align-items: end;
+        width: fit-content;
+        max-width: 100%;
+      }
+
       .editor-toggle-row {
         display: flex;
         flex-wrap: wrap;
@@ -684,6 +693,11 @@
         font-size: 0.92rem;
       }
 
+      .editor-stat-row input[type="number"],
+      .editor-stat-row select {
+        width: 100%;
+      }
+
       .editor-class-dropdown {
         position: relative;
       }
@@ -763,6 +777,10 @@
 
         .editor-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .editor-stat-row {
+          grid-template-columns: minmax(120px, 1fr) 72px;
         }
       }
 
@@ -925,6 +943,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260516-1"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260516-2"></script>
   </body>
 </html>

@@ -437,14 +437,13 @@
       <div class="editor-grid">
         <section class="editor-stat-card">
           <h3>主词条</h3>
-          <label class="field">
-            <select id="editorMainType">
-              ${selectHtmlOptions(statTypes, mainStat.type, false)}
-            </select>
-          </label>
-          <div class="editor-grid">
+          <div class="editor-stat-row">
             <label class="field">
-              <span>数值</span>
+              <select id="editorMainType">
+                ${selectHtmlOptions(statTypes, mainStat.type, false)}
+              </select>
+            </label>
+            <label class="field">
               <input id="editorMainValue" type="number" step="0.1" value="${escapeHtml(mainStat.value)}" />
             </label>
           </div>
@@ -452,14 +451,13 @@
 
         <section class="editor-stat-card">
           <h3>定音词条</h3>
-          <label class="field">
-            <select id="editorDingyinType">
-              ${selectHtmlOptions(statTypes, dingyinStat.type, true)}
-            </select>
-          </label>
-          <div class="editor-grid">
+          <div class="editor-stat-row">
             <label class="field">
-              <span>数值</span>
+              <select id="editorDingyinType">
+                ${selectHtmlOptions(statTypes, dingyinStat.type, true)}
+              </select>
+            </label>
+            <label class="field">
               <input id="editorDingyinValue" type="number" step="0.1" value="${escapeHtml(dingyinStat.value)}" />
             </label>
           </div>
