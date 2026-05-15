@@ -647,8 +647,15 @@
         gap: 8px;
         width: fit-content;
         max-width: 100%;
-        grid-template-columns: minmax(260px, 360px) 96px auto;
+        grid-template-columns: minmax(320px, 420px) 96px auto;
         align-items: end;
+      }
+
+      .substat-editor-row select,
+      .substat-editor-row .field span,
+      .substat-chip span,
+      .substat-chip strong {
+        white-space: nowrap;
       }
 
       .editor-inline-action {
