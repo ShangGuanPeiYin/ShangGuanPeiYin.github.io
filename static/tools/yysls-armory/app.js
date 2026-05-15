@@ -438,7 +438,6 @@
         <section class="editor-stat-card">
           <h3>主词条</h3>
           <label class="field">
-            <span>词条类型</span>
             <select id="editorMainType">
               ${selectHtmlOptions(statTypes, mainStat.type, false)}
             </select>
@@ -454,7 +453,6 @@
         <section class="editor-stat-card">
           <h3>定音词条</h3>
           <label class="field">
-            <span>词条类型</span>
             <select id="editorDingyinType">
               ${selectHtmlOptions(statTypes, dingyinStat.type, true)}
             </select>
