@@ -473,8 +473,7 @@
       <div class="editor-footer">
         <button class="danger" id="deleteEquipmentButton" type="button">删除这件装备</button>
         <div class="modal-actions" style="margin-top: 0;">
-          <button class="secondary" id="cancelEquipmentEditorButton" type="button">取消</button>
-          <button class="primary" id="saveEquipmentEditorButton" type="button">保存修改</button>
+          <button class="secondary" id="cancelEquipmentEditorButton" type="button">关闭</button>
         </div>
       </div>
     `;
@@ -499,7 +498,21 @@
       substatRows.querySelectorAll("[data-remove-substat]").forEach((button) => {
         button.addEventListener("click", () => {
           const row = button.closest(".substat-editor-row");
-          if (row) row.remove();
+          if (row) {
+            row.remove();
+            saveEquipmentEdit(item.id, { closeAfterSave: false });
+          }
+        });
+      });
+    }
+
+    function bindAutoSave() {
+      nodes.equipmentEditorForm.querySelectorAll("input, select").forEach((control) => {
+        if (control.id === "editorNewClassInput") return;
+        const eventName =
+          control.tagName === "SELECT" || control.type === "checkbox" ? "change" : "input";
+        control.addEventListener(eventName, () => {
+          saveEquipmentEdit(item.id, { closeAfterSave: false });
         });
       });
     }
@@ -536,6 +549,7 @@
 
       newClassInput.value = "";
       syncClassSummary();
+      saveEquipmentEdit(item.id, { closeAfterSave: false });
     });
 
     document.getElementById("addSubstatButton").addEventListener("click", () => {
@@ -543,6 +557,8 @@
       wrapper.innerHTML = renderSubstatRows([normalizeStat(null)]);
       substatRows.appendChild(wrapper.firstElementChild);
       bindSubstatRowActions();
+      bindAutoSave();
+      saveEquipmentEdit(item.id, { closeAfterSave: false });
     });
 
     document.getElementById("cancelEquipmentEditorButton").addEventListener("click", () => {
@@ -556,11 +572,8 @@
       }
     });
 
-    document.getElementById("saveEquipmentEditorButton").addEventListener("click", () => {
-      saveEquipmentEdit(item.id);
-    });
-
     bindSubstatRowActions();
+    bindAutoSave();
   }
 
   function openEquipmentEditor(id) {
@@ -583,7 +596,8 @@
     };
   }
 
-  function saveEquipmentEdit(id) {
+  function saveEquipmentEdit(id, options = {}) {
+    const { closeAfterSave = true } = options;
     if (!state.rawData || !state.selectedAccount) return;
     const equipKey = `game_equip_data_${state.selectedAccount}`;
     const list = currentEquipments();
@@ -623,8 +637,7 @@
     state.rawData[equipKey][index] = updatedItem;
     saveRawData();
     renderAll();
-    setEquipmentEditorOpen(false);
-    setMessage(`已更新装备：${updatedItem.name}。`, "info");
+    if (closeAfterSave) setEquipmentEditorOpen(false);
   }
 
   function currentEquipments() {
