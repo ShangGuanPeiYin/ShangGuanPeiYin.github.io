@@ -53,6 +53,34 @@
     "横刀武学增效",
     "拳甲武学增效"
   ];
+  const percentStatTypes = new Set([
+    "对首领单位增伤",
+    "会心率",
+    "会意率",
+    "精准率",
+    "全武学增效",
+    "拳甲武学增效",
+    "伞武学增效",
+    "绳标武学增效",
+    "指定武学技能增伤"
+  ]);
+  const flatStatTypes = new Set([
+    "劲",
+    "敏",
+    "势",
+    "属攻穿透",
+    "外功穿透",
+    "最大鸣金攻击",
+    "最大破竹攻击",
+    "最大牵丝攻击",
+    "最大外功攻击",
+    "最大无相攻击",
+    "最小裂石攻击",
+    "最小鸣金攻击",
+    "最小破竹攻击",
+    "最小牵丝攻击",
+    "最小外功攻击"
+  ]);
 
   const state = {
     rawData: null,
@@ -221,7 +249,11 @@
   }
 
   function inferPercent(type) {
-    return /(率|增伤|增效|加成)$/.test(String(type || ""));
+    const name = String(type || "").trim();
+    if (!name) return false;
+    if (percentStatTypes.has(name)) return true;
+    if (flatStatTypes.has(name)) return false;
+    return false;
   }
 
   function normalizeStat(stat) {
