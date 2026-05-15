@@ -65,13 +65,6 @@
     padding: clamp(1rem, 1vw, 1.5rem) 0;
   }
 
-  .rain-home-recent {
-    background: linear-gradient(180deg, rgba(8, 18, 35, 0.48), rgba(8, 18, 35, 0.36));
-    box-shadow: 0 24px 60px rgba(5, 11, 23, 0.22);
-    border-radius: 1.75rem;
-    padding: clamp(1rem, 1.8vw, 1.5rem);
-  }
-
   .rain-home-profile h1,
   .rain-home-profile h2,
   .rain-home-profile p,
@@ -102,9 +95,7 @@
       padding: calc(148px + 1rem) 1rem 1rem;
     }
 
-    .rain-home-profile,
-    .rain-home-recent {
-      border-radius: 1.35rem;
+    .rain-home-profile {
       padding: 1rem;
     }
   }
@@ -159,9 +150,7 @@
     </article>
 
     {{ if .Site.Params.homepage.showRecent }}
-      <section class="rain-home-recent">
-        {{ partial "recent-articles/main.html" . }}
-      </section>
+      {{ partial "recent-articles/main.html" . }}
     {{ end }}
   </div>
 </section>
