@@ -661,10 +661,6 @@
       )
       .join("");
 
-    const classes = (item.availableClasses || [])
-      .map((name) => `<span class="pill teal">${escapeHtml(name)}</span>`)
-      .join("");
-
     const weaponBadge =
       item.slotName === "武器" ? `<span class="pill">${escapeHtml(weaponTypeLabel(item.weaponTypeId))}</span>` : "";
 
@@ -676,12 +672,10 @@
             <div class="pill-row">
               <span class="pill">${escapeHtml(item.slotName || "未知部位")}</span>
               ${weaponBadge}
-              <span class="pill">ID ${escapeHtml(item.id)}</span>
               ${item.isChengyin ? '<span class="pill gold">承音</span>' : ""}
               ${item.isPurple ? '<span class="pill">紫装</span>' : ""}
             </div>
           </div>
-          <div class="pill-row">${classes || '<span class="pill teal">未标注流派</span>'}</div>
         </div>
 
         <div class="data-grid">
