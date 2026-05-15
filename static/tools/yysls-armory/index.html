@@ -328,15 +328,15 @@
 
       .equipment-grid {
         display: grid;
-        gap: 14px;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .equipment-card {
         display: grid;
-        gap: 14px;
-        padding: 18px;
-        border-radius: 24px;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 20px;
         background: var(--surface-2);
         border: 1px solid rgba(20, 33, 45, 0.08);
       }
@@ -349,25 +349,25 @@
 
       .equipment-card-title {
         display: grid;
-        gap: 6px;
+        gap: 4px;
       }
 
       .equipment-card-title strong {
-        font-size: 1.02rem;
+        font-size: 0.96rem;
       }
 
       .pill-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
       }
 
       .pill {
         display: inline-flex;
         align-items: center;
-        padding: 7px 10px;
+        padding: 6px 8px;
         border-radius: 999px;
-        font-size: 0.84rem;
+        font-size: 0.78rem;
         background: rgba(31, 106, 165, 0.08);
         color: var(--accent);
       }
@@ -384,45 +384,46 @@
 
       .data-grid {
         display: grid;
-        gap: 12px;
+        gap: 10px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .data-block {
         display: grid;
-        gap: 8px;
+        gap: 6px;
       }
 
       .label {
         color: var(--muted);
-        font-size: 0.86rem;
+        font-size: 0.8rem;
       }
 
       .substats {
         display: grid;
-        gap: 8px;
+        gap: 6px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .substat-chip {
         display: flex;
         justify-content: space-between;
-        gap: 12px;
-        padding: 10px 12px;
-        border-radius: 16px;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 14px;
         background: rgba(255, 255, 255, 0.92);
         border: 1px solid rgba(20, 33, 45, 0.06);
+        font-size: 0.84rem;
       }
 
       .substat-chip strong {
-        font-size: 0.94rem;
+        font-size: 0.88rem;
       }
 
       .card-actions {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
       }
 
       .ghost-text {
@@ -688,6 +689,12 @@
       textarea {
         min-height: 220px;
         resize: vertical;
+      }
+
+      @media (max-width: 1380px) {
+        .equipment-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
       }
 
       @media (max-width: 1180px) {
