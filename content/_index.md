@@ -2,7 +2,7 @@
 title = "首页"
 +++
 
-<p class="home-manifesto">we are what we think.</p>
+<p class="home-manifesto">we are what we think</p>
 
 及二十二岁，回视二十一岁，犹在梦中。
 
