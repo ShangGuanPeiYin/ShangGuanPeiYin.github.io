@@ -290,31 +290,6 @@
     return options.join("");
   }
 
-  function renderStatEditor(prefix, title, stat, includeEmpty) {
-    const normalized = normalizeStat(stat);
-    return `
-      <section class="editor-stat-card">
-        <h3>${escapeHtml(title)}</h3>
-        <label class="field">
-          <span>词条类型</span>
-          <select name="${prefix}Type">
-            ${selectHtmlOptions(collectStatTypes(), normalized.type, includeEmpty)}
-          </select>
-        </label>
-        <div class="editor-grid">
-          <label class="field">
-            <span>数值</span>
-            <input name="${prefix}Value" type="number" step="0.1" value="${escapeHtml(normalized.value)}" />
-          </label>
-          <label class="editor-check">
-            <input name="${prefix}IsPercent" type="checkbox" ${normalized.isPercent ? "checked" : ""} />
-            <span>按百分比显示</span>
-          </label>
-        </div>
-      </section>
-    `;
-  }
-
   function renderSubstatRows(subStats) {
     const statTypes = collectStatTypes();
     const rows = (subStats && subStats.length ? subStats : [normalizeStat(null)])
@@ -331,10 +306,6 @@
             <label class="field">
               <span>数值</span>
               <input name="subValue" type="number" step="0.1" value="${escapeHtml(normalized.value)}" />
-            </label>
-            <label class="editor-check">
-              <input name="subPercent" type="checkbox" ${normalized.isPercent ? "checked" : ""} />
-              <span>百分比</span>
             </label>
             <button class="danger editor-inline-action" type="button" data-remove-substat="${index}">删除</button>
           </div>
@@ -432,10 +403,6 @@
               <span>数值</span>
               <input id="editorMainValue" type="number" step="0.1" value="${escapeHtml(mainStat.value)}" />
             </label>
-            <label class="editor-check">
-              <input id="editorMainPercent" type="checkbox" ${mainStat.isPercent ? "checked" : ""} />
-              <span>按百分比显示</span>
-            </label>
           </div>
         </section>
 
@@ -451,10 +418,6 @@
             <label class="field">
               <span>数值</span>
               <input id="editorDingyinValue" type="number" step="0.1" value="${escapeHtml(dingyinStat.value)}" />
-            </label>
-            <label class="editor-check">
-              <input id="editorDingyinPercent" type="checkbox" ${dingyinStat.isPercent ? "checked" : ""} />
-              <span>按百分比显示</span>
             </label>
           </div>
         </section>
@@ -587,12 +550,12 @@
     setEquipmentEditorOpen(true);
   }
 
-  function readEditorStat(typeId, valueId, percentId) {
+  function readEditorStat(typeId, valueId) {
     const type = document.getElementById(typeId).value;
     return {
       type,
       value: Number(document.getElementById(valueId).value || 0),
-      isPercent: document.getElementById(percentId).checked
+      isPercent: inferPercent(type)
     };
   }
 
@@ -615,7 +578,7 @@
       .map((row) => ({
         type: row.querySelector('[name="subType"]').value,
         value: Number(row.querySelector('[name="subValue"]').value || 0),
-        isPercent: row.querySelector('[name="subPercent"]').checked
+        isPercent: inferPercent(row.querySelector('[name="subType"]').value)
       }))
       .filter((stat) => stat.type);
 
@@ -628,8 +591,8 @@
       isChengyin: document.getElementById("editorIsChengyin").checked,
       isPurple: document.getElementById("editorIsPurple").checked,
       availableClasses: classes,
-      mainStat: readEditorStat("editorMainType", "editorMainValue", "editorMainPercent"),
-      dingyinStat: readEditorStat("editorDingyinType", "editorDingyinValue", "editorDingyinPercent"),
+      mainStat: readEditorStat("editorMainType", "editorMainValue"),
+      dingyinStat: readEditorStat("editorDingyinType", "editorDingyinValue"),
       subStats
     };
 
