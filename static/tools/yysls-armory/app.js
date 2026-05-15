@@ -714,7 +714,7 @@
       item.slotName === "武器" ? `<span class="pill">${escapeHtml(weaponTypeLabel(item.weaponTypeId))}</span>` : "";
 
     return `
-      <article class="equipment-card" data-edit-id="${escapeHtml(item.id)}">
+      <article class="equipment-card">
         <div class="equipment-card-top">
           <div class="equipment-card-title">
             <strong>${escapeHtml(item.name || "未命名装备")}</strong>
@@ -744,7 +744,7 @@
         </div>
 
         <div class="card-actions">
-          <span class="edit-hint">点击卡片可编辑词条与数值</span>
+          <button class="secondary" type="button" data-edit-id="${escapeHtml(item.id)}">编辑装备</button>
           <button class="danger" type="button" data-delete-id="${escapeHtml(item.id)}">删除装备</button>
         </div>
       </article>
