@@ -384,7 +384,7 @@
 
     nodes.equipmentEditorTitle.textContent = `编辑装备 · ${item.name || "未命名装备"}`;
     nodes.equipmentEditorForm.innerHTML = `
-      <div class="editor-grid">
+      <div class="editor-top-grid">
         <label class="field">
           <span>装备备注名</span>
           <input id="editorName" type="text" value="${escapeHtml(item.name || "")}" />
@@ -395,9 +395,6 @@
             ${selectHtmlOptions(slotOrder, item.slotName || "", false)}
           </select>
         </label>
-      </div>
-
-      <div class="editor-grid">
         <label class="field" id="editorWeaponTypeField">
           <span>武器类型</span>
           <select id="editorWeaponTypeId">
@@ -410,27 +407,16 @@
         </label>
       </div>
 
-      <div class="editor-toggle-row">
-        <label class="editor-check">
-          <input id="editorIsChengyin" type="checkbox" ${item.isChengyin ? "checked" : ""} />
-          <span>已承音</span>
-        </label>
-        <label class="editor-check">
-          <input id="editorIsPurple" type="checkbox" ${item.isPurple ? "checked" : ""} />
-          <span>紫装</span>
-        </label>
-      </div>
-
       <div class="editor-grid">
-        <section class="editor-stat-card">
+        <section class="editor-section">
           <h3>主词条</h3>
-          <label class="field">
-            <span>词条类型</span>
-            <select id="editorMainType">
-              ${selectHtmlOptions(statTypes, mainStat.type, false)}
-            </select>
-          </label>
           <div class="editor-grid">
+            <label class="field">
+              <span>词条类型</span>
+              <select id="editorMainType">
+                ${selectHtmlOptions(statTypes, mainStat.type, false)}
+              </select>
+            </label>
             <label class="field">
               <span>数值</span>
               <input id="editorMainValue" type="number" step="0.1" value="${escapeHtml(mainStat.value)}" />
@@ -438,28 +424,40 @@
           </div>
         </section>
 
-        <section class="editor-stat-card">
+        <section class="editor-section">
           <h3>定音词条</h3>
-          <label class="field">
-            <span>词条类型</span>
-            <select id="editorDingyinType">
-              ${selectHtmlOptions(statTypes, dingyinStat.type, true)}
-            </select>
-          </label>
           <div class="editor-grid">
+            <label class="field">
+              <span>词条类型</span>
+              <select id="editorDingyinType">
+                ${selectHtmlOptions(statTypes, dingyinStat.type, true)}
+              </select>
+            </label>
             <label class="field">
               <span>数值</span>
               <input id="editorDingyinValue" type="number" step="0.1" value="${escapeHtml(dingyinStat.value)}" />
             </label>
           </div>
         </section>
+
+        <section class="editor-section">
+          <h3>装备状态</h3>
+          <div class="editor-toggle-row">
+            <label class="editor-check">
+              <input id="editorIsChengyin" type="checkbox" ${item.isChengyin ? "checked" : ""} />
+              <span>已承音</span>
+            </label>
+            <label class="editor-check">
+              <input id="editorIsPurple" type="checkbox" ${item.isPurple ? "checked" : ""} />
+              <span>紫装</span>
+            </label>
+          </div>
+        </section>
       </div>
 
-      <section class="editor-substats">
-        <div class="section-head">
-          <div>
-            <h3>副词条</h3>
-          </div>
+      <section class="editor-substats editor-section">
+        <div class="editor-actions">
+          <h3>副词条</h3>
           <button class="secondary" id="addSubstatButton" type="button">+ 添加副词条</button>
         </div>
         <div id="substatEditorRows">${renderSubstatRows(item.subStats || [])}</div>
