@@ -4,7 +4,7 @@ title = "首页"
 
 <p class="home-manifesto">we are what we think.</p>
 
-这里会陆续发布技术文章、学习笔记和生活记录。
+及二十二岁，回视二十一岁，犹在梦中。
 
 <p class="home-actions">
   <a href="/tools/yysls-graduation/" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.9rem 1.2rem;border-radius:999px;background:#111827;color:#fff;text-decoration:none;font-weight:600;">
