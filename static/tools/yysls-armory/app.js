@@ -363,7 +363,13 @@
     return `
       <details class="editor-class-dropdown" id="editorClassesDropdown">
         <summary id="editorClassesSummary">${escapeHtml(summaryText)}</summary>
-        <div class="editor-class-menu">${optionHtml}</div>
+        <div class="editor-class-menu">
+          ${optionHtml}
+          <label class="field" style="margin-top: 8px;">
+            <span>新增流派</span>
+            <input id="editorNewClassInput" type="text" placeholder="输入新流派后回车" />
+          </label>
+        </div>
       </details>
     `;
   }
@@ -458,7 +464,6 @@
         <div class="section-head">
           <div>
             <h3>副词条</h3>
-            <p class="subtle">每条副词条都可以直接改类型、数值和是否按百分比显示。</p>
           </div>
           <button class="secondary" id="addSubstatButton" type="button">+ 添加副词条</button>
         </div>
@@ -479,6 +484,7 @@
     const substatRows = document.getElementById("substatEditorRows");
     const classesDropdown = document.getElementById("editorClassesDropdown");
     const classesSummary = document.getElementById("editorClassesSummary");
+    const newClassInput = document.getElementById("editorNewClassInput");
 
     function syncWeaponField() {
       weaponField.classList.toggle("hidden", slotSelect.value !== "武器");
@@ -504,6 +510,33 @@
       input.addEventListener("change", syncClassSummary);
     });
     syncClassSummary();
+
+    newClassInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      const value = newClassInput.value.trim();
+      if (!value) return;
+
+      const exists = Array.from(classesDropdown.querySelectorAll('input[type="checkbox"]')).some((input) => input.value === value);
+      if (!exists) {
+        const label = document.createElement("label");
+        label.className = "editor-class-option";
+        label.innerHTML = `
+          <input type="checkbox" value="${escapeHtml(value)}" checked />
+          <span>${escapeHtml(value)}</span>
+        `;
+        newClassInput.closest(".field").before(label);
+        const checkbox = label.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener("change", syncClassSummary);
+      } else {
+        classesDropdown.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+          if (input.value === value) input.checked = true;
+        });
+      }
+
+      newClassInput.value = "";
+      syncClassSummary();
+    });
 
     document.getElementById("addSubstatButton").addEventListener("click", () => {
       const wrapper = document.createElement("div");

@@ -469,7 +469,7 @@
       .equipment-editor-panel {
         width: min(1240px, calc(100% - 24px));
         max-height: min(96vh, 980px);
-        overflow: hidden;
+        overflow: auto;
         padding: 18px;
         gap: 12px;
       }
@@ -883,7 +883,6 @@
         <div class="modal-head">
           <div>
             <h2 id="equipmentEditorTitle">编辑装备</h2>
-            <p class="subtle">点击卡片后可直接修改主词条、副词条、备注名和相关数值。</p>
           </div>
           <button class="close-button" id="closeEquipmentEditorButton" type="button" aria-label="关闭装备编辑">×</button>
         </div>
@@ -891,6 +890,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260515-3"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260515-4"></script>
   </body>
 </html>
