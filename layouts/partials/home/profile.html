@@ -59,45 +59,40 @@
     gap: 1.5rem;
   }
 
-  .rain-home-card,
+  .rain-home-profile {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: clamp(1rem, 1vw, 1.5rem) 0;
+  }
+
   .rain-home-recent {
     background: linear-gradient(180deg, rgba(8, 18, 35, 0.48), rgba(8, 18, 35, 0.36));
     box-shadow: 0 24px 60px rgba(5, 11, 23, 0.22);
-  }
-
-  .rain-home-card {
-    max-width: 860px;
-    margin: 0 auto;
-    border-radius: 2rem;
-    padding: clamp(1.5rem, 2vw, 2.4rem);
-  }
-
-  .rain-home-recent {
     border-radius: 1.75rem;
     padding: clamp(1rem, 1.8vw, 1.5rem);
   }
 
-  .rain-home-card h1,
-  .rain-home-card h2,
-  .rain-home-card p,
-  .rain-home-card .prose,
-  .rain-home-card .prose a {
+  .rain-home-profile h1,
+  .rain-home-profile h2,
+  .rain-home-profile p,
+  .rain-home-profile .prose,
+  .rain-home-profile .prose a {
     color: #eef6ff;
   }
 
-  .rain-home-card h2 {
+  .rain-home-profile h2 {
     color: rgba(229, 240, 255, 0.8);
   }
 
-  .rain-home-card .prose :where(strong, b) {
+  .rain-home-profile .prose :where(strong, b) {
     color: #ffffff;
   }
 
-  .rain-home-card .prose :where(a) {
+  .rain-home-profile .prose :where(a) {
     text-decoration-color: rgba(148, 216, 255, 0.65);
   }
 
-  .rain-home-card .prose :where(a:hover) {
+  .rain-home-profile .prose :where(a:hover) {
     color: #dff4ff;
   }
 
@@ -107,7 +102,7 @@
       padding: calc(148px + 1rem) 1rem 1rem;
     }
 
-    .rain-home-card,
+    .rain-home-profile,
     .rain-home-recent {
       border-radius: 1.35rem;
       padding: 1rem;
@@ -121,50 +116,46 @@
   <div class="rain-home-overlay"></div>
 
   <div class="rain-home-content">
-    <article class="rain-home-card">
-      <article
-        class="{{ if not .Site.Params.homepage.showRecent }}
-          h-full
-        {{ end }} flex flex-col items-center justify-center text-center">
-        <header class="relative px-1 py-1 flex flex-col items-center mb-3">
-          {{ with .Site.Params.Author.image }}
-            {{ $authorImage := "" }}
-            {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
-              {{ $authorImage = resources.GetRemote . }}
-            {{ else }}
-              {{ $authorImage = resources.Get . }}
-            {{ end }}
-            {{ if $authorImage }}
-              {{ $final := $authorImage }}
-              {{ $squareImage := $authorImage }}
-              {{ if not (or $disableImageOptimization (eq $authorImage.MediaType.SubType "svg")) }}
-                {{ $final = $authorImage.Fill (print "288x288 q" ( $.Site.Params.Author.imagequality | default "96" )) }}
-                {{ $shortSide := int (math.Min $authorImage.Width $authorImage.Height) }}
-                {{ $squareImage = $authorImage.Crop (printf "%dx%d" $shortSide $shortSide ) }}
-              {{ end }}
-              <img
-                class="mb-2 h-36 w-36 rounded-full"
-                width="144"
-                height="144"
-                alt="{{ $.Site.Params.Author.name | default `Author` }}"
-                src="{{ $final.RelPermalink }}"
-                data-zoom-src="{{ $squareImage.RelPermalink }}">
-            {{ end }}
+    <article
+      class="rain-home-profile {{ if not .Site.Params.homepage.showRecent }}h-full{{ end }} flex flex-col items-center justify-center text-center">
+      <header class="relative px-1 py-1 flex flex-col items-center mb-3">
+        {{ with .Site.Params.Author.image }}
+          {{ $authorImage := "" }}
+          {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
+            {{ $authorImage = resources.GetRemote . }}
+          {{ else }}
+            {{ $authorImage = resources.Get . }}
           {{ end }}
-          <h1 class="text-4xl font-extrabold">
-            {{ .Site.Params.Author.name | default .Site.Title }}
-          </h1>
-          {{ with .Site.Params.Author.headline }}
-            <h2 class="text-xl">
-              {{ . | markdownify }}
-            </h2>
+          {{ if $authorImage }}
+            {{ $final := $authorImage }}
+            {{ $squareImage := $authorImage }}
+            {{ if not (or $disableImageOptimization (eq $authorImage.MediaType.SubType "svg")) }}
+              {{ $final = $authorImage.Fill (print "288x288 q" ( $.Site.Params.Author.imagequality | default "96" )) }}
+              {{ $shortSide := int (math.Min $authorImage.Width $authorImage.Height) }}
+              {{ $squareImage = $authorImage.Crop (printf "%dx%d" $shortSide $shortSide ) }}
+            {{ end }}
+            <img
+              class="mb-2 h-36 w-36 rounded-full"
+              width="144"
+              height="144"
+              alt="{{ $.Site.Params.Author.name | default `Author` }}"
+              src="{{ $final.RelPermalink }}"
+              data-zoom-src="{{ $squareImage.RelPermalink }}">
           {{ end }}
-          <div class="mt-1 text-2xl">
-            {{ partialCached "author-links.html" . }}
-          </div>
-        </header>
-        <section class="prose dark:prose-invert w-full">{{ .Content }}</section>
-      </article>
+        {{ end }}
+        <h1 class="text-4xl font-extrabold">
+          {{ .Site.Params.Author.name | default .Site.Title }}
+        </h1>
+        {{ with .Site.Params.Author.headline }}
+          <h2 class="text-xl">
+            {{ . | markdownify }}
+          </h2>
+        {{ end }}
+        <div class="mt-1 text-2xl">
+          {{ partialCached "author-links.html" . }}
+        </div>
+      </header>
+      <section class="prose dark:prose-invert w-full">{{ .Content }}</section>
     </article>
 
     {{ if .Site.Params.homepage.showRecent }}
