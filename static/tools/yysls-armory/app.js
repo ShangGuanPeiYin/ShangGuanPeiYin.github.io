@@ -322,9 +322,15 @@
     return options.join("");
   }
 
+  function normalizeSubStats(subStats) {
+    const normalized = Array.isArray(subStats) ? subStats.map((stat) => normalizeStat(stat)) : [];
+    while (normalized.length < 4) normalized.push(normalizeStat(null));
+    return normalized.slice(0, 4);
+  }
+
   function renderSubstatRows(subStats) {
     const statTypes = collectStatTypes();
-    const rows = (subStats && subStats.length ? subStats : [normalizeStat(null)])
+    const rows = normalizeSubStats(subStats)
       .map((stat, index) => {
         const normalized = normalizeStat(stat);
         return `
@@ -339,7 +345,7 @@
               <span>数值</span>
               <input name="subValue" type="number" step="0.1" value="${escapeHtml(normalized.value)}" />
             </label>
-            <button class="danger editor-inline-action" type="button" data-remove-substat="${index}">删除</button>
+            <button class="secondary editor-inline-action" type="button" data-clear-substat="${index}">清空</button>
           </div>
         `;
       })
@@ -459,7 +465,6 @@
 
       <section class="editor-substats">
         <div class="section-head">
-          <button class="secondary" id="addSubstatButton" type="button">+ 添加副词条</button>
         </div>
         <div id="substatEditorRows">${renderSubstatRows(item.subStats || [])}</div>
       </section>
@@ -486,11 +491,12 @@
     }
 
     function bindSubstatRowActions() {
-      substatRows.querySelectorAll("[data-remove-substat]").forEach((button) => {
+      substatRows.querySelectorAll("[data-clear-substat]").forEach((button) => {
         button.addEventListener("click", () => {
           const row = button.closest(".substat-editor-row");
           if (row) {
-            row.remove();
+            row.querySelector('[name="subType"]').value = "";
+            row.querySelector('[name="subValue"]').value = "0";
             saveEquipmentEdit(item.id, { closeAfterSave: false });
           }
         });
@@ -540,15 +546,6 @@
 
       newClassInput.value = "";
       syncClassSummary();
-      saveEquipmentEdit(item.id, { closeAfterSave: false });
-    });
-
-    document.getElementById("addSubstatButton").addEventListener("click", () => {
-      const wrapper = document.createElement("div");
-      wrapper.innerHTML = renderSubstatRows([normalizeStat(null)]);
-      substatRows.appendChild(wrapper.firstElementChild);
-      bindSubstatRowActions();
-      bindAutoSave();
       saveEquipmentEdit(item.id, { closeAfterSave: false });
     });
 
@@ -604,7 +601,7 @@
         value: Number(row.querySelector('[name="subValue"]').value || 0),
         isPercent: inferPercent(row.querySelector('[name="subType"]').value)
       }))
-      .filter((stat) => stat.type);
+      .slice(0, 4);
 
     const updatedItem = {
       ...list[index],
