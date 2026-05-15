@@ -251,6 +251,23 @@
     return [...values].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
   }
 
+  function collectClassOptions() {
+    const values = new Set();
+    if (!state.rawData) return [];
+    Object.keys(state.rawData)
+      .filter((key) => key.startsWith("game_equip_data_"))
+      .forEach((key) => {
+        const list = state.rawData[key];
+        if (!Array.isArray(list)) return;
+        list.forEach((item) => {
+          (item.availableClasses || []).forEach((name) => {
+            if (name) values.add(name);
+          });
+        });
+      });
+    return [...values].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+  }
+
   function findEquipmentById(id) {
     return currentEquipments().find((item) => String(item.id) === String(id)) || null;
   }
@@ -328,8 +345,30 @@
     return rows;
   }
 
+  function renderClassDropdown(selectedValues) {
+    const options = collectClassOptions();
+    const selectedSet = new Set(selectedValues || []);
+    const summaryText = selectedSet.size ? [...selectedSet].join("、") : "选择适用流派";
+    const optionHtml = options.length
+      ? options
+          .map((name) => `
+            <label class="editor-class-option">
+              <input type="checkbox" value="${escapeHtml(name)}" ${selectedSet.has(name) ? "checked" : ""} />
+              <span>${escapeHtml(name)}</span>
+            </label>
+          `)
+          .join("")
+      : '<div class="subtle">当前数据里还没有可选流派。</div>';
+
+    return `
+      <details class="editor-class-dropdown" id="editorClassesDropdown">
+        <summary id="editorClassesSummary">${escapeHtml(summaryText)}</summary>
+        <div class="editor-class-menu">${optionHtml}</div>
+      </details>
+    `;
+  }
+
   function mountEquipmentEditor(item) {
-    const classesText = Array.isArray(item.availableClasses) ? item.availableClasses.join("，") : "";
     const statTypes = collectStatTypes();
     const mainStat = normalizeStat(item.mainStat);
     const dingyinStat = normalizeStat(item.dingyinStat);
@@ -358,7 +397,7 @@
         </label>
         <label class="field">
           <span>适用流派</span>
-          <input id="editorClasses" type="text" value="${escapeHtml(classesText)}" placeholder="用逗号或顿号分隔，例如：破竹风，破竹尘" />
+          ${renderClassDropdown(item.availableClasses || [])}
         </label>
       </div>
 
@@ -438,9 +477,16 @@
     const weaponField = document.getElementById("editorWeaponTypeField");
     const slotSelect = document.getElementById("editorSlotName");
     const substatRows = document.getElementById("substatEditorRows");
+    const classesDropdown = document.getElementById("editorClassesDropdown");
+    const classesSummary = document.getElementById("editorClassesSummary");
 
     function syncWeaponField() {
       weaponField.classList.toggle("hidden", slotSelect.value !== "武器");
+    }
+
+    function syncClassSummary() {
+      const selected = Array.from(classesDropdown.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+      classesSummary.textContent = selected.length ? selected.join("、") : "选择适用流派";
     }
 
     function bindSubstatRowActions() {
@@ -454,6 +500,10 @@
 
     slotSelect.addEventListener("change", syncWeaponField);
     syncWeaponField();
+    classesDropdown.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.addEventListener("change", syncClassSummary);
+    });
+    syncClassSummary();
 
     document.getElementById("addSubstatButton").addEventListener("click", () => {
       const wrapper = document.createElement("div");
@@ -509,10 +559,9 @@
 
     const slotName = document.getElementById("editorSlotName").value;
     const weaponRaw = document.getElementById("editorWeaponTypeId").value;
-    const weaponTypeId = slotName === "武器" ? String(weaponRaw || "").split(":")[0] || null : null;
-    const classes = document.getElementById("editorClasses").value
-      .split(/[，,、\n]/)
-      .map((value) => value.trim())
+    const weaponTypeId = slotName === "武器" ? String(weaponRaw || "") || null : null;
+    const classes = Array.from(document.querySelectorAll('#editorClassesDropdown input[type="checkbox"]:checked'))
+      .map((input) => input.value)
       .filter(Boolean);
 
     const subStats = Array.from(document.querySelectorAll("#substatEditorRows .substat-editor-row"))
