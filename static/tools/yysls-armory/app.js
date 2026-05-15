@@ -408,17 +408,19 @@
           <span>适用流派</span>
           ${renderClassDropdown(item.availableClasses || [])}
         </label>
-      </div>
-
-      <div class="editor-toggle-row">
-        <label class="editor-check">
-          <input id="editorIsChengyin" type="checkbox" ${item.isChengyin ? "checked" : ""} />
-          <span>已承音</span>
-        </label>
-        <label class="editor-check">
-          <input id="editorIsPurple" type="checkbox" ${item.isPurple ? "checked" : ""} />
-          <span>紫装</span>
-        </label>
+        <div class="editor-status-field">
+          <span>装备状态</span>
+          <div class="editor-toggle-row">
+            <label class="editor-check">
+              <input id="editorIsChengyin" type="checkbox" ${item.isChengyin ? "checked" : ""} />
+              <span>已承音</span>
+            </label>
+            <label class="editor-check">
+              <input id="editorIsPurple" type="checkbox" ${item.isPurple ? "checked" : ""} />
+              <span>紫装</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="editor-grid">
