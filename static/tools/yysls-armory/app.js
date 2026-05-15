@@ -465,9 +465,6 @@
 
       <div class="editor-footer">
         <button class="danger" id="deleteEquipmentButton" type="button">删除这件装备</button>
-        <div class="modal-actions" style="margin-top: 0;">
-          <button class="secondary" id="cancelEquipmentEditorButton" type="button">关闭</button>
-        </div>
       </div>
     `;
 
@@ -552,10 +549,6 @@
       bindSubstatRowActions();
       bindAutoSave();
       saveEquipmentEdit(item.id, { closeAfterSave: false });
-    });
-
-    document.getElementById("cancelEquipmentEditorButton").addEventListener("click", () => {
-      setEquipmentEditorOpen(false);
     });
 
     document.getElementById("deleteEquipmentButton").addEventListener("click", () => {
