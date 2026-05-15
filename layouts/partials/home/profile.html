@@ -3,6 +3,26 @@
 {{ $rainScript := resources.Get "js/home-rain.js" | resources.Minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm | default "sha512") }}
 
 <style>
+  body:has([data-rain-home]) .main-menu a,
+  body:has([data-rain-home]) .main-menu button,
+  body:has([data-rain-home]) .main-menu span,
+  body:has([data-rain-home]) .main-menu svg,
+  body:has([data-rain-home]) .main-menu .active,
+  body:has([data-rain-home]) .main-menu + div a,
+  body:has([data-rain-home]) .main-menu + div span {
+    color: #eef6ff !important;
+  }
+
+  body:has([data-rain-home]) .main-menu a:hover,
+  body:has([data-rain-home]) .main-menu button:hover,
+  body:has([data-rain-home]) .main-menu + div a:hover {
+    color: #ffffff !important;
+  }
+
+  body:has([data-rain-home]) .rain-home-content > h2 {
+    color: #eef6ff;
+  }
+
   #main-content:has([data-rain-home]) {
     width: 100vw;
     margin-left: calc(50% - 50vw);
