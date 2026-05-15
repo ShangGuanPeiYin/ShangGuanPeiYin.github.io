@@ -406,15 +406,15 @@
             ${selectHtmlOptions(slotOrder, item.slotName || "", false)}
           </select>
         </label>
-      </div>
-
-      <div class="editor-grid">
         <label class="field" id="editorWeaponTypeField">
           <span>武器类型</span>
           <select id="editorWeaponTypeId">
             ${weaponTypeOptionsHtml(item.weaponTypeId || "")}
           </select>
         </label>
+      </div>
+
+      <div class="editor-grid">
         <label class="field">
           <span>适用流派</span>
           ${renderClassDropdown(item.availableClasses || [])}
