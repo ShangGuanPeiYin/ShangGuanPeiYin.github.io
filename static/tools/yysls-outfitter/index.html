@@ -367,6 +367,81 @@
         gap: 10px;
       }
 
+      .search-controls {
+        display: grid;
+        gap: 10px;
+      }
+
+      .search-mode-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .search-mode-row button,
+      .criteria-actions button,
+      .result-actions button {
+        padding: 8px 11px;
+        font-size: 0.84rem;
+      }
+
+      .search-mode-row button.active {
+        background: linear-gradient(135deg, #9a6530, #7d4e1f);
+        color: #fff7ef;
+        border-color: rgba(125, 78, 31, 0.9);
+      }
+
+      .criteria-list,
+      .result-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .criteria-row {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) 86px 70px;
+        align-items: end;
+      }
+
+      .criteria-row select,
+      .criteria-row input {
+        padding: 9px 11px;
+      }
+
+      .criteria-actions,
+      .result-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .result-card {
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(255, 253, 247, 0.92);
+        border: 1px solid var(--line);
+        display: grid;
+        gap: 8px;
+      }
+
+      .result-card h4 {
+        margin: 0;
+        font-size: 0.96rem;
+      }
+
+      .result-meta,
+      .result-slots {
+        display: grid;
+        gap: 6px;
+        font-size: 0.84rem;
+      }
+
+      .result-meta span,
+      .result-slots span {
+        color: var(--muted);
+      }
+
       .stat-list {
         display: grid;
         gap: 8px;
@@ -437,7 +512,8 @@
         }
 
         .controls-grid,
-        .slots-grid {
+        .slots-grid,
+        .criteria-row {
           grid-template-columns: 1fr;
         }
 
@@ -526,6 +602,20 @@
 
           <div class="summary-grid">
             <section class="summary-card">
+              <h3>词条条数搜索</h3>
+              <div class="search-controls">
+                <div class="muted">只统计主词条和副词条，忽略定音词条。搜索结果最多展示 15 套方案。</div>
+                <div id="searchModeRow" class="search-mode-row"></div>
+                <div id="criteriaList" class="criteria-list"></div>
+                <div class="criteria-actions">
+                  <button class="secondary" id="addCriteriaButton" type="button">新增条件</button>
+                  <button class="primary" id="runSearchButton" type="button">开始搜索</button>
+                </div>
+                <div id="searchResultMeta" class="muted"></div>
+                <div id="resultList" class="result-list"></div>
+              </div>
+            </section>
+            <section class="summary-card">
               <h3>全部词条</h3>
               <div id="allStatSummary" class="stat-list"></div>
             </section>
@@ -543,6 +633,6 @@
       </main>
     </div>
 
-    <script src="/tools/yysls-outfitter/app.js?v=20260516-03"></script>
+    <script src="/tools/yysls-outfitter/app.js?v=20260516-04"></script>
   </body>
 </html>

@@ -90,7 +90,10 @@
     draftScheme: null,
     slotFilter: "全部",
     activeSlot: "武器1",
-    searchText: ""
+    searchText: "",
+    searchMode: "atLeast",
+    searchCriteria: [],
+    searchResults: []
   };
 
   const nodes = {
@@ -108,11 +111,25 @@
     slotsGrid: document.getElementById("slotsGrid"),
     classRuleHint: document.getElementById("classRuleHint"),
     clearBuildButton: document.getElementById("clearBuildButton"),
+    searchModeRow: document.getElementById("searchModeRow"),
+    criteriaList: document.getElementById("criteriaList"),
+    addCriteriaButton: document.getElementById("addCriteriaButton"),
+    runSearchButton: document.getElementById("runSearchButton"),
+    searchResultMeta: document.getElementById("searchResultMeta"),
+    resultList: document.getElementById("resultList"),
     allStatSummary: document.getElementById("allStatSummary"),
     schemeMeta: document.getElementById("schemeMeta"),
     copySummaryButton: document.getElementById("copySummaryButton"),
     exportBridgeButton: document.getElementById("exportBridgeButton")
   };
+
+  function createSearchCriterion() {
+    return {
+      id: generateId(),
+      type: "会心率",
+      count: 1
+    };
+  }
 
   function escapeHtml(value) {
     return String(value)
@@ -150,6 +167,17 @@
     return Array.isArray(state.rawData[`game_equip_data_${state.selectedAccount}`])
       ? state.rawData[`game_equip_data_${state.selectedAccount}`]
       : [];
+  }
+
+  function countableStatOptions() {
+    const values = new Set();
+    currentEquipments().forEach((item) => {
+      [item.mainStat, ...(item.subStats || [])].forEach((stat) => {
+        const normalized = normalizeStat(stat);
+        if (normalized.type) values.add(normalized.type);
+      });
+    });
+    return [...values].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
   }
 
   function emptySlots() {
@@ -244,6 +272,17 @@
     return names.length ? `${state.selectedClass} 只能使用 ${names.join(" + ")}` : "当前流派还没有配置武器规则。";
   }
 
+  function countedStatMapForItem(item) {
+    const map = {};
+    if (!item) return map;
+    [item.mainStat, ...(item.subStats || [])].forEach((stat) => {
+      const normalized = normalizeStat(stat);
+      if (!normalized.type) return;
+      map[normalized.type] = (map[normalized.type] || 0) + 1;
+    });
+    return map;
+  }
+
   function slotDisplayLabel(slot) {
     if (slot === "武器1") {
       return weaponTypeDisplayName(currentClassRule()[0]) || "武器1";
@@ -333,6 +372,128 @@
     nodes.schemeSelect.value = state.selectedSchemeId || "";
   }
 
+  function renderSearchMode() {
+    const modes = [
+      { id: "atLeast", label: "至少满足" },
+      { id: "exact", label: "刚好等于" }
+    ];
+    nodes.searchModeRow.innerHTML = modes
+      .map((mode) => `
+        <button class="${state.searchMode === mode.id ? "active" : "secondary"}" type="button" data-search-mode="${escapeHtml(mode.id)}">
+          ${escapeHtml(mode.label)}
+        </button>
+      `)
+      .join("");
+    nodes.searchModeRow.querySelectorAll("[data-search-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.searchMode = button.getAttribute("data-search-mode") || "atLeast";
+        renderSearchMode();
+      });
+    });
+  }
+
+  function renderCriteriaList() {
+    const options = countableStatOptions();
+    const optionHtml = selectOptions(options.length ? options : ["会心率"], "");
+    nodes.criteriaList.innerHTML = state.searchCriteria
+      .map((criterion) => `
+        <div class="criteria-row" data-criteria-id="${escapeHtml(criterion.id)}">
+          <label class="field">
+            <span>词条</span>
+            <select data-criteria-field="type">
+              ${optionHtml.replace(`value="${escapeHtml("")}"`, `value=""`)}
+            </select>
+          </label>
+          <label class="field">
+            <span>条数</span>
+            <input data-criteria-field="count" type="number" min="1" step="1" value="${escapeHtml(criterion.count)}" />
+          </label>
+          <button class="danger" type="button" data-remove-criteria="${escapeHtml(criterion.id)}">删除</button>
+        </div>
+      `)
+      .join("");
+
+    state.searchCriteria.forEach((criterion) => {
+      const row = nodes.criteriaList.querySelector(`[data-criteria-id="${CSS.escape(String(criterion.id))}"]`);
+      if (!row) return;
+      const select = row.querySelector('[data-criteria-field="type"]');
+      if (select) select.value = options.includes(criterion.type) ? criterion.type : options[0] || "会心率";
+      criterion.type = select ? select.value : criterion.type;
+    });
+
+    nodes.criteriaList.querySelectorAll("[data-remove-criteria]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.searchCriteria = state.searchCriteria.filter((criterion) => String(criterion.id) !== String(button.getAttribute("data-remove-criteria")));
+        if (!state.searchCriteria.length) state.searchCriteria = [createSearchCriterion()];
+        renderCriteriaList();
+      });
+    });
+
+    nodes.criteriaList.querySelectorAll("[data-criteria-id]").forEach((row) => {
+      const id = row.getAttribute("data-criteria-id");
+      const criterion = state.searchCriteria.find((item) => String(item.id) === String(id));
+      if (!criterion) return;
+      const select = row.querySelector('[data-criteria-field="type"]');
+      const input = row.querySelector('[data-criteria-field="count"]');
+      if (select) {
+        select.addEventListener("change", () => {
+          criterion.type = select.value;
+        });
+      }
+      if (input) {
+        input.addEventListener("input", () => {
+          criterion.count = Math.max(1, Number(input.value || 1));
+        });
+      }
+    });
+  }
+
+  function renderSearchResults() {
+    if (!state.searchResults.length) {
+      nodes.resultList.innerHTML = '<div class="empty-block">还没有搜索结果。输入目标条件后开始搜索。</div>';
+      return;
+    }
+
+    nodes.resultList.innerHTML = state.searchResults
+      .map((result, index) => {
+        const matchedText = result.criteria
+          .map((entry) => `${entry.type} ${entry.actual}条 / 目标${entry.target}条`)
+          .join("，");
+        const slotLines = slotOrder
+          .map((slot) => {
+            const item = equipmentById(result.slots[slot]);
+            const slotLabel = slotDisplayLabel(slot);
+            return `<span>${escapeHtml(slotLabel)}：${escapeHtml(item?.name || "未命名装备")}</span>`;
+          })
+          .join("");
+        return `
+          <article class="result-card">
+            <h4>方案 ${index + 1}</h4>
+            <div class="result-meta">
+              <span>${escapeHtml(matchedText)}</span>
+            </div>
+            <div class="result-slots">${slotLines}</div>
+            <div class="result-actions">
+              <button class="secondary" type="button" data-load-result="${escapeHtml(String(index))}">载入当前搭配</button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    nodes.resultList.querySelectorAll("[data-load-result]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const result = state.searchResults[Number(button.getAttribute("data-load-result"))];
+        if (!result || !state.draftScheme) return;
+        state.draftScheme.slots = { ...emptySlots(), ...result.slots };
+        state.activeSlot = "武器1";
+        state.slotFilter = "全部";
+        renderAll();
+        setMessage(`已载入搜索结果方案 ${Number(button.getAttribute("data-load-result")) + 1}。`, "info");
+      });
+    });
+  }
+
   function renderSlotFilters() {
     const labels = ["全部", ...slotOrder];
     nodes.slotFilterBar.innerHTML = labels
@@ -370,6 +531,138 @@
       });
     });
     return { total, count };
+  }
+
+  function buildSearchPools() {
+    return {
+      武器1: currentEquipments().filter((item) => itemMatchesSlot(item, "武器1")),
+      武器2: currentEquipments().filter((item) => itemMatchesSlot(item, "武器2")),
+      环: currentEquipments().filter((item) => item.slotName === "环"),
+      佩: currentEquipments().filter((item) => item.slotName === "佩"),
+      冠胄: currentEquipments().filter((item) => item.slotName === "冠胄"),
+      胸甲: currentEquipments().filter((item) => item.slotName === "胸甲"),
+      胫甲: currentEquipments().filter((item) => item.slotName === "胫甲"),
+      腕甲: currentEquipments().filter((item) => item.slotName === "腕甲")
+    };
+  }
+
+  function runOutfitSearch() {
+    const criteria = state.searchCriteria
+      .map((criterion) => ({
+        type: String(criterion.type || "").trim(),
+        count: Math.max(1, Number(criterion.count || 1))
+      }))
+      .filter((criterion) => criterion.type);
+
+    if (!criteria.length) {
+      setMessage("先至少设置一条目标词条条件。", "warn");
+      return;
+    }
+
+    const pools = buildSearchPools();
+    const missingSlot = slotOrder.find((slot) => !pools[slot] || !pools[slot].length);
+    if (missingSlot) {
+      nodes.searchResultMeta.textContent = "";
+      state.searchResults = [];
+      renderSearchResults();
+      setMessage(`${slotDisplayLabel(missingSlot)} 当前没有可用装备，无法完成穷举搜索。`, "warn");
+      return;
+    }
+
+    const slotCandidates = slotOrder.map((slot) => {
+      const list = pools[slot]
+        .map((item) => ({
+          item,
+          slot,
+          id: String(item.id),
+          counts: countedStatMapForItem(item),
+          score: criteria.reduce((sum, criterion) => sum + (countedStatMapForItem(item)[criterion.type] || 0), 0)
+        }))
+        .sort((a, b) => b.score - a.score || String(a.item.name || "").localeCompare(String(b.item.name || ""), "zh-Hans-CN"));
+      return list;
+    });
+
+    const suffixMax = Array.from({ length: slotCandidates.length + 1 }, () => ({}));
+    for (let index = slotCandidates.length - 1; index >= 0; index -= 1) {
+      const current = {};
+      criteria.forEach((criterion) => {
+        const maxHere = Math.max(...slotCandidates[index].map((candidate) => candidate.counts[criterion.type] || 0));
+        current[criterion.type] = maxHere + (suffixMax[index + 1][criterion.type] || 0);
+      });
+      suffixMax[index] = current;
+    }
+
+    const results = [];
+    const currentCounts = {};
+    const chosenSlots = {};
+
+    function canPrune(index) {
+      return criteria.some((criterion) => {
+        const current = currentCounts[criterion.type] || 0;
+        const maxPossible = current + (suffixMax[index][criterion.type] || 0);
+        if (state.searchMode === "exact") {
+          if (current > criterion.count) return true;
+          if (maxPossible < criterion.count) return true;
+          return false;
+        }
+        return maxPossible < criterion.count;
+      });
+    }
+
+    function matchesResult() {
+      return criteria.every((criterion) => {
+        const current = currentCounts[criterion.type] || 0;
+        return state.searchMode === "exact" ? current === criterion.count : current >= criterion.count;
+      });
+    }
+
+    function dfs(index) {
+      if (results.length >= 15) return;
+      if (canPrune(index)) return;
+
+      if (index >= slotOrder.length) {
+        if (!matchesResult()) return;
+        results.push({
+          slots: { ...chosenSlots },
+          criteria: criteria.map((criterion) => ({
+            type: criterion.type,
+            target: criterion.count,
+            actual: currentCounts[criterion.type] || 0
+          }))
+        });
+        return;
+      }
+
+      const slot = slotOrder[index];
+      slotCandidates[index].forEach((candidate) => {
+        if (results.length >= 15) return;
+        chosenSlots[slot] = candidate.id;
+        const touched = [];
+        Object.keys(candidate.counts).forEach((type) => {
+          const amount = candidate.counts[type];
+          if (!amount) return;
+          touched.push([type, currentCounts[type] || 0]);
+          currentCounts[type] = (currentCounts[type] || 0) + amount;
+        });
+        dfs(index + 1);
+        touched.forEach(([type, previous]) => {
+          if (previous) {
+            currentCounts[type] = previous;
+          } else {
+            delete currentCounts[type];
+          }
+        });
+        delete chosenSlots[slot];
+      });
+    }
+
+    dfs(0);
+    state.searchResults = results;
+    nodes.searchResultMeta.textContent = results.length
+      ? `已找到 ${results.length} 套符合条件的方案，当前最多展示 15 套。`
+      : "没有找到符合当前条件的穿搭方案。";
+    renderSearchResults();
+    setMessage(results.length ? `搜索完成，找到 ${results.length} 套方案。` : "搜索完成，但没有符合条件的方案。", results.length ? "info" : "warn");
   }
 
   function allStatRowsHtml(totals, counts) {
@@ -697,6 +990,8 @@
   function startNewScheme() {
     state.selectedSchemeId = "";
     outfitterStore().selectedSchemeId = "";
+    state.searchResults = [];
+    nodes.searchResultMeta.textContent = "";
     loadSchemeIntoDraft(createDraftScheme());
     renderAll();
     setMessage("已切换到新的未保存方案。", "info");
@@ -707,6 +1002,8 @@
     localStorage.setItem(ACCOUNT_KEY, state.selectedAccount);
     state.slotFilter = "全部";
     state.activeSlot = "武器1";
+    state.searchResults = [];
+    nodes.searchResultMeta.textContent = "";
     loadCurrentScheme();
     renderAll();
   }
@@ -717,6 +1014,8 @@
       state.draftScheme.className = state.selectedClass;
       clearInvalidWeapons();
     }
+    state.searchResults = [];
+    nodes.searchResultMeta.textContent = "";
     renderAll();
     setMessage(currentClassRuleLabel(), "info");
   }
@@ -761,6 +1060,11 @@
     nodes.clearBuildButton.disabled = !state.selectedAccount;
     nodes.copySummaryButton.disabled = !state.selectedAccount;
     nodes.exportBridgeButton.disabled = !state.selectedAccount;
+    nodes.runSearchButton.disabled = !state.selectedAccount;
+    nodes.addCriteriaButton.disabled = !state.selectedAccount;
+    renderSearchMode();
+    renderCriteriaList();
+    renderSearchResults();
     renderSlotFilters();
     renderEquipmentList();
     renderSlots();
@@ -780,6 +1084,8 @@
       state.accounts = [];
       state.selectedAccount = "";
       state.draftScheme = createDraftScheme();
+      state.searchCriteria = [createSearchCriterion()];
+      state.searchResults = [];
       renderAll();
       setMessage("当前浏览器里还没有装备库数据，请先去装备管理器录入或导入装备。", "warn");
       return;
@@ -789,6 +1095,8 @@
     const lastAccount = localStorage.getItem(ACCOUNT_KEY) || state.rawData.last_selected_account || "";
     state.selectedAccount = state.accounts.includes(lastAccount) ? lastAccount : state.accounts[0] || "";
     state.draftScheme = createDraftScheme();
+    state.searchCriteria = [createSearchCriterion(), { id: generateId(), type: "精准率", count: 1 }];
+    state.searchResults = [];
     loadCurrentScheme();
     renderAll();
     setMessage("已读取本地装备库，可以开始按流派进行双武器搭配。", "info");
@@ -815,6 +1123,11 @@
   nodes.newSchemeButton.addEventListener("click", startNewScheme);
   nodes.saveSchemeButton.addEventListener("click", saveCurrentScheme);
   nodes.deleteSchemeButton.addEventListener("click", deleteCurrentScheme);
+  nodes.addCriteriaButton.addEventListener("click", () => {
+    state.searchCriteria.push(createSearchCriterion());
+    renderCriteriaList();
+  });
+  nodes.runSearchButton.addEventListener("click", runOutfitSearch);
   nodes.clearBuildButton.addEventListener("click", () => {
     if (!state.draftScheme) return;
     state.draftScheme.slots = emptySlots();
