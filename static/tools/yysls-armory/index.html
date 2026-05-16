@@ -672,8 +672,12 @@
         gap: 8px;
         width: fit-content;
         max-width: 100%;
-        grid-template-columns: minmax(320px, 420px) 72px auto;
+        grid-template-columns: minmax(320px, 420px) 56px 72px;
         align-items: end;
+      }
+
+      .substat-editor-row .field {
+        min-width: 0;
       }
 
       .substat-editor-row select,
@@ -683,9 +687,16 @@
         white-space: nowrap;
       }
 
+      .substat-editor-row input[name="subValue"] {
+        width: 56px;
+        min-width: 56px;
+        text-align: center;
+      }
+
       .editor-inline-action {
         align-self: stretch;
-        min-width: 0;
+        min-width: 72px;
+        width: 72px;
       }
 
       .editor-footer {
