@@ -591,6 +591,7 @@
       button.addEventListener("click", () => {
         state.activeSlot = button.getAttribute("data-focus-slot") || "武器1";
         state.slotFilter = state.activeSlot;
+        renderSlotFilters();
         renderEquipmentList();
         renderSlots();
       });
@@ -605,6 +606,7 @@
         if (event.target.closest("button")) return;
         state.activeSlot = card.getAttribute("data-slot-card") || "武器1";
         state.slotFilter = state.activeSlot;
+        renderSlotFilters();
         renderEquipmentList();
         renderSlots();
       });
