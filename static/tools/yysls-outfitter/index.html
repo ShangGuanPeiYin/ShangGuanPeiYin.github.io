@@ -494,7 +494,7 @@
 
       .result-card-body {
         display: grid;
-        grid-template-columns: 1fr 170px;
+        grid-template-columns: 1fr 320px;
         gap: 14px;
       }
 
@@ -523,10 +523,11 @@
 
       .result-stat-list {
         display: grid;
-        gap: 8px;
-        max-height: 320px;
-        overflow-y: auto;
-        padding-right: 6px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px 14px;
+        max-height: none;
+        overflow-y: visible;
+        padding-right: 0;
       }
 
       .result-stat-item {
@@ -614,7 +615,7 @@
         }
 
         .result-card-body {
-          grid-template-columns: 1fr 150px;
+          grid-template-columns: 1fr 280px;
         }
       }
 
@@ -773,6 +774,6 @@
       </main>
     </div>
 
-    <script src="/tools/yysls-outfitter/app.js?v=20260516-2220"></script>
+    <script src="/tools/yysls-outfitter/app.js?v=20260516-2221"></script>
   </body>
 </html>
