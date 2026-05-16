@@ -586,6 +586,22 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
+      .editor-slot-row {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
+      .editor-slot-pair {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .editor-slot-pair.has-weapon {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
       .editor-stat-card {
         padding: 12px;
         border-radius: 18px;
@@ -779,6 +795,10 @@
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .editor-slot-row {
+          grid-template-columns: 1fr;
+        }
+
         .editor-stat-row {
           grid-template-columns: minmax(120px, 1fr) 72px;
         }
@@ -943,6 +963,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260516-2"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260516-3"></script>
   </body>
 </html>

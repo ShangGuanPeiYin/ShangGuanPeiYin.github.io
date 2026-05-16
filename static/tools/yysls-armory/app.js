@@ -395,23 +395,25 @@
 
     nodes.equipmentEditorTitle.textContent = `编辑装备 · ${item.name || "未命名装备"}`;
     nodes.equipmentEditorForm.innerHTML = `
-      <div class="editor-grid">
+      <div class="editor-slot-row">
         <label class="field">
           <span>装备备注名</span>
           <input id="editorName" type="text" value="${escapeHtml(item.name || "")}" />
         </label>
-        <label class="field">
-          <span>部位</span>
-          <select id="editorSlotName">
-            ${selectHtmlOptions(slotOrder, item.slotName || "", false)}
-          </select>
-        </label>
-        <label class="field" id="editorWeaponTypeField">
-          <span>武器类型</span>
-          <select id="editorWeaponTypeId">
-            ${weaponTypeOptionsHtml(item.weaponTypeId || "")}
-          </select>
-        </label>
+        <div class="editor-slot-pair" id="editorSlotPair">
+          <label class="field">
+            <span>部位</span>
+            <select id="editorSlotName">
+              ${selectHtmlOptions(slotOrder, item.slotName || "", false)}
+            </select>
+          </label>
+          <label class="field" id="editorWeaponTypeField">
+            <span>武器类型</span>
+            <select id="editorWeaponTypeId">
+              ${weaponTypeOptionsHtml(item.weaponTypeId || "")}
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="editor-grid">
@@ -476,6 +478,7 @@
     `;
 
     const weaponField = document.getElementById("editorWeaponTypeField");
+    const slotPair = document.getElementById("editorSlotPair");
     const slotSelect = document.getElementById("editorSlotName");
     const substatRows = document.getElementById("substatEditorRows");
     const classesDropdown = document.getElementById("editorClassesDropdown");
@@ -483,7 +486,9 @@
     const newClassInput = document.getElementById("editorNewClassInput");
 
     function syncWeaponField() {
-      weaponField.classList.toggle("hidden", slotSelect.value !== "武器");
+      const hasWeapon = slotSelect.value === "武器";
+      weaponField.classList.toggle("hidden", !hasWeapon);
+      slotPair.classList.toggle("has-weapon", hasWeapon);
     }
 
     function syncClassSummary() {
