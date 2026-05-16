@@ -459,14 +459,18 @@
 
     state.draftScheme.slots[targetSlot] = String(item.id);
     state.activeSlot = targetSlot;
-    renderAll();
+    renderEquipmentList();
+    renderSlots();
+    renderSummary();
     setMessage(`已把 ${item.name || "未命名装备"} 放入 ${targetSlot}。`, "info");
   }
 
   function removeSlotItem(slot) {
     if (!state.draftScheme) return;
     state.draftScheme.slots[slot] = "";
-    renderAll();
+    renderEquipmentList();
+    renderSlots();
+    renderSummary();
   }
 
   function renderEquipmentCard(item) {
@@ -711,14 +715,14 @@
   }
 
   function copySummary() {
-    const totals = aggregateStats();
+    const aggregates = aggregateStats();
     const payload = {
       account: state.selectedAccount,
       className: state.selectedClass,
       schemeName: state.draftScheme.name || "未命名方案",
       slots: state.draftScheme.slots,
-      totals,
-      counts
+      totals: aggregates.total,
+      counts: aggregates.count
     };
     const text = JSON.stringify(payload, null, 2);
     navigator.clipboard.writeText(text)
