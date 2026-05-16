@@ -93,7 +93,8 @@
     searchText: "",
     searchMode: "atLeast",
     searchCriteria: [],
-    searchResults: []
+    searchResults: [],
+    searchResultPage: 0
   };
 
   const nodes = {
@@ -512,37 +513,43 @@
       return;
     }
 
-    nodes.resultList.innerHTML = state.searchResults
-      .map((result, index) => {
-        const slotLines = slotOrder
-          .map((slot) => {
-            const item = equipmentById(result.slots[slot]);
-            const slotLabel = slotDisplayLabel(slot);
-            return `<span>${escapeHtml(slotLabel)}：${escapeHtml(item?.name || "未命名装备")}</span>`;
-          })
-          .join("");
-        const statList = result.summary
-          .map((entry) => `
-            <div class="result-stat-item">
-              <div class="result-stat-name">${escapeHtml(entry.type)} · ${escapeHtml(String(entry.count))}条</div>
-              <div class="result-stat-value">${escapeHtml(statValueText(entry.type, entry.total))}</div>
-            </div>
-          `)
-          .join("");
-        return `
-          <article class="result-card">
-            <h4>方案 ${index + 1}</h4>
-            <div class="result-card-body">
-              <div class="result-slots">${slotLines}</div>
-              <div class="result-stat-list">${statList}</div>
-            </div>
-            <div class="result-actions">
-              <button class="secondary" type="button" data-load-result="${escapeHtml(String(index))}">载入当前搭配</button>
-            </div>
-          </article>
-        `;
+    const page = Math.max(0, Math.min(state.searchResultPage, state.searchResults.length - 1));
+    const result = state.searchResults[page];
+    const slotLines = slotOrder
+      .map((slot) => {
+        const item = equipmentById(result.slots[slot]);
+        const slotLabel = slotDisplayLabel(slot);
+        return `<span>${escapeHtml(slotLabel)}：${escapeHtml(item?.name || "未命名装备")}</span>`;
       })
       .join("");
+    const statList = result.summary
+      .map((entry) => `
+        <div class="result-stat-item">
+          <div class="result-stat-name">${escapeHtml(entry.type)} · ${escapeHtml(String(entry.count))}条</div>
+          <div class="result-stat-value">${escapeHtml(statValueText(entry.type, entry.total))}</div>
+        </div>
+      `)
+      .join("");
+
+    const prevDisabled = page <= 0 ? "disabled" : "";
+    const nextDisabled = page >= state.searchResults.length - 1 ? "disabled" : "";
+
+    nodes.resultList.innerHTML = `
+      <div class="result-pager">
+        <button class="secondary" type="button" data-prev-result ${prevDisabled}>← 上一套</button>
+        <span>方案 ${page + 1} / ${state.searchResults.length}</span>
+        <button class="secondary" type="button" data-next-result ${nextDisabled}>下一套 →</button>
+      </div>
+      <article class="result-card">
+        <div class="result-card-body">
+          <div class="result-slots">${slotLines}</div>
+          <div class="result-stat-list">${statList}</div>
+        </div>
+        <div class="result-actions">
+          <button class="secondary" type="button" data-load-result="${escapeHtml(String(page))}">载入当前搭配</button>
+        </div>
+      </article>
+    `;
 
     nodes.resultList.querySelectorAll("[data-load-result]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -555,6 +562,27 @@
         setMessage(`已载入搜索结果方案 ${Number(button.getAttribute("data-load-result")) + 1}。`, "info");
       });
     });
+
+    const prevButton = nodes.resultList.querySelector("[data-prev-result]");
+    const nextButton = nodes.resultList.querySelector("[data-next-result]");
+
+    if (prevButton) {
+      prevButton.addEventListener("click", () => {
+        if (state.searchResultPage > 0) {
+          state.searchResultPage -= 1;
+          renderSearchResults();
+        }
+      });
+    }
+
+    if (nextButton) {
+      nextButton.addEventListener("click", () => {
+        if (state.searchResultPage < state.searchResults.length - 1) {
+          state.searchResultPage += 1;
+          renderSearchResults();
+        }
+      });
+    }
   }
 
   function renderSlotFilters() {
@@ -627,6 +655,7 @@
     if (missingSlot) {
       nodes.searchResultMeta.textContent = "";
       state.searchResults = [];
+      state.searchResultPage = 0;
       renderSearchResults();
       setMessage(`${slotDisplayLabel(missingSlot)} 当前没有可用装备，无法完成穷举搜索。`, "warn");
       return;
@@ -729,6 +758,7 @@
 
     dfs(0);
     state.searchResults = results;
+    state.searchResultPage = 0;
     nodes.searchResultMeta.textContent = results.length
       ? `已找到 ${results.length} 套符合条件的方案，当前最多展示 15 套。`
       : "没有找到符合当前条件的穿搭方案。";
@@ -1157,6 +1187,7 @@
       state.draftScheme = createDraftScheme();
       state.searchCriteria = [{ id: generateId(), type: nextAvailableSearchType("会心率"), count: 1 }];
       state.searchResults = [];
+      state.searchResultPage = 0;
       renderAll();
       setMessage("当前浏览器里还没有装备库数据，请先去装备管理器录入或导入装备。", "warn");
       return;
