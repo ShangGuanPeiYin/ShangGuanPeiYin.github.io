@@ -59,9 +59,6 @@
     "破竹·鸢": ["拳甲", "绳标"]
   };
 
-  const attackStats = ["最大外功攻击", "最小外功攻击"];
-  const coreStats = ["精准率", "会心率", "会意率", "劲", "敏", "势"];
-  const bonusStats = ["全武学增效", "对首领单位增伤", "外功穿透", "属攻穿透", "指定武学技能增伤"];
   const weaponBonusStats = [
     "剑武学增效",
     "枪武学增效",
@@ -111,10 +108,7 @@
     slotsGrid: document.getElementById("slotsGrid"),
     classRuleHint: document.getElementById("classRuleHint"),
     clearBuildButton: document.getElementById("clearBuildButton"),
-    attackSummary: document.getElementById("attackSummary"),
-    coreSummary: document.getElementById("coreSummary"),
-    bonusSummary: document.getElementById("bonusSummary"),
-    weaponSummary: document.getElementById("weaponSummary"),
+    allStatSummary: document.getElementById("allStatSummary"),
     schemeMeta: document.getElementById("schemeMeta"),
     copySummaryButton: document.getElementById("copySummaryButton"),
     exportBridgeButton: document.getElementById("exportBridgeButton")
@@ -360,6 +354,7 @@
 
   function aggregateStats() {
     const total = {};
+    const count = {};
     slotOrder.forEach((slot) => {
       const item = equipmentById(state.draftScheme.slots[slot]);
       if (!item) return;
@@ -367,30 +362,36 @@
         const normalized = normalizeStat(stat);
         if (!normalized.type) return;
         total[normalized.type] = (total[normalized.type] || 0) + normalized.value;
+        count[normalized.type] = (count[normalized.type] || 0) + 1;
       });
     });
-    return total;
+    return { total, count };
   }
 
-  function statRowsHtml(statNames, totals) {
-    const rows = statNames
-      .filter((name) => totals[name])
+  function allStatRowsHtml(totals, counts) {
+    const names = Object.keys(totals).sort((a, b) => {
+      const aWeapon = weaponBonusStats.includes(a);
+      const bWeapon = weaponBonusStats.includes(b);
+      if (aWeapon !== bWeapon) return aWeapon ? 1 : -1;
+      return a.localeCompare(b, "zh-Hans-CN");
+    });
+
+    const rows = names
       .map((name) => `
         <div class="stat-row">
-          <span>${escapeHtml(name)}</span>
+          <span>${escapeHtml(name)} · ${escapeHtml(String(counts[name] || 0))}条</span>
           <strong>${escapeHtml(statValueText(name, totals[name]))}</strong>
         </div>
       `)
       .join("");
-    return rows || '<div class="empty-block">当前这一组还没有词条。</div>';
+    return rows || '<div class="empty-block">当前整套装备还没有可汇总的词条。</div>';
   }
 
   function renderSummary() {
-    const totals = aggregateStats();
-    nodes.attackSummary.innerHTML = statRowsHtml(attackStats, totals);
-    nodes.coreSummary.innerHTML = statRowsHtml(coreStats, totals);
-    nodes.bonusSummary.innerHTML = statRowsHtml(bonusStats, totals);
-    nodes.weaponSummary.innerHTML = statRowsHtml(weaponBonusStats, totals);
+    const aggregates = aggregateStats();
+    const totals = aggregates.total;
+    const counts = aggregates.count;
+    nodes.allStatSummary.innerHTML = allStatRowsHtml(totals, counts);
     nodes.classRuleHint.textContent = currentClassRuleLabel();
 
     const equippedCount = Object.values(state.draftScheme.slots).filter(Boolean).length;
@@ -717,7 +718,8 @@
       className: state.selectedClass,
       schemeName: state.draftScheme.name || "未命名方案",
       slots: state.draftScheme.slots,
-      totals
+      totals,
+      counts
     };
     const text = JSON.stringify(payload, null, 2);
     navigator.clipboard.writeText(text)
@@ -731,7 +733,7 @@
       className: state.selectedClass,
       schemeName: state.draftScheme.name || "未命名方案",
       slots: state.draftScheme.slots,
-      totals: aggregateStats(),
+      aggregates: aggregateStats(),
       exportedAt: new Date().toISOString()
     };
     localStorage.setItem(EXPORT_KEY, JSON.stringify(payload));
