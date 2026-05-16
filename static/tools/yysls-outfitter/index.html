@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>燕云十六声装备搭配器</title>
+    <style>
+      :root {
+        --bg: #f3efe6;
+        --panel: rgba(255, 251, 244, 0.94);
+        --panel-strong: rgba(255, 248, 238, 0.98);
+        --line: rgba(100, 72, 38, 0.14);
+        --line-strong: rgba(100, 72, 38, 0.28);
+        --text: #352519;
+        --muted: #7b6857;
+        --accent: #8a5a2a;
+        --accent-soft: rgba(138, 90, 42, 0.12);
+        --danger: #a63f3f;
+        --danger-soft: rgba(166, 63, 63, 0.12);
+        --shadow: 0 18px 42px rgba(55, 34, 14, 0.11);
+        --radius: 22px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(255, 241, 221, 0.72), transparent 38%),
+          linear-gradient(180deg, #f8f3ea 0%, #f0eadf 44%, #ece4d6 100%);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button,
+      select,
+      input {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--text);
+      }
+
+      button {
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, #9a6530, #7d4e1f);
+        color: #fff7ef;
+        border-color: rgba(125, 78, 31, 0.8);
+        box-shadow: 0 10px 20px rgba(125, 78, 31, 0.18);
+      }
+
+      button.secondary {
+        background: rgba(255, 250, 245, 0.92);
+      }
+
+      button.danger {
+        background: rgba(255, 246, 246, 0.95);
+        border-color: rgba(166, 63, 63, 0.24);
+        color: var(--danger);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .page {
+        width: min(1460px, calc(100% - 24px));
+        margin: 0 auto;
+        padding: 24px 0 32px;
+      }
+
+      .hero,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .hero {
+        padding: 22px 24px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(1.5rem, 3vw, 2.05rem);
+      }
+
+      .hero p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .status-banner {
+        padding: 12px 14px;
+        border-radius: 16px;
+        font-size: 0.94rem;
+        border: 1px solid transparent;
+      }
+
+      .status-banner.info {
+        background: rgba(111, 81, 47, 0.08);
+        border-color: rgba(111, 81, 47, 0.14);
+        color: #5f4630;
+      }
+
+      .status-banner.warn {
+        background: rgba(166, 63, 63, 0.1);
+        border-color: rgba(166, 63, 63, 0.18);
+        color: #8f3636;
+      }
+
+      .controls-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field span {
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        min-width: 0;
+        padding: 11px 13px;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .hero-actions button {
+        padding: 11px 14px;
+      }
+
+      .layout {
+        margin-top: 18px;
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(320px, 0.95fr) minmax(390px, 1.05fr) minmax(300px, 0.88fr);
+        align-items: start;
+      }
+
+      .panel {
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .panel h2,
+      .panel h3 {
+        margin: 0;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .capsule-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .capsule {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 251, 245, 0.88);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .capsule.active {
+        background: linear-gradient(135deg, #9a6530, #7d4e1f);
+        border-color: rgba(125, 78, 31, 0.9);
+        color: #fff7ef;
+      }
+
+      .equipment-list {
+        display: grid;
+        gap: 12px;
+        max-height: calc(100vh - 320px);
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .equipment-card {
+        padding: 14px;
+        border-radius: 18px;
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        display: grid;
+        gap: 10px;
+      }
+
+      .equipment-card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: start;
+      }
+
+      .equipment-card strong {
+        font-size: 1rem;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+
+      .pill {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(138, 90, 42, 0.1);
+        color: #71481f;
+        font-size: 0.76rem;
+      }
+
+      .pill.gold {
+        background: rgba(173, 129, 38, 0.16);
+        color: #8b6212;
+      }
+
+      .mini-list {
+        display: grid;
+        gap: 6px;
+        font-size: 0.88rem;
+      }
+
+      .mini-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .mini-row span:first-child {
+        color: var(--muted);
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .card-actions button {
+        padding: 8px 10px;
+        font-size: 0.86rem;
+      }
+
+      .slots-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .slot-card {
+        padding: 14px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255, 251, 245, 0.88);
+        display: grid;
+        gap: 10px;
+      }
+
+      .slot-card.active {
+        border-color: rgba(138, 90, 42, 0.42);
+        box-shadow: 0 0 0 3px rgba(138, 90, 42, 0.08);
+      }
+
+      .slot-card.empty {
+        background: rgba(255, 253, 249, 0.78);
+      }
+
+      .slot-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .slot-type {
+        font-size: 0.79rem;
+        color: var(--muted);
+      }
+
+      .slot-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .slot-actions button {
+        padding: 7px 10px;
+        font-size: 0.8rem;
+      }
+
+      .slot-empty {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .summary-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .summary-card {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 251, 245, 0.88);
+        border: 1px solid var(--line);
+        display: grid;
+        gap: 10px;
+      }
+
+      .stat-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 0.92rem;
+      }
+
+      .stat-row span:first-child {
+        color: var(--muted);
+      }
+
+      .scheme-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .empty-block {
+        padding: 20px 16px;
+        border-radius: 18px;
+        border: 1px dashed var(--line-strong);
+        color: var(--muted);
+        text-align: center;
+        background: rgba(255, 253, 248, 0.78);
+      }
+
+      .footer-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .footer-actions button {
+        padding: 10px 12px;
+      }
+
+      @media (max-width: 1200px) {
+        .controls-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .equipment-list {
+          max-height: 420px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .page {
+          width: min(100% - 16px, 1460px);
+          padding-top: 16px;
+        }
+
+        .hero,
+        .panel {
+          padding: 16px;
+          border-radius: 24px;
+        }
+
+        .controls-grid,
+        .slots-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-top,
+        .panel-head,
+        .equipment-card-top,
+        .slot-head,
+        .mini-row,
+        .stat-row {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero-top">
+          <div>
+            <h1>燕云十六声装备搭配器</h1>
+            <p>从装备库中为指定流派组合 2 把武器与 6 个其他部位，自动汇总整套词条结果，并保存为可复用的搭配方案。</p>
+          </div>
+        </div>
+
+        <div id="messageBox" class="status-banner info">正在读取本地装备库…</div>
+
+        <div class="controls-grid">
+          <label class="field">
+            <span>当前角色</span>
+            <select id="accountSelect"></select>
+          </label>
+          <label class="field">
+            <span>当前流派</span>
+            <select id="classSelect"></select>
+          </label>
+          <label class="field">
+            <span>方案</span>
+            <select id="schemeSelect"></select>
+          </label>
+          <label class="field">
+            <span>方案名</span>
+            <input id="schemeNameInput" type="text" placeholder="例如：首领奖励套" />
+          </label>
+          <label class="field">
+            <span>装备筛选</span>
+            <input id="searchInput" type="text" placeholder="按备注名搜索装备" />
+          </label>
+          <div class="hero-actions">
+            <button class="secondary" id="newSchemeButton" type="button">新方案</button>
+            <button class="primary" id="saveSchemeButton" type="button">保存方案</button>
+            <button class="danger" id="deleteSchemeButton" type="button">删除方案</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>候选装备</h2>
+              <div class="muted">先点中部位槽位，再从这里把装备放进当前槽位。</div>
+            </div>
+          </div>
+          <div id="slotFilterBar" class="capsule-row"></div>
+          <div id="equipmentList" class="equipment-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>当前搭配</h2>
+              <div id="classRuleHint" class="muted"></div>
+            </div>
+            <button class="secondary" id="clearBuildButton" type="button">清空当前搭配</button>
+          </div>
+          <div id="slotsGrid" class="slots-grid"></div>
+        </section>
+
+        <aside class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>词条汇总</h2>
+              <div class="muted">只统计当前已上阵的 8 个槽位。</div>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <section class="summary-card">
+              <h3>基础攻击</h3>
+              <div id="attackSummary" class="stat-list"></div>
+            </section>
+            <section class="summary-card">
+              <h3>双暴与五维</h3>
+              <div id="coreSummary" class="stat-list"></div>
+            </section>
+            <section class="summary-card">
+              <h3>增伤与穿透</h3>
+              <div id="bonusSummary" class="stat-list"></div>
+            </section>
+            <section class="summary-card">
+              <h3>武学增效</h3>
+              <div id="weaponSummary" class="stat-list"></div>
+            </section>
+            <section class="summary-card">
+              <h3>方案信息</h3>
+              <div id="schemeMeta" class="scheme-meta"></div>
+            </section>
+          </div>
+
+          <div class="footer-actions">
+            <button class="secondary" id="copySummaryButton" type="button">复制词条汇总</button>
+            <button class="secondary" id="exportBridgeButton" type="button">写入毕业率缓存</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="/tools/yysls-outfitter/app.js?v=20260516-01"></script>
+  </body>
+</html>

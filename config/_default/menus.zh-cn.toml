@@ -23,6 +23,11 @@
   url = "/tools/yysls-armory/"
   weight = 36
 
+[[main]]
+  name = "搭配器"
+  url = "/tools/yysls-outfitter/"
+  weight = 37
+
 [[footer]]
   name = "文章"
   pageRef = "posts"
