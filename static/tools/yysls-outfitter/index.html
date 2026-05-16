@@ -595,6 +595,29 @@
         </div>
       </header>
 
+      <section class="panel search-panel">
+        <div class="panel-head">
+          <div>
+            <h2>词条条数搜索</h2>
+            <div class="muted">只统计主词条和副词条，忽略定音词条。搜索结果最多展示 15 套方案。</div>
+          </div>
+        </div>
+        <div class="search-layout">
+          <div class="search-column">
+            <div id="searchModeRow" class="search-mode-row"></div>
+            <div id="criteriaList" class="criteria-list"></div>
+            <div class="criteria-actions">
+              <button class="secondary" id="addCriteriaButton" type="button">新增条件</button>
+              <button class="primary" id="runSearchButton" type="button">开始搜索</button>
+            </div>
+          </div>
+          <div class="search-column">
+            <div id="searchResultMeta" class="muted"></div>
+            <div id="resultList" class="result-list"></div>
+          </div>
+        </div>
+      </section>
+
       <main class="main-layout">
         <section class="panel">
           <div class="panel-head">
@@ -643,31 +666,8 @@
           </div>
         </aside>
       </main>
-
-      <section class="panel search-panel">
-        <div class="panel-head">
-          <div>
-            <h2>词条条数搜索</h2>
-            <div class="muted">只统计主词条和副词条，忽略定音词条。搜索结果最多展示 15 套方案。</div>
-          </div>
-        </div>
-        <div class="search-layout">
-          <div class="search-column">
-            <div id="searchModeRow" class="search-mode-row"></div>
-            <div id="criteriaList" class="criteria-list"></div>
-            <div class="criteria-actions">
-              <button class="secondary" id="addCriteriaButton" type="button">新增条件</button>
-              <button class="primary" id="runSearchButton" type="button">开始搜索</button>
-            </div>
-          </div>
-          <div class="search-column">
-            <div id="searchResultMeta" class="muted"></div>
-            <div id="resultList" class="result-list"></div>
-          </div>
-        </div>
-      </section>
     </div>
 
-    <script src="/tools/yysls-outfitter/app.js?v=20260516-10"></script>
+    <script src="/tools/yysls-outfitter/app.js?v=20260516-11"></script>
   </body>
 </html>
