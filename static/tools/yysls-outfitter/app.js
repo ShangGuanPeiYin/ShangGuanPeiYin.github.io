@@ -346,6 +346,10 @@
     nodes.slotFilterBar.querySelectorAll("[data-slot-filter]").forEach((button) => {
       button.addEventListener("click", () => {
         state.slotFilter = button.getAttribute("data-slot-filter") || "全部";
+        if (state.slotFilter !== "全部") {
+          state.activeSlot = state.slotFilter;
+        }
+        renderSlotFilters();
         renderEquipmentList();
         renderSlots();
       });
