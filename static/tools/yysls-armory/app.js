@@ -124,6 +124,7 @@
     classFilter: document.getElementById("classFilter"),
     searchInput: document.getElementById("searchInput"),
     resetFiltersButton: document.getElementById("resetFiltersButton"),
+    createEquipmentButton: document.getElementById("createEquipmentButton"),
     equipmentGrid: document.getElementById("equipmentGrid"),
     paginationBar: document.getElementById("paginationBar"),
     equipmentEditorModal: document.getElementById("equipmentEditorModal"),
@@ -469,12 +470,42 @@
     `;
   }
 
-  function mountEquipmentEditor(item) {
+  function generateEquipmentId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    return `equip-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function defaultSlotForNewEquipment() {
+    return slotOrder.includes(state.selectedSlot) ? state.selectedSlot : "";
+  }
+
+  function createEquipmentDraft() {
+    const slotName = defaultSlotForNewEquipment();
+    return {
+      id: generateEquipmentId(),
+      name: "未命名装备",
+      slotName,
+      slotId: slotIdForName(slotName),
+      weaponTypeId: null,
+      isChengyin: false,
+      isPurple: false,
+      availableClasses: [],
+      mainStat: normalizeStat(null),
+      dingyinStat: normalizeStat(null),
+      subStats: normalizeSubStats([])
+    };
+  }
+
+  function mountEquipmentEditor(item, options = {}) {
+    const { isNew = false } = options;
     const statTypes = collectStatTypes();
     const mainStat = normalizeStat(item.mainStat);
     const dingyinStat = normalizeStat(item.dingyinStat);
 
-    nodes.equipmentEditorTitle.textContent = `编辑装备 · ${item.name || "未命名装备"}`;
+    const editorPrefix = isNew ? "新增装备" : "编辑装备";
+    nodes.equipmentEditorTitle.textContent = `${editorPrefix} · ${item.name || "未命名装备"}`;
     nodes.equipmentEditorForm.innerHTML = `
       <div class="editor-slot-row">
         <label class="field">
@@ -617,14 +648,14 @@
     bindAutoSave();
   }
 
-  function openEquipmentEditor(id) {
+  function openEquipmentEditor(id, options = {}) {
     const item = findEquipmentById(id);
     if (!item) {
       setMessage("没有找到这件装备，可能它已经被删除。", "warn");
       return;
     }
     state.editingEquipmentId = String(id);
-    mountEquipmentEditor(item);
+    mountEquipmentEditor(item, options);
     setEquipmentEditorOpen(true);
   }
 
@@ -871,6 +902,35 @@
     setMessage("装备已从当前角色的装备库中移除。", "info");
   }
 
+  function createEquipment() {
+    if (!state.selectedAccount) {
+      setMessage("请先选择或创建一个角色，再新增装备。", "warn");
+      return;
+    }
+    if (!state.rawData) {
+      state.rawData = { game_account_list: [state.selectedAccount] };
+      state.rawData[`game_equip_data_${state.selectedAccount}`] = [];
+      state.rawData[`game_sim_data_${state.selectedAccount}`] = {
+        currentClass: "",
+        currentArmory: "",
+        loadouts: {}
+      };
+    }
+
+    const equipKey = `game_equip_data_${state.selectedAccount}`;
+    if (!Array.isArray(state.rawData[equipKey])) state.rawData[equipKey] = [];
+
+    const draft = createEquipmentDraft();
+    state.rawData[equipKey] = [...currentEquipments(), draft];
+    state.currentPage = Math.max(1, Math.ceil(filteredEquipments().length / PAGE_SIZE));
+    saveRawData();
+    renderAll();
+    openEquipmentEditor(draft.id, { isNew: true });
+
+    const slotText = draft.slotName || "未设置部位";
+    setMessage(`已新增一件装备，当前默认部位为 ${slotText}。`, "info");
+  }
+
   function saveEquipmentCardEdit(id) {
     if (!state.rawData || !state.selectedAccount) return;
     const equipKey = `game_equip_data_${state.selectedAccount}`;
@@ -968,6 +1028,7 @@
 
   function renderAll() {
     renderAccountOptions();
+    if (nodes.createEquipmentButton) nodes.createEquipmentButton.disabled = !state.selectedAccount;
 
     if (!state.accounts.length || !state.selectedAccount) {
       buildFilterOptions();
@@ -1222,6 +1283,10 @@
     state.currentPage = 1;
     nodes.searchInput.value = "";
     renderInventory();
+  });
+
+  nodes.createEquipmentButton.addEventListener("click", () => {
+    createEquipment();
   });
 
   function scheduleSavedLoad(saved) {
