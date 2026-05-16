@@ -380,6 +380,7 @@
       .equipment-card-top {
         display: flex;
         justify-content: space-between;
+        align-items: flex-start;
         gap: 12px;
       }
 
@@ -477,9 +478,15 @@
 
       .card-actions {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+
+      .card-actions button {
+        padding: 7px 10px;
+        font-size: 0.78rem;
+        border-radius: 999px;
       }
 
       .ghost-text {
@@ -872,10 +879,13 @@
         }
 
         .equipment-card-top,
-        .card-actions,
         .editor-footer {
           flex-direction: column;
           align-items: flex-start;
+        }
+
+        .card-actions {
+          flex-direction: row;
         }
       }
     </style>
@@ -1009,6 +1019,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260516-8"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260516-9"></script>
   </body>
 </html>

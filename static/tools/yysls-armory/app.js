@@ -801,6 +801,10 @@
               ${item.isPurple ? '<span class="pill">紫装</span>' : ""}
             </div>
           </div>
+          <div class="card-actions">
+            <button class="secondary" type="button" data-edit-id="${escapeHtml(item.id)}">编辑装备</button>
+            <button class="danger" type="button" data-delete-id="${escapeHtml(item.id)}">删除装备</button>
+          </div>
         </div>
 
         <div class="data-grid">
@@ -817,11 +821,6 @@
         <div class="data-block">
           <span class="label">副词条</span>
           <div class="substats">${subStats}</div>
-        </div>
-
-        <div class="card-actions">
-          <button class="secondary" type="button" data-edit-id="${escapeHtml(item.id)}">编辑装备</button>
-          <button class="danger" type="button" data-delete-id="${escapeHtml(item.id)}">删除装备</button>
         </div>
       </article>
     `;
