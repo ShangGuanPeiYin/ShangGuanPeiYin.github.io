@@ -327,16 +327,17 @@
       }
 
       .equipment-grid {
-        position: relative;
-        min-height: 240px;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .pagination-bar {
         display: flex;
-        justify-content: flex-start;
+        justify-content: space-between;
         align-items: center;
         gap: 12px;
-        min-height: 24px;
+        flex-wrap: wrap;
       }
 
       .pagination-summary {
@@ -368,11 +369,6 @@
           transform 180ms ease,
           box-shadow 180ms ease,
           border-color 180ms ease;
-      }
-
-      .equipment-grid.virtualized .equipment-card {
-        position: absolute;
-        margin: 0;
       }
 
       .equipment-card:hover {
@@ -808,10 +804,14 @@
       }
 
       @media (max-width: 1380px) {
+        .equipment-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
       }
 
       @media (max-width: 1180px) {
-        .stats-row {
+        .stats-row,
+        .equipment-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
@@ -855,6 +855,7 @@
         }
 
         .stats-row,
+        .equipment-grid,
         .data-grid,
         .substats,
         .substat-editor-row,
@@ -1000,6 +1001,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260516-6"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260516-7"></script>
   </body>
 </html>
