@@ -432,6 +432,27 @@
         gap: 6px;
       }
 
+      .card-stat-editor {
+        display: grid;
+        gap: 6px;
+        grid-template-columns: minmax(0, 1fr) 82px;
+        align-items: center;
+      }
+
+      .card-stat-editor select,
+      .card-stat-editor input[type="number"] {
+        width: 100%;
+        padding: 7px 9px;
+        border-radius: 10px;
+        border: 1px solid rgba(20, 33, 45, 0.1);
+        background: rgba(255, 255, 255, 0.96);
+        font-size: 0.82rem;
+      }
+
+      .card-stat-editor input[type="number"] {
+        text-align: center;
+      }
+
       .card-stat-line {
         font-size: 0.86rem;
         line-height: 1.2;
@@ -461,6 +482,26 @@
         border: 1px solid rgba(20, 33, 45, 0.06);
         font-size: 0.84rem;
         align-items: center;
+      }
+
+      .substat-chip-edit {
+        display: grid;
+        gap: 6px;
+        grid-template-columns: minmax(0, 1fr) 82px;
+      }
+
+      .substat-chip-edit select,
+      .substat-chip-edit input[type="number"] {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(20, 33, 45, 0.08);
+        background: rgba(255, 255, 255, 0.98);
+        font-size: 0.8rem;
+      }
+
+      .substat-chip-edit input[type="number"] {
+        text-align: center;
       }
 
       .substat-chip span,
@@ -1021,6 +1062,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260516-10"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260516-11"></script>
   </body>
 </html>

@@ -400,6 +400,50 @@
     return rows;
   }
 
+  function renderCardStatEditor(equipmentId, fieldKey, stat, includeEmpty) {
+    const normalized = normalizeStat(stat);
+    const statTypes = collectStatTypes();
+    return `
+      <div class="card-stat-editor">
+        <select data-card-field="${escapeHtml(fieldKey)}-type" data-equip-id="${escapeHtml(equipmentId)}">
+          ${selectHtmlOptions(statTypes, normalized.type, includeEmpty)}
+        </select>
+        <input
+          type="number"
+          step="0.1"
+          value="${escapeHtml(normalized.value)}"
+          data-card-field="${escapeHtml(fieldKey)}-value"
+          data-equip-id="${escapeHtml(equipmentId)}"
+        />
+      </div>
+    `;
+  }
+
+  function renderCardSubstatsEditor(equipmentId, subStats) {
+    return normalizeSubStats(subStats)
+      .map((stat, index) => {
+        const normalized = normalizeStat(stat);
+        const statTypes = collectStatTypes();
+        return `
+          <div class="substat-chip">
+            <div class="substat-chip-edit">
+              <select data-card-field="sub-${index}-type" data-equip-id="${escapeHtml(equipmentId)}">
+                ${selectHtmlOptions(statTypes, normalized.type, true)}
+              </select>
+              <input
+                type="number"
+                step="0.1"
+                value="${escapeHtml(normalized.value)}"
+                data-card-field="sub-${index}-value"
+                data-equip-id="${escapeHtml(equipmentId)}"
+              />
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
   function renderClassDropdown(selectedValues) {
     const options = collectClassOptions();
     const selectedSet = new Set(selectedValues || []);
@@ -775,22 +819,13 @@
   }
 
   function renderEquipmentCard(item) {
-    const subStats = normalizeSubStats(item.subStats)
-      .map(
-        (stat) => `
-          <div class="substat-chip">
-            <span>${escapeHtml(stat.type || "空词条")}</span>
-            <strong>${stat.type ? `${escapeHtml(stat.value)}${stat.isPercent ? "%" : ""}` : "-"}</strong>
-          </div>
-        `
-      )
-      .join("");
+    const subStats = renderCardSubstatsEditor(item.id, item.subStats);
 
     const weaponBadge =
       item.slotName === "武器" ? `<span class="pill">${escapeHtml(weaponTypeLabel(item.weaponTypeId))}</span>` : "";
 
     return `
-      <article class="equipment-card">
+      <article class="equipment-card" data-equipment-id="${escapeHtml(item.id)}">
         <div class="equipment-card-top">
           <div class="equipment-card-title">
             <strong>${escapeHtml(item.name || "未命名装备")}</strong>
@@ -810,11 +845,11 @@
         <div class="data-grid">
           <div class="data-block">
             <span class="label">主词条</span>
-            <strong class="card-stat-line">${escapeHtml(statText(item.mainStat))}</strong>
+            ${renderCardStatEditor(item.id, "main", item.mainStat, false)}
           </div>
           <div class="data-block">
             <span class="label">定音词条</span>
-            <strong class="card-stat-line">${escapeHtml(statText(item.dingyinStat))}</strong>
+            ${renderCardStatEditor(item.id, "dingyin", item.dingyinStat, true)}
           </div>
         </div>
 
@@ -834,6 +869,49 @@
     saveRawData();
     renderAll();
     setMessage("装备已从当前角色的装备库中移除。", "info");
+  }
+
+  function saveEquipmentCardEdit(id) {
+    if (!state.rawData || !state.selectedAccount) return;
+    const equipKey = `game_equip_data_${state.selectedAccount}`;
+    const list = currentEquipments();
+    const index = list.findIndex((item) => String(item.id) === String(id));
+    if (index < 0) return;
+
+    const article = nodes.equipmentGrid.querySelector(`[data-equipment-id="${CSS.escape(String(id))}"]`);
+    if (!article) return;
+
+    const mainType = article.querySelector('[data-card-field="main-type"]')?.value || "";
+    const mainValue = Number(article.querySelector('[data-card-field="main-value"]')?.value || 0);
+    const dingyinType = article.querySelector('[data-card-field="dingyin-type"]')?.value || "";
+    const dingyinValue = Number(article.querySelector('[data-card-field="dingyin-value"]')?.value || 0);
+    const subStats = normalizeSubStats(
+      Array.from({ length: FIXED_SUBSTAT_COUNT }, (_, subIndex) => ({
+        type: article.querySelector(`[data-card-field="sub-${subIndex}-type"]`)?.value || "",
+        value: Number(article.querySelector(`[data-card-field="sub-${subIndex}-value"]`)?.value || 0),
+        isPercent: inferPercent(article.querySelector(`[data-card-field="sub-${subIndex}-type"]`)?.value || "")
+      }))
+    );
+
+    const updatedItem = {
+      ...list[index],
+      mainStat: {
+        type: mainType,
+        value: mainValue,
+        isPercent: inferPercent(mainType)
+      },
+      dingyinStat: {
+        type: dingyinType,
+        value: dingyinValue,
+        isPercent: inferPercent(dingyinType)
+      },
+      subStats
+    };
+
+    state.rawData[equipKey] = [...list];
+    state.rawData[equipKey][index] = updatedItem;
+    saveRawData();
+    renderAll();
   }
 
   function renderEquipmentGrid() {
@@ -871,6 +949,13 @@
         if (window.confirm("确定要删除这件装备吗？此操作会直接写入当前浏览器缓存。")) {
           deleteEquipment(equipId);
         }
+      });
+    });
+    nodes.equipmentGrid.querySelectorAll("[data-card-field]").forEach((node) => {
+      const eventName = node.tagName === "SELECT" ? "change" : "change";
+      node.addEventListener(eventName, () => {
+        const equipId = node.getAttribute("data-equip-id");
+        if (equipId) saveEquipmentCardEdit(equipId);
       });
     });
   }
