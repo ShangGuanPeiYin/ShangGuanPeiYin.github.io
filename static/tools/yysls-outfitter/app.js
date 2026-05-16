@@ -126,9 +126,38 @@
   function createSearchCriterion() {
     return {
       id: generateId(),
-      type: "会心率",
+      type: nextAvailableSearchType("会心率"),
       count: 1
     };
+  }
+
+  function uniqueSearchTypes() {
+    return [...new Set(state.searchCriteria.map((criterion) => String(criterion.type || "").trim()).filter(Boolean))];
+  }
+
+  function nextAvailableSearchType(preferred, excludeId) {
+    const options = countableStatOptions();
+    const used = new Set(
+      state.searchCriteria
+        .filter((criterion) => String(criterion.id) !== String(excludeId))
+        .map((criterion) => String(criterion.type || "").trim())
+        .filter(Boolean)
+    );
+    if (preferred && options.includes(preferred) && !used.has(preferred)) return preferred;
+    return options.find((option) => !used.has(option)) || options[0] || "会心率";
+  }
+
+  function normalizeSearchCriteria() {
+    const seen = new Set();
+    state.searchCriteria.forEach((criterion) => {
+      const current = String(criterion.type || "").trim();
+      if (current && !seen.has(current)) {
+        seen.add(current);
+        return;
+      }
+      criterion.type = nextAvailableSearchType(current, criterion.id);
+      if (criterion.type) seen.add(criterion.type);
+    });
   }
 
   function escapeHtml(value) {
@@ -394,14 +423,28 @@
 
   function renderCriteriaList() {
     const options = countableStatOptions();
-    const optionHtml = selectOptions(options.length ? options : ["会心率"], "");
+    normalizeSearchCriteria();
     nodes.criteriaList.innerHTML = state.searchCriteria
-      .map((criterion) => `
+      .map((criterion) => {
+        const usedByOthers = new Set(
+          state.searchCriteria
+            .filter((item) => String(item.id) !== String(criterion.id))
+            .map((item) => String(item.type || "").trim())
+            .filter(Boolean)
+        );
+        const optionHtml = (options.length ? options : ["会心率"])
+          .map((option) => {
+            const selected = option === criterion.type ? " selected" : "";
+            const disabled = usedByOthers.has(option) ? " disabled" : "";
+            return `<option value="${escapeHtml(option)}"${selected}${disabled}>${escapeHtml(option)}</option>`;
+          })
+          .join("");
+        return `
         <div class="criteria-row" data-criteria-id="${escapeHtml(criterion.id)}">
           <label class="field">
             <span>词条</span>
             <select data-criteria-field="type">
-              ${optionHtml.replace(`value="${escapeHtml("")}"`, `value=""`)}
+              ${optionHtml}
             </select>
           </label>
           <label class="field">
@@ -410,7 +453,8 @@
           </label>
           <button class="danger" type="button" data-remove-criteria="${escapeHtml(criterion.id)}">删除</button>
         </div>
-      `)
+      `;
+      })
       .join("");
 
     state.searchCriteria.forEach((criterion) => {
@@ -437,7 +481,8 @@
       const input = row.querySelector('[data-criteria-field="count"]');
       if (select) {
         select.addEventListener("change", () => {
-          criterion.type = select.value;
+          criterion.type = nextAvailableSearchType(select.value, criterion.id);
+          renderCriteriaList();
         });
       }
       if (input) {
@@ -446,6 +491,8 @@
         });
       }
     });
+
+    nodes.addCriteriaButton.disabled = !state.selectedAccount || uniqueSearchTypes().length >= countableStatOptions().length;
   }
 
   function renderSearchResults() {
@@ -1070,7 +1117,7 @@
     nodes.copySummaryButton.disabled = !state.selectedAccount;
     nodes.exportBridgeButton.disabled = !state.selectedAccount;
     nodes.runSearchButton.disabled = !state.selectedAccount;
-    nodes.addCriteriaButton.disabled = !state.selectedAccount;
+    nodes.addCriteriaButton.disabled = !state.selectedAccount || uniqueSearchTypes().length >= countableStatOptions().length;
     renderSearchMode();
     renderCriteriaList();
     renderSearchResults();
@@ -1093,7 +1140,7 @@
       state.accounts = [];
       state.selectedAccount = "";
       state.draftScheme = createDraftScheme();
-      state.searchCriteria = [createSearchCriterion()];
+      state.searchCriteria = [{ id: generateId(), type: nextAvailableSearchType("会心率"), count: 1 }];
       state.searchResults = [];
       renderAll();
       setMessage("当前浏览器里还没有装备库数据，请先去装备管理器录入或导入装备。", "warn");
@@ -1104,7 +1151,10 @@
     const lastAccount = localStorage.getItem(ACCOUNT_KEY) || state.rawData.last_selected_account || "";
     state.selectedAccount = state.accounts.includes(lastAccount) ? lastAccount : state.accounts[0] || "";
     state.draftScheme = createDraftScheme();
-    state.searchCriteria = [createSearchCriterion(), { id: generateId(), type: "精准率", count: 1 }];
+    state.searchCriteria = [
+      { id: generateId(), type: nextAvailableSearchType("会心率"), count: 1 },
+      { id: generateId(), type: nextAvailableSearchType("精准率"), count: 1 }
+    ];
     state.searchResults = [];
     loadCurrentScheme();
     renderAll();
