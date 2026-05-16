@@ -802,8 +802,8 @@
             </div>
           </div>
           <div class="card-actions">
-            <button class="secondary" type="button" data-edit-id="${escapeHtml(item.id)}">编辑装备</button>
-            <button class="danger" type="button" data-delete-id="${escapeHtml(item.id)}">删除装备</button>
+            <button class="secondary" type="button" data-edit-id="${escapeHtml(item.id)}">编辑</button>
+            <button class="danger" type="button" data-delete-id="${escapeHtml(item.id)}">删除</button>
           </div>
         </div>
 
