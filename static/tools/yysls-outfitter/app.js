@@ -250,6 +250,16 @@
     return names.length ? `${state.selectedClass} 只能使用 ${names.join(" + ")}` : "当前流派还没有配置武器规则。";
   }
 
+  function slotDisplayLabel(slot) {
+    if (slot === "武器1") {
+      return weaponTypeDisplayName(currentClassRule()[0]) || "武器1";
+    }
+    if (slot === "武器2") {
+      return weaponTypeDisplayName(currentClassRule()[1]) || "武器2";
+    }
+    return slot;
+  }
+
   function equipmentById(id) {
     return currentEquipments().find((item) => String(item.id) === String(id)) || null;
   }
@@ -263,7 +273,8 @@
     if (slot.startsWith("武器")) {
       if (item.slotName !== "武器") return false;
       const rawName = weaponTypeName(item);
-      return currentClassRule().includes(rawName);
+      const targetWeapon = slot === "武器1" ? currentClassRule()[0] : currentClassRule()[1];
+      return rawName === targetWeapon;
     }
     return item.slotName === slot;
   }
@@ -275,8 +286,11 @@
   function activeTargetSlotForItem(item) {
     if (!item) return "";
     if (item.slotName === "武器") {
+      const rawName = weaponTypeName(item);
+      if (rawName && rawName === currentClassRule()[0]) return "武器1";
+      if (rawName && rawName === currentClassRule()[1]) return "武器2";
       if (state.activeSlot === "武器1" || state.activeSlot === "武器2") return state.activeSlot;
-      return !state.draftScheme.slots["武器1"] ? "武器1" : !state.draftScheme.slots["武器2"] ? "武器2" : "武器1";
+      return "";
     }
     return item.slotName;
   }
@@ -330,7 +344,8 @@
     nodes.slotFilterBar.innerHTML = labels
       .map((label) => {
         const active = label === state.slotFilter ? "active" : "";
-        return `<button class="capsule ${active}" type="button" data-slot-filter="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
+        const text = label === "全部" ? label : slotDisplayLabel(label);
+        return `<button class="capsule ${active}" type="button" data-slot-filter="${escapeHtml(label)}">${escapeHtml(text)}</button>`;
       })
       .join("");
 
@@ -485,7 +500,7 @@
         </div>
         <div class="card-actions">
           <button class="primary" type="button" data-equip-id="${escapeHtml(item.id)}" ${targetSlot ? "" : "disabled"}>
-            放入${escapeHtml(targetSlot || "当前槽位")}
+            放入${escapeHtml(targetSlot ? slotDisplayLabel(targetSlot) : "当前槽位")}
           </button>
           ${occupied ? '<span class="pill">已上阵</span>' : ""}
         </div>
@@ -516,15 +531,16 @@
     const active = state.activeSlot === slot ? "active" : "";
     const empty = item ? "" : "empty";
     const ruleText = slot.startsWith("武器")
-      ? currentClassRule().map((name) => weaponTypeDisplayName(name)).join(" / ")
+      ? weaponTypeDisplayName(slot === "武器1" ? currentClassRule()[0] : currentClassRule()[1])
       : slot;
+    const slotTitle = slotDisplayLabel(slot);
 
     if (!item) {
       return `
         <article class="slot-card ${active} ${empty}" data-slot-card="${escapeHtml(slot)}">
           <div class="slot-head">
             <div>
-              <strong>${escapeHtml(slot)}</strong>
+              <strong>${escapeHtml(slotTitle)}</strong>
               <div class="slot-type">${escapeHtml(ruleText)}</div>
             </div>
           </div>
@@ -541,7 +557,7 @@
       <article class="slot-card ${active}" data-slot-card="${escapeHtml(slot)}">
         <div class="slot-head">
           <div>
-            <strong>${escapeHtml(slot)}</strong>
+            <strong>${escapeHtml(slotTitle)}</strong>
             <div class="slot-type">${escapeHtml(weaponText)}</div>
           </div>
         </div>
