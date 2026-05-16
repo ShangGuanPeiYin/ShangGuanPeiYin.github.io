@@ -441,22 +441,21 @@
       return;
     }
 
+    Object.keys(state.draftScheme.slots).forEach((slot) => {
+      if (String(state.draftScheme.slots[slot]) === String(item.id)) {
+        state.draftScheme.slots[slot] = "";
+      }
+    });
+
     if (item.slotName === "武器") {
       const otherSlot = targetSlot === "武器1" ? "武器2" : "武器1";
       const otherItem = equipmentById(state.draftScheme.slots[otherSlot]);
       const nextWeaponName = weaponTypeName(item);
       const otherWeaponName = weaponTypeName(otherItem);
       if (otherItem && nextWeaponName && nextWeaponName === otherWeaponName) {
-        setMessage(`当前流派必须同时使用 ${currentClassRuleLabel().replace(`${state.selectedClass} 只能使用 `, "")}，不能让两把武器都是 ${weaponTypeDisplayName(nextWeaponName)}。`, "warn");
-        return;
+        state.draftScheme.slots[otherSlot] = "";
       }
     }
-
-    Object.keys(state.draftScheme.slots).forEach((slot) => {
-      if (String(state.draftScheme.slots[slot]) === String(item.id)) {
-        state.draftScheme.slots[slot] = "";
-      }
-    });
 
     state.draftScheme.slots[targetSlot] = String(item.id);
     state.activeSlot = targetSlot;
