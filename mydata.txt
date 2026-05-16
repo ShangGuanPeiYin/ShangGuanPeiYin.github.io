@@ -1,0 +1,2651 @@
+{
+  "last_selected_account": "云川渡",
+  "best40StatsCache": {
+    "_破竹鸢_扶摇直上,擒天势,断石之构,易水歌_撼天_false_": {
+      "result": {
+        "statCounts": {
+          "会心率": 7,
+          "拳甲武学增效": 1,
+          "敏": 2,
+          "精准率": 2,
+          "对首领单位增伤": 2,
+          "最大外功攻击": 12,
+          "全武学增效": 2,
+          "劲": 10,
+          "最小外功攻击": 2
+        },
+        "bestBowType": "精准弓"
+      },
+      "updateTime": "2026年2月6日22:18:23"
+    },
+    "_破竹鸢_三穷致知,扶摇直上,擒天势,易水歌_撼天_false_": {
+      "result": {
+        "statCounts": {
+          "拳甲武学增效": 1,
+          "会心率": 8,
+          "敏": 2,
+          "对首领单位增伤": 2,
+          "精准率": 3,
+          "全武学增效": 2,
+          "最大外功攻击": 12,
+          "劲": 8,
+          "势": 2
+        },
+        "bestBowType": "精准弓"
+      },
+      "updateTime": "2026年3月28日17:53:55"
+    },
+    "_牵丝霖_君臣药,征人归,怒斩马,易水歌_时雨_false_": {
+      "result": {
+        "statCounts": {
+          "单体类奇术增伤": 2,
+          "敏": 2,
+          "会心率": 7,
+          "精准率": 2,
+          "最大外功攻击": 12,
+          "对首领单位增伤": 2,
+          "劲": 10,
+          "势": 1,
+          "最小外功攻击": 2
+        },
+        "bestBowType": "会心弓"
+      },
+      "updateTime": "2026年2月7日00:42:14"
+    },
+    "_破竹鸢_三穷致知,扶摇直上,擒天势,易水歌_撼天_true_": {
+      "result": {
+        "statCounts": {
+          "拳甲武学增效": 1,
+          "会心率": 8,
+          "敏": 2,
+          "对首领单位增伤": 2,
+          "精准率": 3,
+          "全武学增效": 2,
+          "最大外功攻击": 12,
+          "劲": 9,
+          "势": 1
+        },
+        "bestBowType": "精准弓"
+      },
+      "updateTime": "2026年3月28日17:53:55"
+    }
+  },
+  "grad_manual_form_炎上野鹤_破竹鸢": {
+    "最小外功攻击": 1716,
+    "最大外功攻击": 3221,
+    "外功穿透": 50.3,
+    "最小鸣金攻击": 0,
+    "最大鸣金攻击": 43,
+    "鸣金穿透": 0,
+    "最小裂石攻击": 48,
+    "最大裂石攻击": 48,
+    "裂石穿透": 0,
+    "最小牵丝攻击": 0,
+    "最大牵丝攻击": 0,
+    "牵丝穿透": 0,
+    "最小破竹攻击": 376,
+    "最大破竹攻击": 1003,
+    "破竹穿透": 25.2,
+    "最小无相攻击": 40,
+    "最大无相攻击": 78,
+    "无相穿透": 0,
+    "精准率": 100,
+    "会心率": 77.7,
+    "会意率": 13.5,
+    "拳甲武学增效": 7.1,
+    "全武学增效": 7,
+    "对首领单位增伤": 7.4,
+    "天志垂象·蓄力技增伤": 24.8
+  },
+  "game_sim_data_云川渡": {
+    "currentClass": "破竹鸢",
+    "currentArmory": "破竹",
+    "loadouts": {
+      "破竹鸢": {
+        "schemes": {
+          "默认": {
+            "weapon1": 1776652062330,
+            "weapon2": 1776652062333,
+            "head": 1776652062324,
+            "chest": 1776652062350,
+            "ring": 1776652062323,
+            "pendant": 1777874123377,
+            "legs": 1778166312942,
+            "hands": 1776652062357,
+            "bowType": "precision",
+            "setType": "撼天",
+            "xinfa": [
+              "易水歌",
+              "扶摇直上",
+              "擒天势",
+              "三穷致知"
+            ],
+            "earlySeasonBonus": true,
+            "PVPMode": false,
+            "loanDingyin": true,
+            "loanDingyinValue": [
+              58.4,
+              0,
+              32
+            ],
+            "armory": "破竹",
+            "name": "默认方案"
+          },
+          "scheme_1": {
+            "weapon1": 1776652062330,
+            "weapon2": 1776652062333,
+            "head": 1776652062324,
+            "chest": 1776652062350,
+            "ring": 1776652062323,
+            "pendant": 1777874123377,
+            "legs": 1776652062343,
+            "hands": 1776652062357,
+            "bowType": "precision",
+            "setType": "撼天",
+            "xinfa": [
+              "易水歌",
+              "扶摇直上",
+              "擒天势",
+              "三穷致知"
+            ],
+            "earlySeasonBonus": false,
+            "PVPMode": false,
+            "loanDingyin": false,
+            "loanDingyinValue": [
+              58.4,
+              0,
+              32
+            ],
+            "armory": "破竹",
+            "name": "max"
+          },
+          "scheme_2": {
+            "weapon1": 1776652062330,
+            "weapon2": 1776652062333,
+            "head": 1776652062324,
+            "chest": 1776652062350,
+            "ring": 1776652062323,
+            "pendant": 1777874123377,
+            "legs": 1778166312942,
+            "hands": 1776652062357,
+            "bowType": "precision",
+            "setType": "撼天",
+            "xinfa": [
+              "易水歌",
+              "扶摇直上",
+              "擒天势",
+              "三穷致知"
+            ],
+            "earlySeasonBonus": true,
+            "PVPMode": false,
+            "loanDingyin": true,
+            "loanDingyinValue": [
+              58.4,
+              0,
+              32
+            ],
+            "armory": "破竹",
+            "name": "97"
+          }
+        },
+        "currentSchemeId": "scheme_1"
+      },
+      "破竹尘": {
+        "schemes": {
+          "默认": {
+            "weapon1": 1778392959630,
+            "weapon2": 1776652062333,
+            "head": 1776652062324,
+            "chest": 1776652062353,
+            "ring": 1776652062335,
+            "pendant": 1777874123377,
+            "legs": 1776652062343,
+            "hands": 1776652062314,
+            "bowType": "precision",
+            "setType": "连星",
+            "xinfa": [
+              "易水歌",
+              "千营一呼",
+              "绳舟行木",
+              "所恨年年"
+            ],
+            "earlySeasonBonus": true,
+            "PVPMode": false,
+            "loanDingyin": true,
+            "loanDingyinValue": [
+              58.4,
+              0,
+              32
+            ],
+            "armory": "破竹",
+            "name": "默认方案"
+          },
+          "scheme_1": {
+            "weapon1": 1778392959630,
+            "weapon2": 1776652062333,
+            "head": 1776652062324,
+            "chest": 1776652062353,
+            "ring": 1776652062335,
+            "pendant": 1777874123377,
+            "legs": 1776652062343,
+            "hands": 1776652062314,
+            "bowType": "precision",
+            "setType": "连星",
+            "xinfa": [
+              "易水歌",
+              "千营一呼",
+              "绳舟行木",
+              "所恨年年"
+            ],
+            "earlySeasonBonus": false,
+            "PVPMode": false,
+            "loanDingyin": true,
+            "loanDingyinValue": [
+              58.4,
+              0,
+              32
+            ],
+            "armory": "破竹",
+            "name": "辰辰"
+          }
+        },
+        "currentSchemeId": "scheme_1"
+      }
+    }
+  },
+  "game_sim_data_5": {
+    "currentClass": "破竹鸢",
+    "currentArmory": "破竹",
+    "loadouts": {
+      "破竹鸢": {
+        "schemes": {
+          "默认": {
+            "weapon1": null,
+            "weapon2": null,
+            "head": null,
+            "chest": null,
+            "ring": null,
+            "pendant": null,
+            "legs": null,
+            "hands": null,
+            "bowType": "precision",
+            "setType": "撼天",
+            "xinfa": [
+              "易水歌",
+              "扶摇直上",
+              "擒天势",
+              "三穷致知"
+            ],
+            "earlySeasonBonus": false,
+            "PVPMode": false,
+            "loanDingyin": false,
+            "loanDingyinValue": [],
+            "armory": "破竹",
+            "name": "默认方案"
+          }
+        },
+        "currentSchemeId": "默认"
+      }
+    }
+  },
+  "game_equip_data_云川渡": [
+    {
+      "id": 1776652062310,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "5",
+      "name": "100-精会-神力",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹风"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 12.7,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "绳标武学增效",
+          "value": 8.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062311,
+      "slotId": "6",
+      "slotName": "胸甲",
+      "weaponTypeId": null,
+      "name": "100-会会敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.3,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062312,
+      "slotId": "3",
+      "slotName": "环",
+      "weaponTypeId": null,
+      "name": "100-精",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 12.7,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062314,
+      "slotId": "8",
+      "slotName": "腕甲",
+      "weaponTypeId": null,
+      "name": "105已承音-会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.1,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最小外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062315,
+      "slotId": "8",
+      "slotName": "腕甲",
+      "weaponTypeId": null,
+      "name": "100-会",
+      "isChengyin": true,
+      "isPurple": true,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "劲",
+        "value": 62.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 5.4,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最小牵丝攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062316,
+      "slotId": "3",
+      "slotName": "环",
+      "weaponTypeId": null,
+      "name": "105已承音-纯攻",
+      "isChengyin": true,
+      "isPurple": true,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 12.5,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062317,
+      "slotId": "4",
+      "slotName": "佩",
+      "weaponTypeId": null,
+      "name": "105已承音-会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 12.4,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最小裂石攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062318,
+      "slotId": "7",
+      "slotName": "胫甲",
+      "weaponTypeId": null,
+      "name": "100-精",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "劲",
+        "value": 62.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.2,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "最大鸣金攻击",
+          "value": 56.2,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062320,
+      "slotId": "4",
+      "slotName": "佩",
+      "weaponTypeId": null,
+      "name": "100-精敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 10.6,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062322,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "5",
+      "name": "100-会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹尘",
+        "破竹风",
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 12.3,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大无相攻击",
+          "value": 56.2,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062323,
+      "slotId": "3",
+      "slotName": "环",
+      "weaponTypeId": null,
+      "name": "105已承音-会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "属攻穿透",
+        "value": 14.8,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062324,
+      "slotId": "5",
+      "slotName": "冠胄",
+      "weaponTypeId": null,
+      "name": "105已承音-会会",
+      "isChengyin": true,
+      "isPurple": true,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.2,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062325,
+      "slotId": "6",
+      "slotName": "胸甲",
+      "weaponTypeId": null,
+      "name": "100-精会敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "精准率",
+        "value": 10.1,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 4.4,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最小破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062326,
+      "slotId": "8",
+      "slotName": "腕甲",
+      "weaponTypeId": null,
+      "name": "鸣金：100",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影"
+      ],
+      "mainStat": {
+        "type": "劲",
+        "value": 62.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "最大鸣金攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "势",
+          "value": 62.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062328,
+      "slotId": "4",
+      "slotName": "佩",
+      "weaponTypeId": null,
+      "name": "100-精",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "属攻穿透",
+        "value": 11.9,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062329,
+      "slotId": "7",
+      "slotName": "胫甲",
+      "weaponTypeId": null,
+      "name": "100-精会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "劲",
+        "value": 62.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.5,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062330,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "9",
+      "name": "传家宝拳甲105已承音",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 14.5,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "拳甲武学增效",
+          "value": 8.1,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062331,
+      "slotId": "5",
+      "slotName": "冠胄",
+      "weaponTypeId": null,
+      "name": "100-会会-鸣金",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.9,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最小鸣金攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "slotId": "1",
+      "weaponTypeId": "9",
+      "name": "100",
+      "isChengyin": true,
+      "isPurple": true,
+      "availableClasses": [
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "拳甲武学增效",
+          "value": 8.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ],
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 13,
+        "isPercent": false
+      },
+      "id": 1776652062332,
+      "slotName": "武器"
+    },
+    {
+      "id": 1776652062333,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "5",
+      "name": "105-敏会",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹尘",
+        "破竹风",
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 92.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 13.4,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "会心率",
+          "value": 11.3,
+          "isPercent": true
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 103.1,
+          "isPercent": false
+        },
+        {
+          "type": "敏",
+          "value": 61.6,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 105.6,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062335,
+      "slotId": "3",
+      "slotName": "环",
+      "weaponTypeId": null,
+      "name": "105-3转律待定-敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 11.5,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062336,
+      "slotId": "5",
+      "slotName": "冠胄",
+      "weaponTypeId": null,
+      "name": "105已承音-精精会敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "精准率",
+        "value": 10.1,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.1,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062337,
+      "slotId": "5",
+      "slotName": "冠胄",
+      "weaponTypeId": null,
+      "name": "100-精会会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最小裂石攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062338,
+      "slotId": "6",
+      "slotName": "胸甲",
+      "weaponTypeId": null,
+      "name": "100-会会精敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.1,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最小牵丝攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062339,
+      "slotId": "6",
+      "slotName": "胸甲",
+      "weaponTypeId": null,
+      "name": "100-精敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "精准率",
+        "value": 10.1,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.2,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "最小牵丝攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062343,
+      "slotId": "7",
+      "slotName": "胫甲",
+      "weaponTypeId": null,
+      "name": "105已承音-会会敏",
+      "isChengyin": true,
+      "isPurple": true,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 4.8,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062344,
+      "slotId": "8",
+      "slotName": "腕甲",
+      "weaponTypeId": null,
+      "name": "100-会会",
+      "isChengyin": true,
+      "isPurple": true,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 4.8,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        },
+        {
+          "type": "最小破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062345,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "5",
+      "name": "105可转律-三个",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹尘",
+        "破竹风",
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 96.7,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 14.6,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "会心率",
+          "value": 11.3,
+          "isPercent": true
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 102.8,
+          "isPercent": false
+        },
+        {
+          "type": "精准率",
+          "value": 10.5,
+          "isPercent": true
+        },
+        {
+          "type": "敏",
+          "value": 66.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062346,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "5",
+      "name": "105转律3待定-精会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹尘",
+        "破竹风",
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "最小外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 14.6,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062347,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "5",
+      "name": "105转律2-三个",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹尘",
+        "破竹风",
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "敏",
+        "value": 62.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 14.6,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062348,
+      "slotId": "5",
+      "slotName": "冠胄",
+      "weaponTypeId": null,
+      "name": "105转律1-会会敏",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.3,
+        "isPercent": true
+      },
+      "dingyinStat": null,
+      "subStats": [
+        {
+          "type": "会心率",
+          "value": 12.1,
+          "isPercent": true
+        },
+        {
+          "type": "敏",
+          "value": 61,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 104.9,
+          "isPercent": false
+        },
+        {
+          "type": "最小鸣金攻击",
+          "value": 56,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652062350,
+      "slotId": "6",
+      "slotName": "胸甲",
+      "weaponTypeId": null,
+      "name": "105已承音-精精会敏",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "精准率",
+        "value": 10.1,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 8,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062351,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "9",
+      "name": "105未承音",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "敏",
+        "value": 62.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "属攻穿透",
+        "value": 13.4,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "拳甲武学增效",
+          "value": 8.1,
+          "isPercent": true
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062353,
+      "slotId": "6",
+      "slotName": "胸甲",
+      "weaponTypeId": null,
+      "name": "105-精会",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 10.7,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.2,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "劲",
+          "value": 61.9,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.5,
+          "isPercent": false
+        },
+        {
+          "type": "精准率",
+          "value": 10.7,
+          "isPercent": true
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 105.6,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "slotId": "7",
+      "weaponTypeId": null,
+      "name": "105会意",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹"
+      ],
+      "mainStat": {
+        "type": "会意率",
+        "value": 4.5,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "势",
+          "value": 51.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 105.1,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 65.5,
+          "isPercent": false
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 4,
+          "isPercent": true
+        }
+      ],
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 7.8,
+        "isPercent": true
+      },
+      "id": 1776652062354,
+      "slotName": "胫甲"
+    },
+    {
+      "id": 1776652062355,
+      "slotId": "8",
+      "slotName": "腕甲",
+      "weaponTypeId": null,
+      "name": "牵丝：105转律3待定-会",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "劲",
+        "value": 59.2,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 5.7,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最大牵丝攻击",
+          "value": 57.2,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.2,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 105.6,
+          "isPercent": false
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062356,
+      "slotId": "8",
+      "slotName": "腕甲",
+      "weaponTypeId": null,
+      "name": "100-精会",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "精准率",
+        "value": 8.7,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 4.7,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最小鸣金攻击",
+          "value": 44.6,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 85.7,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 10.7,
+          "isPercent": true
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 3,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776652062357,
+      "slotId": "8",
+      "slotName": "腕甲",
+      "weaponTypeId": null,
+      "name": "100-纯攻",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "劲",
+        "value": 62.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "对首领单位增伤",
+          "value": 4.1,
+          "isPercent": true
+        },
+        {
+          "type": "最小鸣金攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776652133198,
+      "slotId": "7",
+      "slotName": "胫甲",
+      "weaponTypeId": null,
+      "name": "105转律3-精会",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "精准率",
+        "value": 9.5,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.9,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "最小外功攻击",
+          "value": 96.7,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 98.5,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 12.1,
+          "isPercent": true
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 3.8,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776680520888,
+      "slotId": "5",
+      "slotName": "冠胄",
+      "weaponTypeId": null,
+      "name": "105转律2-精会",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "精准率",
+        "value": 10.1,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 7,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776951046075,
+      "slotId": "3",
+      "slotName": "环",
+      "weaponTypeId": null,
+      "name": "105转律2-精会",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最小外功攻击",
+        "value": 69.8,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 12.5,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "最大外功攻击",
+          "value": 100.5,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 66.8,
+          "isPercent": false
+        },
+        {
+          "type": "会心率",
+          "value": 11.6,
+          "isPercent": true
+        },
+        {
+          "type": "精准率",
+          "value": 10.8,
+          "isPercent": true
+        }
+      ]
+    },
+    {
+      "id": 1776954918845,
+      "slotId": "4",
+      "slotName": "佩",
+      "weaponTypeId": null,
+      "name": "105可转律会意鸣金破竹",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": null,
+      "subStats": [
+        {
+          "type": "最大破竹攻击",
+          "value": 56.2,
+          "isPercent": false
+        },
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        },
+        {
+          "type": "会意率",
+          "value": 5.7,
+          "isPercent": true
+        },
+        {
+          "type": "最大鸣金攻击",
+          "value": 56.2,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1776955287056,
+      "slotId": "5",
+      "slotName": "冠胄",
+      "weaponTypeId": null,
+      "name": "会会敏改的",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 11.5,
+        "isPercent": true
+      },
+      "dingyinStat": null,
+      "subStats": [
+        {
+          "type": "敏",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "最小鸣金攻击",
+          "value": 56.2,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1777874123377,
+      "slotId": "4",
+      "slotName": "佩",
+      "weaponTypeId": null,
+      "name": "105转律4-精会-4tod",
+      "isChengyin": true,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 14.6,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "全武学增效",
+          "value": 3.9,
+          "isPercent": true
+        },
+        {
+          "type": "精准率",
+          "value": 10.1,
+          "isPercent": true
+        },
+        {
+          "type": "会心率",
+          "value": 11.5,
+          "isPercent": true
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1777882592422,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "5",
+      "name": "105转律1-会",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "破竹尘",
+        "破竹风",
+        "破竹鸢"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 92.9,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 13.8,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "会心率",
+          "value": 12.2,
+          "isPercent": true
+        },
+        {
+          "type": "劲",
+          "value": 61,
+          "isPercent": false
+        },
+        {
+          "type": "绳标武学增效",
+          "value": 8.3,
+          "isPercent": true
+        },
+        {
+          "type": "最小外功攻击",
+          "value": 98.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1778166312942,
+      "slotId": "7",
+      "slotName": "胫甲",
+      "weaponTypeId": null,
+      "name": "105未承音-转律1",
+      "isChengyin": false,
+      "isPurple": false,
+      "availableClasses": [
+        "鸣金虹",
+        "鸣金影",
+        "破竹尘",
+        "破竹风",
+        "破竹鸢",
+        "裂石威",
+        "裂石钧",
+        "裂石钧（纯唐）",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "会心率",
+        "value": 10.1,
+        "isPercent": true
+      },
+      "dingyinStat": {
+        "type": "指定武学技能增伤",
+        "value": 6.5,
+        "isPercent": true
+      },
+      "subStats": [
+        {
+          "type": "会心率",
+          "value": 12,
+          "isPercent": true
+        },
+        {
+          "type": "对首领单位增伤",
+          "value": 3.4,
+          "isPercent": true
+        },
+        {
+          "type": "劲",
+          "value": 39,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 96.8,
+          "isPercent": false
+        }
+      ]
+    },
+    {
+      "id": 1778392959630,
+      "slotId": "1",
+      "slotName": "武器",
+      "weaponTypeId": "3",
+      "name": "105已承音",
+      "isChengyin": true,
+      "isPurple": true,
+      "availableClasses": [
+        "破竹尘",
+        "牵丝霖",
+        "牵丝玉"
+      ],
+      "mainStat": {
+        "type": "最大外功攻击",
+        "value": 99.3,
+        "isPercent": false
+      },
+      "dingyinStat": {
+        "type": "外功穿透",
+        "value": 14.6,
+        "isPercent": false
+      },
+      "subStats": [
+        {
+          "type": "最小外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "最大外功攻击",
+          "value": 99.3,
+          "isPercent": false
+        },
+        {
+          "type": "劲",
+          "value": 62.8,
+          "isPercent": false
+        },
+        {
+          "type": "伞武学增效",
+          "value": 8.1,
+          "isPercent": true
+        }
+      ]
+    }
+  ],
+  "game_account_list": [
+    "云川渡",
+    "5",
+    "1"
+  ]
+}

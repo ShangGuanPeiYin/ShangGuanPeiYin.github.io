@@ -28,11 +28,6 @@
   url = "/tools/yysls-outfitter/"
   weight = 37
 
-[[main]]
-  name = "样本站"
-  url = "/tools/spongem-study/"
-  weight = 38
-
 [[footer]]
   name = "文章"
   pageRef = "posts"
