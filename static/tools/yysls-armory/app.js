@@ -3,8 +3,10 @@
   const ACCOUNT_KEY = "yysls_armory_selected_account_v2";
   const INDEX_KEY = "yysls_armory_index_v2";
   const FIXED_SUBSTAT_COUNT = 4;
-  const PAGE_SIZE = 40;
   const SEARCH_DEBOUNCE_MS = 180;
+  const GRID_GAP = 12;
+  const VIRTUAL_OVERSCAN_ROWS = 2;
+  const DEFAULT_CARD_HEIGHT = 292;
 
   const slotOrder = ["武器", "环", "佩", "冠胄", "胸甲", "胫甲", "腕甲"];
   const slotIdMap = {
@@ -95,8 +97,9 @@
     selectedClass: "全部",
     searchText: "",
     editingEquipmentId: null,
-    currentPage: 1,
-    searchTimer: null
+    searchTimer: null,
+    resizeTimer: null,
+    virtualRowHeight: DEFAULT_CARD_HEIGHT
   };
 
   const nodes = {
@@ -753,7 +756,6 @@
     nodes.slotCapsules.querySelectorAll("[data-slot]").forEach((node) => {
       node.addEventListener("click", () => {
         state.selectedSlot = node.getAttribute("data-slot") || "全部";
-        state.currentPage = 1;
         renderInventory();
       });
     });
@@ -761,6 +763,8 @@
   }
 
   function renderEmptyEquipmentCard(text) {
+    nodes.equipmentGrid.classList.remove("virtualized");
+    nodes.equipmentGrid.style.height = "";
     nodes.equipmentGrid.innerHTML = `
       <article class="equipment-card">
         <div class="equipment-card-title">
@@ -778,35 +782,36 @@
     nodes.paginationBar.innerHTML = "";
   }
 
-  function renderPagination(totalItems) {
-    const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-    state.currentPage = Math.min(Math.max(1, state.currentPage), totalPages);
+  function getEquipmentGridColumnCount() {
+    const width = window.innerWidth;
+    if (width <= 760) return 1;
+    if (width <= 1180) return 2;
+    if (width <= 1380) return 3;
+    return 4;
+  }
 
-    if (totalItems <= PAGE_SIZE) {
-      nodes.paginationBar.innerHTML = `<div class="pagination-summary">共 ${totalItems} 件装备</div>`;
-      return;
-    }
-
-    const start = (state.currentPage - 1) * PAGE_SIZE + 1;
-    const end = Math.min(totalItems, start + PAGE_SIZE - 1);
-
+  function renderVirtualSummary(totalItems, startIndex, endIndexExclusive) {
     nodes.paginationBar.innerHTML = `
-      <div class="pagination-summary">显示第 ${start}-${end} 件，共 ${totalItems} 件装备</div>
-      <div class="pagination-actions">
-        <span class="pagination-page">第 ${state.currentPage} / ${totalPages} 页</span>
-        <button class="secondary" type="button" data-page-action="prev" ${state.currentPage === 1 ? "disabled" : ""}>上一页</button>
-        <button class="secondary" type="button" data-page-action="next" ${state.currentPage === totalPages ? "disabled" : ""}>下一页</button>
-      </div>
+      <div class="pagination-summary">当前已渲染第 ${startIndex + 1}-${endIndexExclusive} 件，共 ${totalItems} 件装备</div>
     `;
+  }
 
-    nodes.paginationBar.querySelectorAll("[data-page-action]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const action = button.getAttribute("data-page-action");
-        if (action === "prev" && state.currentPage > 1) state.currentPage -= 1;
-        if (action === "next" && state.currentPage < totalPages) state.currentPage += 1;
-        renderEquipmentGrid();
-      });
-    });
+  function measureVirtualCardHeight() {
+    const firstCard = nodes.equipmentGrid.querySelector(".equipment-card");
+    if (!firstCard) return;
+    const measuredHeight = Math.ceil(firstCard.getBoundingClientRect().height);
+    if (measuredHeight > 0 && Math.abs(measuredHeight - state.virtualRowHeight) > 2) {
+      state.virtualRowHeight = measuredHeight;
+      window.requestAnimationFrame(() => renderEquipmentGrid());
+    }
+  }
+
+  function renderVirtualEquipmentCard(item, left, top, width) {
+    return `
+      <article class="equipment-card" style="left:${left}px;top:${top}px;width:${width}px;">
+        ${renderEquipmentCard(item).replace(/^<article class="equipment-card">|<\/article>$/g, "")}
+      </article>
+    `;
   }
 
   function renderEquipmentCard(item) {
@@ -886,13 +891,35 @@
       return;
     }
 
-    const totalPages = Math.max(1, Math.ceil(equipments.length / PAGE_SIZE));
-    if (state.currentPage > totalPages) state.currentPage = totalPages;
-    const startIndex = (state.currentPage - 1) * PAGE_SIZE;
-    const visibleEquipments = equipments.slice(startIndex, startIndex + PAGE_SIZE);
+    const columns = getEquipmentGridColumnCount();
+    const containerWidth = nodes.equipmentGrid.clientWidth || nodes.inventoryShell.clientWidth || 0;
+    const cardWidth = Math.max(220, Math.floor((containerWidth - GRID_GAP * (columns - 1)) / columns));
+    const rowStride = state.virtualRowHeight + GRID_GAP;
+    const totalRows = Math.ceil(equipments.length / columns);
+    const totalHeight = Math.max(state.virtualRowHeight, totalRows * rowStride - GRID_GAP);
+    const gridTop = window.scrollY + nodes.equipmentGrid.getBoundingClientRect().top;
+    const viewportTop = Math.max(0, window.scrollY - gridTop);
+    const viewportBottom = viewportTop + window.innerHeight;
+    const startRow = Math.max(0, Math.floor(viewportTop / rowStride) - VIRTUAL_OVERSCAN_ROWS);
+    const endRow = Math.min(totalRows - 1, Math.ceil(viewportBottom / rowStride) + VIRTUAL_OVERSCAN_ROWS);
+    const startIndex = startRow * columns;
+    const endIndexExclusive = Math.min(equipments.length, (endRow + 1) * columns);
+    const visibleEquipments = equipments.slice(startIndex, endIndexExclusive);
 
-    nodes.equipmentGrid.innerHTML = visibleEquipments.map((item) => renderEquipmentCard(item)).join("");
-    renderPagination(equipments.length);
+    nodes.equipmentGrid.classList.add("virtualized");
+    nodes.equipmentGrid.style.height = `${totalHeight}px`;
+    nodes.equipmentGrid.innerHTML = visibleEquipments
+      .map((item, visibleIndex) => {
+        const actualIndex = startIndex + visibleIndex;
+        const column = actualIndex % columns;
+        const row = Math.floor(actualIndex / columns);
+        const left = column * (cardWidth + GRID_GAP);
+        const top = row * rowStride;
+        return renderVirtualEquipmentCard(item, left, top, cardWidth);
+      })
+      .join("");
+    renderVirtualSummary(equipments.length, startIndex, endIndexExclusive);
+    measureVirtualCardHeight();
     nodes.equipmentGrid.querySelectorAll("[data-edit-id]").forEach((node) => {
       node.addEventListener("click", () => {
         const equipId = node.getAttribute("data-edit-id");
@@ -946,7 +973,6 @@
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
     state.searchText = "";
-    state.currentPage = 1;
     if (nodes.searchInput) nodes.searchInput.value = "";
     saveRawData();
     renderAll();
@@ -989,7 +1015,6 @@
     state.rawData.last_selected_account = trimmed;
     state.accounts = detectAccounts(state.rawData);
     state.selectedAccount = trimmed;
-    state.currentPage = 1;
     saveRawData();
     renderAll();
     setMessage(`已创建角色 ${trimmed}。当前角色为空装备库，可以继续导入或手动维护。`, "info");
@@ -1006,7 +1031,6 @@
     state.accounts = detectAccounts(state.rawData);
     state.selectedAccount = state.accounts[0] || "";
     state.rawData.last_selected_account = state.selectedAccount || "";
-    state.currentPage = 1;
     saveRawData();
     renderAll();
     setMessage(target ? `已删除角色 ${target}。` : "已删除角色。", "info");
@@ -1039,7 +1063,6 @@
 
   nodes.accountSelect.addEventListener("change", () => {
     state.selectedAccount = nodes.accountSelect.value;
-    state.currentPage = 1;
     if (state.rawData) state.rawData.last_selected_account = state.selectedAccount;
     saveRawData();
     renderAll();
@@ -1079,6 +1102,21 @@
     if (event.key !== "Escape") return;
     if (!nodes.equipmentEditorModal.classList.contains("hidden")) setEquipmentEditorOpen(false);
     if (!nodes.dataModal.classList.contains("hidden")) setDataModalOpen(false);
+  });
+
+  window.addEventListener("scroll", () => {
+    if (!state.rawData || !state.selectedAccount) return;
+    window.requestAnimationFrame(() => {
+      renderEquipmentGrid();
+    });
+  }, { passive: true });
+
+  window.addEventListener("resize", () => {
+    window.clearTimeout(state.resizeTimer);
+    state.resizeTimer = window.setTimeout(() => {
+      if (!state.rawData || !state.selectedAccount) return;
+      renderEquipmentGrid();
+    }, 90);
   });
 
   nodes.importTabButton.addEventListener("click", () => {
@@ -1143,7 +1181,6 @@
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
     state.searchText = "";
-    state.currentPage = 1;
     nodes.jsonInput.value = "";
     nodes.searchInput.value = "";
     renderAll();
@@ -1152,7 +1189,6 @@
 
   nodes.classFilter.addEventListener("change", () => {
     state.selectedClass = nodes.classFilter.value;
-    state.currentPage = 1;
     renderInventory();
   });
 
@@ -1161,7 +1197,6 @@
     const nextValue = nodes.searchInput.value;
     state.searchTimer = window.setTimeout(() => {
       state.searchText = nextValue;
-      state.currentPage = 1;
       renderInventory();
     }, SEARCH_DEBOUNCE_MS);
   });
@@ -1170,7 +1205,6 @@
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
     state.searchText = "";
-    state.currentPage = 1;
     nodes.searchInput.value = "";
     renderInventory();
   });
