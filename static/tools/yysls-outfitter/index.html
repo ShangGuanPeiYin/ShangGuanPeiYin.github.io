@@ -175,18 +175,22 @@
         padding: 11px 14px;
       }
 
-      .layout {
+      .main-layout {
         margin-top: 18px;
         display: grid;
         gap: 18px;
         grid-template-columns: minmax(320px, 0.95fr) minmax(390px, 1.05fr) minmax(300px, 0.88fr);
-        align-items: start;
+        align-items: stretch;
       }
 
       .panel {
         padding: 18px;
         display: grid;
         gap: 14px;
+      }
+
+      .main-layout > .panel {
+        min-height: 760px;
       }
 
       .panel-head {
@@ -229,7 +233,8 @@
       .equipment-list {
         display: grid;
         gap: 12px;
-        max-height: calc(100vh - 320px);
+        align-content: start;
+        max-height: 100%;
         overflow: auto;
         padding-right: 4px;
       }
@@ -356,6 +361,7 @@
       .summary-grid {
         display: grid;
         gap: 12px;
+        align-content: start;
       }
 
       .summary-card {
@@ -479,6 +485,11 @@
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
+        margin-top: auto;
+      }
+
+      .search-panel {
+        margin-top: 18px;
       }
 
       .footer-actions button {
@@ -490,7 +501,7 @@
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
-        .layout {
+        .main-layout {
           grid-template-columns: 1fr;
         }
 
@@ -569,7 +580,7 @@
         </div>
       </header>
 
-      <main class="layout">
+      <main class="main-layout">
         <section class="panel">
           <div class="panel-head">
             <div>
@@ -602,20 +613,6 @@
 
           <div class="summary-grid">
             <section class="summary-card">
-              <h3>词条条数搜索</h3>
-              <div class="search-controls">
-                <div class="muted">只统计主词条和副词条，忽略定音词条。搜索结果最多展示 15 套方案。</div>
-                <div id="searchModeRow" class="search-mode-row"></div>
-                <div id="criteriaList" class="criteria-list"></div>
-                <div class="criteria-actions">
-                  <button class="secondary" id="addCriteriaButton" type="button">新增条件</button>
-                  <button class="primary" id="runSearchButton" type="button">开始搜索</button>
-                </div>
-                <div id="searchResultMeta" class="muted"></div>
-                <div id="resultList" class="result-list"></div>
-              </div>
-            </section>
-            <section class="summary-card">
               <h3>全部词条</h3>
               <div id="allStatSummary" class="stat-list"></div>
             </section>
@@ -631,8 +628,27 @@
           </div>
         </aside>
       </main>
+
+      <section class="panel search-panel">
+        <div class="panel-head">
+          <div>
+            <h2>词条条数搜索</h2>
+            <div class="muted">只统计主词条和副词条，忽略定音词条。搜索结果最多展示 15 套方案。</div>
+          </div>
+        </div>
+        <div class="search-controls">
+          <div id="searchModeRow" class="search-mode-row"></div>
+          <div id="criteriaList" class="criteria-list"></div>
+          <div class="criteria-actions">
+            <button class="secondary" id="addCriteriaButton" type="button">新增条件</button>
+            <button class="primary" id="runSearchButton" type="button">开始搜索</button>
+          </div>
+          <div id="searchResultMeta" class="muted"></div>
+          <div id="resultList" class="result-list"></div>
+        </div>
+      </section>
     </div>
 
-    <script src="/tools/yysls-outfitter/app.js?v=20260516-05"></script>
+    <script src="/tools/yysls-outfitter/app.js?v=20260516-06"></script>
   </body>
 </html>
