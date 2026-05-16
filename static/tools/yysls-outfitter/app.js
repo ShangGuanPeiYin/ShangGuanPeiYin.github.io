@@ -459,6 +459,9 @@
         const matchedText = result.criteria
           .map((entry) => `${entry.type} ${entry.actual}条 / 目标${entry.target}条`)
           .join("，");
+        const summaryText = result.summary
+          .map((entry) => `${entry.type} ${entry.count}条`)
+          .join("，");
         const slotLines = slotOrder
           .map((slot) => {
             const item = equipmentById(result.slots[slot]);
@@ -471,6 +474,9 @@
             <h4>方案 ${index + 1}</h4>
             <div class="result-meta">
               <span>${escapeHtml(matchedText)}</span>
+            </div>
+            <div class="result-summary">
+              <span>${escapeHtml(summaryText || "当前方案没有可统计的主词条和副词条。")}</span>
             </div>
             <div class="result-slots">${slotLines}</div>
             <div class="result-actions">
@@ -628,7 +634,10 @@
             type: criterion.type,
             target: criterion.count,
             actual: currentCounts[criterion.type] || 0
-          }))
+          })),
+          summary: Object.keys(currentCounts)
+            .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"))
+            .map((type) => ({ type, count: currentCounts[type] }))
         });
         return;
       }

@@ -378,6 +378,18 @@
         gap: 10px;
       }
 
+      .search-layout {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr);
+        align-items: start;
+      }
+
+      .search-column {
+        display: grid;
+        gap: 10px;
+      }
+
       .search-mode-row {
         display: flex;
         gap: 8px;
@@ -437,14 +449,16 @@
       }
 
       .result-meta,
-      .result-slots {
+      .result-slots,
+      .result-summary {
         display: grid;
         gap: 6px;
         font-size: 0.84rem;
       }
 
       .result-meta span,
-      .result-slots span {
+      .result-slots span,
+      .result-summary span {
         color: var(--muted);
       }
 
@@ -524,7 +538,8 @@
 
         .controls-grid,
         .slots-grid,
-        .criteria-row {
+        .criteria-row,
+        .search-layout {
           grid-template-columns: 1fr;
         }
 
@@ -636,19 +651,23 @@
             <div class="muted">只统计主词条和副词条，忽略定音词条。搜索结果最多展示 15 套方案。</div>
           </div>
         </div>
-        <div class="search-controls">
-          <div id="searchModeRow" class="search-mode-row"></div>
-          <div id="criteriaList" class="criteria-list"></div>
-          <div class="criteria-actions">
-            <button class="secondary" id="addCriteriaButton" type="button">新增条件</button>
-            <button class="primary" id="runSearchButton" type="button">开始搜索</button>
+        <div class="search-layout">
+          <div class="search-column">
+            <div id="searchModeRow" class="search-mode-row"></div>
+            <div id="criteriaList" class="criteria-list"></div>
+            <div class="criteria-actions">
+              <button class="secondary" id="addCriteriaButton" type="button">新增条件</button>
+              <button class="primary" id="runSearchButton" type="button">开始搜索</button>
+            </div>
           </div>
-          <div id="searchResultMeta" class="muted"></div>
-          <div id="resultList" class="result-list"></div>
+          <div class="search-column">
+            <div id="searchResultMeta" class="muted"></div>
+            <div id="resultList" class="result-list"></div>
+          </div>
         </div>
       </section>
     </div>
 
-    <script src="/tools/yysls-outfitter/app.js?v=20260516-08"></script>
+    <script src="/tools/yysls-outfitter/app.js?v=20260516-09"></script>
   </body>
 </html>
