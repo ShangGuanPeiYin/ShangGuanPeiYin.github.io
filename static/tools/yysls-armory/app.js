@@ -806,11 +806,11 @@
         <div class="data-grid">
           <div class="data-block">
             <span class="label">主词条</span>
-            <strong>${escapeHtml(statText(item.mainStat))}</strong>
+            <strong class="card-stat-line">${escapeHtml(statText(item.mainStat))}</strong>
           </div>
           <div class="data-block">
             <span class="label">定音词条</span>
-            <strong>${escapeHtml(statText(item.dingyinStat))}</strong>
+            <strong class="card-stat-line">${escapeHtml(statText(item.dingyinStat))}</strong>
           </div>
         </div>
 
