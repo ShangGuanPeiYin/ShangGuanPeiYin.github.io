@@ -462,6 +462,39 @@
         color: var(--muted);
       }
 
+      .result-card-body {
+        display: grid;
+        grid-template-columns: 1fr 170px;
+        gap: 14px;
+      }
+
+      .result-stat-list {
+        display: grid;
+        gap: 6px;
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      .result-stat-item {
+        display: grid;
+        gap: 1px;
+      }
+
+      .result-stat-name {
+        color: var(--muted);
+        font-size: 0.76rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .result-stat-value {
+        color: var(--text);
+        font-weight: 600;
+        font-size: 0.86rem;
+      }
+
       .stat-list {
         display: grid;
         gap: 8px;
@@ -668,6 +701,6 @@
       </main>
     </div>
 
-    <script src="/tools/yysls-outfitter/app.js?v=20260516-2203"></script>
+    <script src="/tools/yysls-outfitter/app.js?v=20260516-2210"></script>
   </body>
 </html>

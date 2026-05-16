@@ -312,6 +312,17 @@
     return map;
   }
 
+  function totalStatMapForItem(item) {
+    const map = {};
+    if (!item) return map;
+    [item.mainStat, ...(item.subStats || [])].forEach((stat) => {
+      const normalized = normalizeStat(stat);
+      if (!normalized.type) return;
+      map[normalized.type] = (map[normalized.type] || 0) + normalized.value;
+    });
+    return map;
+  }
+
   function slotDisplayLabel(slot) {
     if (slot === "武器1") {
       return weaponTypeDisplayName(currentClassRule()[0]) || "武器1";
@@ -503,9 +514,6 @@
 
     nodes.resultList.innerHTML = state.searchResults
       .map((result, index) => {
-        const summaryText = result.summary
-          .map((entry) => `${entry.type} ${entry.count}条`)
-          .join("，");
         const slotLines = slotOrder
           .map((slot) => {
             const item = equipmentById(result.slots[slot]);
@@ -513,12 +521,20 @@
             return `<span>${escapeHtml(slotLabel)}：${escapeHtml(item?.name || "未命名装备")}</span>`;
           })
           .join("");
+        const statList = result.summary
+          .map((entry) => `
+            <div class="result-stat-item">
+              <div class="result-stat-name">${escapeHtml(entry.type)} · ${escapeHtml(String(entry.count))}条</div>
+              <div class="result-stat-value">${escapeHtml(statValueText(entry.type, entry.total))}</div>
+            </div>
+          `)
+          .join("");
         return `
           <article class="result-card">
             <h4>方案 ${index + 1}</h4>
-            <div class="result-slots">${slotLines}</div>
-            <div class="result-summary">
-              <span>${escapeHtml(summaryText || "当前方案没有可统计的主词条和副词条。")}</span>
+            <div class="result-card-body">
+              <div class="result-slots">${slotLines}</div>
+              <div class="result-stat-list">${statList}</div>
             </div>
             <div class="result-actions">
               <button class="secondary" type="button" data-load-result="${escapeHtml(String(index))}">载入当前搭配</button>
@@ -623,6 +639,7 @@
           slot,
           id: String(item.id),
           counts: countedStatMapForItem(item),
+          totals: totalStatMapForItem(item),
           score: criteria.reduce((sum, criterion) => sum + (countedStatMapForItem(item)[criterion.type] || 0), 0)
         }))
         .sort((a, b) => b.score - a.score || String(a.item.name || "").localeCompare(String(b.item.name || ""), "zh-Hans-CN"));
@@ -641,6 +658,7 @@
 
     const results = [];
     const currentCounts = {};
+    const currentTotals = {};
     const chosenSlots = {};
 
     function canPrune(index) {
@@ -678,7 +696,7 @@
           })),
           summary: Object.keys(currentCounts)
             .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"))
-            .map((type) => ({ type, count: currentCounts[type] }))
+            .map((type) => ({ type, count: currentCounts[type], total: currentTotals[type] || 0 }))
         });
         return;
       }
@@ -691,15 +709,18 @@
         Object.keys(candidate.counts).forEach((type) => {
           const amount = candidate.counts[type];
           if (!amount) return;
-          touched.push([type, currentCounts[type] || 0]);
+          touched.push([type, currentCounts[type] || 0, currentTotals[type] || 0]);
           currentCounts[type] = (currentCounts[type] || 0) + amount;
+          currentTotals[type] = (currentTotals[type] || 0) + (candidate.totals[type] || 0);
         });
         dfs(index + 1);
-        touched.forEach(([type, previous]) => {
-          if (previous) {
-            currentCounts[type] = previous;
+        touched.forEach(([type, previousCount, previousTotal]) => {
+          if (previousCount) {
+            currentCounts[type] = previousCount;
+            currentTotals[type] = previousTotal;
           } else {
             delete currentCounts[type];
+            delete currentTotals[type];
           }
         });
         delete chosenSlots[slot];
