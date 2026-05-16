@@ -503,9 +503,6 @@
 
     nodes.resultList.innerHTML = state.searchResults
       .map((result, index) => {
-        const matchedText = result.criteria
-          .map((entry) => `${entry.type} ${entry.actual}条 / 目标${entry.target}条`)
-          .join("，");
         const summaryText = result.summary
           .map((entry) => `${entry.type} ${entry.count}条`)
           .join("，");
@@ -519,13 +516,10 @@
         return `
           <article class="result-card">
             <h4>方案 ${index + 1}</h4>
-            <div class="result-meta">
-              <span>${escapeHtml(matchedText)}</span>
-            </div>
+            <div class="result-slots">${slotLines}</div>
             <div class="result-summary">
               <span>${escapeHtml(summaryText || "当前方案没有可统计的主词条和副词条。")}</span>
             </div>
-            <div class="result-slots">${slotLines}</div>
             <div class="result-actions">
               <button class="secondary" type="button" data-load-result="${escapeHtml(String(index))}">载入当前搭配</button>
             </div>
