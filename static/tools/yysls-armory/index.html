@@ -332,6 +332,32 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
+      .pagination-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .pagination-summary {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .pagination-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .pagination-page {
+        color: var(--muted);
+        font-size: 0.88rem;
+        white-space: nowrap;
+      }
+
       .equipment-card {
         display: grid;
         gap: 10px;
@@ -905,6 +931,7 @@
         </div>
 
         <main id="equipmentGrid" class="equipment-grid"></main>
+        <div id="paginationBar" class="pagination-bar"></div>
       </section>
     </main>
 
@@ -974,6 +1001,6 @@
       </div>
     </section>
 
-    <script src="/tools/yysls-armory/app.js?v=20260516-3"></script>
+    <script src="/tools/yysls-armory/app.js?v=20260516-4"></script>
   </body>
 </html>

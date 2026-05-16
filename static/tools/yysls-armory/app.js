@@ -1,7 +1,10 @@
 (function () {
   const STORAGE_KEY = "yysls_armory_import_data_v2";
   const ACCOUNT_KEY = "yysls_armory_selected_account_v2";
+  const INDEX_KEY = "yysls_armory_index_v2";
   const FIXED_SUBSTAT_COUNT = 4;
+  const PAGE_SIZE = 40;
+  const SEARCH_DEBOUNCE_MS = 180;
 
   const slotOrder = ["武器", "环", "佩", "冠胄", "胸甲", "胫甲", "腕甲"];
   const slotIdMap = {
@@ -85,12 +88,15 @@
 
   const state = {
     rawData: null,
+    derivedIndex: null,
     accounts: [],
     selectedAccount: "",
     selectedSlot: "全部",
     selectedClass: "全部",
     searchText: "",
-    editingEquipmentId: null
+    editingEquipmentId: null,
+    currentPage: 1,
+    searchTimer: null
   };
 
   const nodes = {
@@ -119,6 +125,7 @@
     searchInput: document.getElementById("searchInput"),
     resetFiltersButton: document.getElementById("resetFiltersButton"),
     equipmentGrid: document.getElementById("equipmentGrid"),
+    paginationBar: document.getElementById("paginationBar"),
     equipmentEditorModal: document.getElementById("equipmentEditorModal"),
     equipmentEditorTitle: document.getElementById("equipmentEditorTitle"),
     equipmentEditorForm: document.getElementById("equipmentEditorForm"),
@@ -219,6 +226,36 @@
     return normalized;
   }
 
+  function buildDerivedIndex(data) {
+    const accounts = detectAccounts(data);
+    const statTypes = new Set(defaultStatTypes);
+    const classOptionsByAccount = {};
+    const equipmentCounts = {};
+
+    accounts.forEach((account) => {
+      const list = Array.isArray(data[`game_equip_data_${account}`]) ? data[`game_equip_data_${account}`] : [];
+      const classes = new Set();
+      equipmentCounts[account] = list.length;
+      list.forEach((item) => {
+        [item.mainStat, item.dingyinStat, ...(item.subStats || [])].forEach((stat) => {
+          if (stat && stat.type) statTypes.add(stat.type);
+        });
+        (item.availableClasses || []).forEach((name) => {
+          if (name) classes.add(name);
+        });
+      });
+      classOptionsByAccount[account] = [...classes].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+    });
+
+    return {
+      accounts,
+      lastSelectedAccount: data.last_selected_account || "",
+      equipmentCounts,
+      classOptionsByAccount,
+      statTypes: [...statTypes].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"))
+    };
+  }
+
   function equipmentCountForAccount(data, account) {
     if (!data || !account) return 0;
     const list = data[`game_equip_data_${account}`];
@@ -270,6 +307,10 @@
   }
 
   function collectStatTypes() {
+    if (state.derivedIndex && Array.isArray(state.derivedIndex.statTypes) && state.derivedIndex.statTypes.length) {
+      return [...state.derivedIndex.statTypes];
+    }
+
     const values = new Set(defaultStatTypes);
     if (!state.rawData) return [...values];
 
@@ -641,6 +682,8 @@
     if (!state.rawData) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.rawData));
     localStorage.setItem(ACCOUNT_KEY, state.selectedAccount);
+    state.derivedIndex = buildDerivedIndex(state.rawData);
+    localStorage.setItem(INDEX_KEY, JSON.stringify(state.derivedIndex));
   }
 
   function fillSelect(node, values, selectedValue) {
@@ -664,8 +707,7 @@
   }
 
   function buildFilterOptions() {
-    const equipments = currentEquipments();
-    const classes = [...new Set(equipments.flatMap((item) => item.availableClasses || []).filter(Boolean))];
+    const classes = state.derivedIndex?.classOptionsByAccount?.[state.selectedAccount] || [];
 
     fillSelect(nodes.classFilter, ["全部", ...classes], state.selectedClass);
     state.selectedClass = nodes.classFilter.value || "全部";
@@ -711,6 +753,7 @@
     nodes.slotCapsules.querySelectorAll("[data-slot]").forEach((node) => {
       node.addEventListener("click", () => {
         state.selectedSlot = node.getAttribute("data-slot") || "全部";
+        state.currentPage = 1;
         renderInventory();
       });
     });
@@ -732,6 +775,38 @@
         </div>
       </article>
     `;
+    nodes.paginationBar.innerHTML = "";
+  }
+
+  function renderPagination(totalItems) {
+    const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+    state.currentPage = Math.min(Math.max(1, state.currentPage), totalPages);
+
+    if (totalItems <= PAGE_SIZE) {
+      nodes.paginationBar.innerHTML = `<div class="pagination-summary">共 ${totalItems} 件装备</div>`;
+      return;
+    }
+
+    const start = (state.currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(totalItems, start + PAGE_SIZE - 1);
+
+    nodes.paginationBar.innerHTML = `
+      <div class="pagination-summary">显示第 ${start}-${end} 件，共 ${totalItems} 件装备</div>
+      <div class="pagination-actions">
+        <span class="pagination-page">第 ${state.currentPage} / ${totalPages} 页</span>
+        <button class="secondary" type="button" data-page-action="prev" ${state.currentPage === 1 ? "disabled" : ""}>上一页</button>
+        <button class="secondary" type="button" data-page-action="next" ${state.currentPage === totalPages ? "disabled" : ""}>下一页</button>
+      </div>
+    `;
+
+    nodes.paginationBar.querySelectorAll("[data-page-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.getAttribute("data-page-action");
+        if (action === "prev" && state.currentPage > 1) state.currentPage -= 1;
+        if (action === "next" && state.currentPage < totalPages) state.currentPage += 1;
+        renderEquipmentGrid();
+      });
+    });
   }
 
   function renderEquipmentCard(item) {
@@ -811,7 +886,13 @@
       return;
     }
 
-    nodes.equipmentGrid.innerHTML = equipments.map((item) => renderEquipmentCard(item)).join("");
+    const totalPages = Math.max(1, Math.ceil(equipments.length / PAGE_SIZE));
+    if (state.currentPage > totalPages) state.currentPage = totalPages;
+    const startIndex = (state.currentPage - 1) * PAGE_SIZE;
+    const visibleEquipments = equipments.slice(startIndex, startIndex + PAGE_SIZE);
+
+    nodes.equipmentGrid.innerHTML = visibleEquipments.map((item) => renderEquipmentCard(item)).join("");
+    renderPagination(equipments.length);
     nodes.equipmentGrid.querySelectorAll("[data-edit-id]").forEach((node) => {
       node.addEventListener("click", () => {
         const equipId = node.getAttribute("data-edit-id");
@@ -859,11 +940,13 @@
     }
 
     state.rawData = normalized;
+    state.derivedIndex = buildDerivedIndex(normalized);
     state.accounts = accounts;
     state.selectedAccount = pickPreferredAccount(normalized, accounts);
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
     state.searchText = "";
+    state.currentPage = 1;
     if (nodes.searchInput) nodes.searchInput.value = "";
     saveRawData();
     renderAll();
@@ -906,6 +989,7 @@
     state.rawData.last_selected_account = trimmed;
     state.accounts = detectAccounts(state.rawData);
     state.selectedAccount = trimmed;
+    state.currentPage = 1;
     saveRawData();
     renderAll();
     setMessage(`已创建角色 ${trimmed}。当前角色为空装备库，可以继续导入或手动维护。`, "info");
@@ -922,6 +1006,7 @@
     state.accounts = detectAccounts(state.rawData);
     state.selectedAccount = state.accounts[0] || "";
     state.rawData.last_selected_account = state.selectedAccount || "";
+    state.currentPage = 1;
     saveRawData();
     renderAll();
     setMessage(target ? `已删除角色 ${target}。` : "已删除角色。", "info");
@@ -954,6 +1039,7 @@
 
   nodes.accountSelect.addEventListener("change", () => {
     state.selectedAccount = nodes.accountSelect.value;
+    state.currentPage = 1;
     if (state.rawData) state.rawData.last_selected_account = state.selectedAccount;
     saveRawData();
     renderAll();
@@ -1049,12 +1135,15 @@
     if (!window.confirm("确定要清空当前浏览器里的装备缓存吗？")) return;
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(ACCOUNT_KEY);
+    localStorage.removeItem(INDEX_KEY);
     state.rawData = null;
+    state.derivedIndex = null;
     state.accounts = [];
     state.selectedAccount = "";
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
     state.searchText = "";
+    state.currentPage = 1;
     nodes.jsonInput.value = "";
     nodes.searchInput.value = "";
     renderAll();
@@ -1063,21 +1152,48 @@
 
   nodes.classFilter.addEventListener("change", () => {
     state.selectedClass = nodes.classFilter.value;
+    state.currentPage = 1;
     renderInventory();
   });
 
   nodes.searchInput.addEventListener("input", () => {
-    state.searchText = nodes.searchInput.value;
-    renderInventory();
+    window.clearTimeout(state.searchTimer);
+    const nextValue = nodes.searchInput.value;
+    state.searchTimer = window.setTimeout(() => {
+      state.searchText = nextValue;
+      state.currentPage = 1;
+      renderInventory();
+    }, SEARCH_DEBOUNCE_MS);
   });
 
   nodes.resetFiltersButton.addEventListener("click", () => {
     state.selectedSlot = "全部";
     state.selectedClass = "全部";
     state.searchText = "";
+    state.currentPage = 1;
     nodes.searchInput.value = "";
     renderInventory();
   });
+
+  function scheduleSavedLoad(saved) {
+    const run = () => {
+      nodes.jsonInput.value = saved;
+      try {
+        loadImportedPayload(parseMaybeJson(saved));
+      } catch (error) {
+        setMessage(`发现旧缓存，但解析失败：${error.message}`, "warn");
+      }
+    };
+
+    setMessage("检测到本地缓存，正在后台载入装备数据…", "info");
+
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(run, { timeout: 600 });
+      return;
+    }
+
+    window.setTimeout(run, 32);
+  }
 
   async function init() {
     setDataModalOpen(false);
@@ -1086,15 +1202,17 @@
     fillSelect(nodes.classFilter, ["全部"], "全部");
     renderAll();
 
+    try {
+      const savedIndex = localStorage.getItem(INDEX_KEY);
+      if (savedIndex) state.derivedIndex = JSON.parse(savedIndex);
+    } catch (error) {
+      state.derivedIndex = null;
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      nodes.jsonInput.value = saved;
-      try {
-        loadImportedPayload(parseMaybeJson(saved));
-        return;
-      } catch (error) {
-        setMessage(`发现旧缓存，但解析失败：${error.message}`, "warn");
-      }
+      scheduleSavedLoad(saved);
+      return;
     }
 
     setMessage("当前浏览器里还没有装备数据，请打开数据工具导入 JSON，或先新建一个空角色。", "info");
