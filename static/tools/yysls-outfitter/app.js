@@ -538,6 +538,7 @@
       ? weaponTypeDisplayName(slot === "武器1" ? currentClassRule()[0] : currentClassRule()[1])
       : slot;
     const slotTitle = slotDisplayLabel(slot);
+    const slotMetaText = slot.startsWith("武器") ? "" : ruleText;
 
     if (!item) {
       return `
@@ -545,7 +546,7 @@
           <div class="slot-head">
             <div>
               <strong>${escapeHtml(slotTitle)}</strong>
-              <div class="slot-type">${escapeHtml(ruleText)}</div>
+              ${slotMetaText ? `<div class="slot-type">${escapeHtml(slotMetaText)}</div>` : ""}
             </div>
           </div>
           <div class="slot-empty">当前槽位还没有装备。点击这张卡片后，再从左侧选择候选装备。</div>
@@ -562,7 +563,7 @@
         <div class="slot-head">
           <div>
             <strong>${escapeHtml(slotTitle)}</strong>
-            <div class="slot-type">${escapeHtml(weaponText)}</div>
+            ${slot.startsWith("武器") ? "" : `<div class="slot-type">${escapeHtml(weaponText)}</div>`}
           </div>
         </div>
         <div class="mini-list">
