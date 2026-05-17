@@ -26,9 +26,9 @@
     yuan: {
       key: "yuan",
       name: "破竹鸢",
-      badge: "破竹鸢原 Excel 公式驱动",
+      badge: "破竹鸢 5.0 原 Excel 公式驱动",
       title: "破竹鸢毕业率计算器",
-      description: "切换到破竹鸢模式后，页面会直接加载破竹鸢 4.3 工作簿，并按它的原始公式链实时计算。",
+      description: "切换到破竹鸢模式后，页面会直接加载破竹鸢 5.0 工作簿，并按它的原始公式链实时计算。",
       dataUrl: "/tools/yysls-graduation/workbook-yuan.json",
       suiteOptions: ["无", "撼天", "飞隼", "时雨"],
       inputGroups: [

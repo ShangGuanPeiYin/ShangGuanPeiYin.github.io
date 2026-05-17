@@ -11,7 +11,7 @@ TARGET_DIR = ROOT / "static" / "tools" / "yysls-graduation"
 SOURCES = [
     {
         "name": "破竹鸢",
-        "source": ROOT / "yysls" / "破竹鸢100级竞速轴属性毕业率计算器4.3.xlsx",
+        "source": ROOT / "yysls" / "破竹鸢100级竞速轴属性毕业率计算器5.0 .xlsx",
         "target": TARGET_DIR / "workbook-yuan.json",
     },
     {
