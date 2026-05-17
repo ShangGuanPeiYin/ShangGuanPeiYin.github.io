@@ -398,7 +398,7 @@
     const slotKeys = ["weapon1", "weapon2", "ring", "pendant", "head", "chest", "legs", "hands"];
     const equipPart = slotKeys.map((slotKey) => `${slotKey}:${equipKey(equippedItems[slotKey])}`).join("||");
     const dingyinPart = Array.isArray(options.loanDingyinValue) ? options.loanDingyinValue.map(rounded).join(",") : "";
-    return [equipPart, options.loanDingyin ? "loan1" : "loan0", dingyinPart].join("##");
+    return [options.className || "", options.flowName || "", equipPart, options.loanDingyin ? "loan1" : "loan0", dingyinPart].join("##");
   }
 
   function buildRateKey(panel, options) {
@@ -419,6 +419,71 @@
     return asNumber(stat.value);
   }
 
+  const PANEL_FIELD_MAP = {
+    "b5": "最小外功攻击",
+    "c5": "最大外功攻击",
+    "d5": "外功穿透",
+    "b7": "最小鸣金攻击",
+    "c7": "最大鸣金攻击",
+    "d7": "鸣金穿透",
+    "b9": "最小裂石攻击",
+    "c9": "最大裂石攻击",
+    "d9": "裂石穿透",
+    "b11": "最小牵丝攻击",
+    "c11": "最大牵丝攻击",
+    "d11": "牵丝穿透",
+    "b13": "最小破竹攻击",
+    "c13": "最大破竹攻击",
+    "d13": "破竹穿透",
+    "b15": "最小无相攻击",
+    "c15": "最大无相攻击",
+    "d15": "无相穿透",
+    "c16": "精准率",
+    "c17": "会心率",
+    "c18": "会意率",
+    "e18": "对首领单位增伤",
+    "c19": "直接会心率",
+    "c20": "直接会意率",
+    "e20": "外功伤害加成",
+    "e21": "指定武学技能增伤",
+    "c22": "拳甲武学增效",
+    "e22": "剑武学增效",
+    "c23": "绳标武学增效",
+    "e23": "指定武学技能增伤",
+    "c24": "全武学增效",
+    "e24": "双刀武学增效",
+    "c25": "单体类奇术增伤",
+    "e25": "陌刀武学增效",
+    "c26": "群体类奇术增伤"
+  };
+
+  function isPercentStatKey(key) {
+    return PERCENT_KEYS.has(key) || /率|增伤|增效|加成/.test(key || "");
+  }
+
+  function getBasePanelFromMetadata(options) {
+    const meta = window.YYSLS_CALC_METADATA || {};
+    const flowName = options.flowName || options.className || "";
+    const defaults = meta.classDefaultValues && (meta.classDefaultValues[flowName] || meta.classDefaultValues[options.className]);
+    const fields = meta.classFields || [];
+    const panel = {};
+    if (!Array.isArray(defaults) || !fields.length) return panel;
+
+    fields.forEach((field, index) => {
+      const mappedKey = PANEL_FIELD_MAP[String(field || "").toLowerCase()];
+      if (!mappedKey) return;
+      let value = asNumber(defaults[index]);
+      if (!Number.isFinite(value)) return;
+      if (isPercentStatKey(mappedKey) && Math.abs(value) <= 1.5) value *= 100;
+      panel[mappedKey] = value;
+    });
+
+    if (panel["精准率"] && !panel["实际精准率"]) panel["实际精准率"] = panel["精准率"];
+    if (panel["会心率"] && !panel["实际会心率"]) panel["实际会心率"] = panel["会心率"];
+    if (panel["会意率"] && !panel["实际会意率"]) panel["实际会意率"] = panel["会意率"];
+    return panel;
+  }
+
   function applyStat(panel, stat) {
     if (!stat || !stat.type) return;
     const value = statValue(stat);
@@ -432,10 +497,10 @@
       return { ...state.panelCache.get(cacheKey) };
     }
     const equippedItems = options.equippedItems || {};
-    const panel = {};
+    const panel = getBasePanelFromMetadata(options);
 
     STAT_KEYS.forEach((key) => {
-      panel[key] = 0;
+      panel[key] = asNumber(panel[key]);
     });
 
     Object.values(equippedItems).forEach((equip) => {
@@ -451,9 +516,9 @@
       panel["指定武学技能增伤"] += asNumber(skillDamage);
     }
 
-    panel["实际精准率"] = panel["精准率"];
-    panel["实际会心率"] = panel["会心率"];
-    panel["实际会意率"] = panel["会意率"];
+    panel["实际精准率"] = asNumber(panel["实际精准率"]) || panel["精准率"];
+    panel["实际会心率"] = asNumber(panel["实际会心率"]) || panel["会心率"];
+    panel["实际会意率"] = asNumber(panel["实际会意率"]) || panel["会意率"];
     state.panelCache.set(cacheKey, { ...panel });
     return panel;
   }
