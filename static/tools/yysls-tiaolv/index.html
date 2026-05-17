@@ -41,11 +41,11 @@
         <div class="layout-left hidden" id="main-content">
             <div id="filter-bar">
                 <div class="filter-capsule" id="filter-container"></div><button id="add-btn"
-                    class="primary-btn round-btn"><span class="add-btn-icon">+</span> 录入装备</button>
+                    class="primary-btn"><span class="add-btn-icon">+</span> 录入装备</button>
             </div>
             <div id="empty-equip-message" class="empty-equip-message">当前数据库无装备，请点击右上角 <strong
                     class="text-accent">录入装备</strong> 按钮进行装备录入。</div>
-            <main id="equipment-grid" class="grid-container"></main>
+            <main id="equipment-grid"></main>
         </div>
         <aside id="simulator-panel" class="hidden">
             <div class="sim-header" onclick='this.parentElement.classList.toggle("expanded")' style="cursor:pointer">
@@ -208,7 +208,7 @@
                                 placeholder="输入名称" required></div>
                     </div>
                     <hr>
-                    <div class="stat-section">
+                    <div>
                         <h3>可用流派限制（多选）</h3>
                         <div class="form-row">
                             <div class="form-group grow">
@@ -220,7 +220,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="stat-section">
+                    <div>
                         <h3>主词条</h3>
                         <div class="form-row stat-row">
                             <div class="form-group grow"><select id="main-stat-type" class="stat-select"
@@ -233,11 +233,11 @@
                             </div>
                         </div>
                     </div>
-                    <div class="stat-section">
+                    <div>
                         <h3>副词条</h3>
                         <div id="sub-stats-container"></div>
                     </div>
-                    <div class="stat-section">
+                    <div>
                         <h3>定音词条</h3>
                         <div class="form-row stat-row">
                             <div class="form-group grow"><select id="dingyin-stat-type" class="stat-select"
@@ -347,9 +347,7 @@
                         <div id="tab-transmutation" class="tab-pane">
                             <p class="tab-placeholder">请选择左侧装备部位后开始分析...</p>
                         </div>
-                        <div id="tab-best-build" class="tab-pane">
-                            <p class="tab-placeholder">最佳配装功能开发中...</p>
-                        </div>
+                        <div id="tab-best-build" class="tab-pane"></div>
                         <div id="tab-stat-priority" class="tab-pane">
                             <div class="stat-priority-container">
                                 <div class="stat-priority-panel">
