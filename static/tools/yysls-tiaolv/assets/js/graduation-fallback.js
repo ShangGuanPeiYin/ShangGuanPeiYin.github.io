@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const WORKBOOK_URL = "/tools/yysls-graduation/workbook-yuan.json?v=20260517-02";
+  const WORKBOOK_URL = "/tools/yysls-graduation/workbook-yuan.json?v=20260517-03";
   const SUPPORTED_CLASS = "破竹鸢";
   const PERCENT_KEYS = new Set([
     "精准率",
@@ -329,7 +329,9 @@
 
   const state = {
     enginePromise: null,
-    engine: null
+    engine: null,
+    panelCache: new Map(),
+    rateCache: new Map()
   };
 
   function supports(className) {
@@ -362,6 +364,49 @@
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
+  function rounded(value) {
+    return Math.round(asNumber(value) * 1000) / 1000;
+  }
+
+  function statKey(stat) {
+    if (!stat || !stat.type) return "";
+    return `${stat.type}:${rounded(stat.value)}`;
+  }
+
+  function equipKey(equip) {
+    if (!equip) return "null";
+    return [
+      equip.id || "",
+      equip.slotId || "",
+      equip.weaponTypeId || "",
+      equip.isChengyin ? "1" : "0",
+      statKey(equip.mainStat),
+      statKey(equip.dingyinStat),
+      (equip.subStats || []).map(statKey).join("|")
+    ].join("~");
+  }
+
+  function buildPanelKey(options) {
+    const equippedItems = options.equippedItems || {};
+    const slotKeys = ["weapon1", "weapon2", "ring", "pendant", "head", "chest", "legs", "hands"];
+    const equipPart = slotKeys.map((slotKey) => `${slotKey}:${equipKey(equippedItems[slotKey])}`).join("||");
+    const dingyinPart = Array.isArray(options.loanDingyinValue) ? options.loanDingyinValue.map(rounded).join(",") : "";
+    return [equipPart, options.loanDingyin ? "loan1" : "loan0", dingyinPart].join("##");
+  }
+
+  function buildRateKey(panel, options) {
+    const stats = STAT_KEYS
+      .map((key) => `${key}:${rounded(panel[key])}`)
+      .join("|");
+    return [
+      options.className || "",
+      options.setName || "",
+      options.armory || "",
+      (options.xinfa || []).join(","),
+      stats
+    ].join("##");
+  }
+
   function statValue(stat) {
     if (!stat || !stat.type) return;
     return asNumber(stat.value);
@@ -375,6 +420,10 @@
   }
 
   function buildPanelFromEquips(options) {
+    const cacheKey = buildPanelKey(options);
+    if (state.panelCache.has(cacheKey)) {
+      return { ...state.panelCache.get(cacheKey) };
+    }
     const equippedItems = options.equippedItems || {};
     const panel = {};
 
@@ -398,6 +447,7 @@
     panel["实际精准率"] = panel["精准率"];
     panel["实际会心率"] = panel["会心率"];
     panel["实际会意率"] = panel["会意率"];
+    state.panelCache.set(cacheKey, { ...panel });
     return panel;
   }
 
@@ -445,12 +495,16 @@
   }
 
   function calculateWithEngine(engine, panel, options) {
+    const cacheKey = buildRateKey(panel, options);
+    if (state.rateCache.has(cacheKey)) {
+      return { ...state.rateCache.get(cacheKey), workbookOutputs: { ...state.rateCache.get(cacheKey).workbookOutputs } };
+    }
     applyPanelToEngine(engine, panel, options);
     const totalDamage = asNumber(engine.getCell("期望", "C30"));
     const dps = asNumber(engine.getCell("期望", "C35"));
     const graduationRaw = asNumber(engine.getCell("期望", "C40"));
 
-    return {
+    const result = {
       totalDamage,
       dps,
       graduationRate: graduationRaw * 100,
@@ -460,6 +514,8 @@
         graduationRate: graduationRaw
       }
     };
+    state.rateCache.set(cacheKey, result);
+    return { ...result, workbookOutputs: { ...result.workbookOutputs } };
   }
 
   async function calculateFromPanel(panel, options) {
@@ -484,6 +540,10 @@
     buildPanelFromEquips,
     calculateFromPanel,
     calculateFromPanelSync,
+    clearCache() {
+      state.panelCache.clear();
+      state.rateCache.clear();
+    },
     percentKeys: Array.from(PERCENT_KEYS)
   };
 })();
