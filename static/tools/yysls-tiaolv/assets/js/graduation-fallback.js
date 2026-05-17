@@ -334,11 +334,18 @@
     rateCache: new Map()
   };
 
+  function getNativeCalculator() {
+    const api = window.YYSLSYuanNativeWorkbook;
+    return api && typeof api.calculate === "function" ? api : null;
+  }
+
   function supports(className) {
     return className === SUPPORTED_CLASS;
   }
 
   async function loadEngine() {
+    const native = getNativeCalculator();
+    if (native) return native;
     if (state.enginePromise) return state.enginePromise;
     state.enginePromise = fetch(WORKBOOK_URL)
       .then((response) => {
@@ -356,7 +363,7 @@
   }
 
   function getEngineSync() {
-    return state.engine;
+    return getNativeCalculator() || state.engine;
   }
 
   function asNumber(value) {
@@ -459,39 +466,35 @@
     return asNumber(panel[key]) / 100;
   }
 
-  function inputOrCurrent(engine, cell, value) {
-    return value === undefined || value === null || value === "" ? engine.getCell("期望", cell) : value;
-  }
-
-  function applyPanelToEngine(engine, panel, options) {
+  function buildInputOverrides(panel, options) {
     const xinfa = options.xinfa || [];
     const armory = options.armory || "破竹";
     const target = options.target || "笃山衔蝉";
-
-    engine.setInput("C2", inputOrCurrent(engine, "C2", armory));
-    engine.setInput("F7", inputOrCurrent(engine, "F7", target));
-    engine.setInput("G5", inputOrCurrent(engine, "G5", options.setName || "撼天"));
-    engine.setInput("H3", mark(xinfa.includes("断石之构")));
-    engine.setInput("I3", mark(xinfa.includes("三穷致知")));
-    engine.setInput("J3", mark(xinfa.includes("易水歌")));
-
-    engine.setInput("B5", asNumber(panel["最小外功攻击"]));
-    engine.setInput("C5", asNumber(panel["最大外功攻击"]));
-    engine.setInput("D5", asNumber(panel["外功穿透"]));
-    engine.setInput("B13", asNumber(panel["最小破竹攻击"]));
-    engine.setInput("C13", asNumber(panel["最大破竹攻击"]));
-    engine.setInput("B15", asNumber(panel["最小无相攻击"]));
-    engine.setInput("C15", asNumber(panel["最大无相攻击"]));
-    engine.setInput("C16", percentInput(panel, "实际精准率") || percentInput(panel, "精准率"));
-    engine.setInput("C17", percentInput(panel, "实际会心率") || percentInput(panel, "会心率"));
-    engine.setInput("C18", percentInput(panel, "实际会意率") || percentInput(panel, "会意率"));
-    engine.setInput("E18", percentInput(panel, "对首领单位增伤"));
-    engine.setInput("C22", percentInput(panel, "拳甲武学增效"));
-    engine.setInput("C23", percentInput(panel, "绳标武学增效"));
-    engine.setInput("E23", percentInput(panel, "指定武学技能增伤"));
-    engine.setInput("C24", percentInput(panel, "全武学增效"));
-    engine.setInput("C25", percentInput(panel, "单体类奇术增伤"));
-    engine.setInput("C26", percentInput(panel, "群体类奇术增伤"));
+    return {
+      "期望!C2": armory,
+      "期望!F7": target,
+      "期望!G5": options.setName || "撼天",
+      "期望!H3": mark(xinfa.includes("断石之构")),
+      "期望!I3": mark(xinfa.includes("三穷致知")),
+      "期望!J3": mark(xinfa.includes("易水歌")),
+      "期望!B5": asNumber(panel["最小外功攻击"]),
+      "期望!C5": asNumber(panel["最大外功攻击"]),
+      "期望!D5": asNumber(panel["外功穿透"]),
+      "期望!B13": asNumber(panel["最小破竹攻击"]),
+      "期望!C13": asNumber(panel["最大破竹攻击"]),
+      "期望!B15": asNumber(panel["最小无相攻击"]),
+      "期望!C15": asNumber(panel["最大无相攻击"]),
+      "期望!C16": percentInput(panel, "实际精准率") || percentInput(panel, "精准率"),
+      "期望!C17": percentInput(panel, "实际会心率") || percentInput(panel, "会心率"),
+      "期望!C18": percentInput(panel, "实际会意率") || percentInput(panel, "会意率"),
+      "期望!E18": percentInput(panel, "对首领单位增伤"),
+      "期望!C22": percentInput(panel, "拳甲武学增效"),
+      "期望!C23": percentInput(panel, "绳标武学增效"),
+      "期望!E23": percentInput(panel, "指定武学技能增伤"),
+      "期望!C24": percentInput(panel, "全武学增效"),
+      "期望!C25": percentInput(panel, "单体类奇术增伤"),
+      "期望!C26": percentInput(panel, "群体类奇术增伤")
+    };
   }
 
   function calculateWithEngine(engine, panel, options) {
@@ -499,10 +502,25 @@
     if (state.rateCache.has(cacheKey)) {
       return { ...state.rateCache.get(cacheKey), workbookOutputs: { ...state.rateCache.get(cacheKey).workbookOutputs } };
     }
-    applyPanelToEngine(engine, panel, options);
-    const totalDamage = asNumber(engine.getCell("期望", "C30"));
-    const dps = asNumber(engine.getCell("期望", "C35"));
-    const graduationRaw = asNumber(engine.getCell("期望", "C40"));
+    const inputs = buildInputOverrides(panel, options);
+    let totalDamage = 0;
+    let dps = 0;
+    let graduationRaw = 0;
+
+    if (engine && typeof engine.calculate === "function" && !engine.getCell) {
+      const nativeResult = engine.calculate(inputs) || {};
+      totalDamage = asNumber(nativeResult.totalDamage);
+      dps = asNumber(nativeResult.dps);
+      graduationRaw = asNumber(nativeResult.graduationRateRaw);
+    } else {
+      Object.entries(inputs).forEach(([key, value]) => {
+        const [, cell] = key.split("!");
+        engine.setInput(cell, value);
+      });
+      totalDamage = asNumber(engine.getCell("期望", "C30"));
+      dps = asNumber(engine.getCell("期望", "C35"));
+      graduationRaw = asNumber(engine.getCell("期望", "C40"));
+    }
 
     const result = {
       totalDamage,
