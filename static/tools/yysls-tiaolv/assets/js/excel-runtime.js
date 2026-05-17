@@ -113,6 +113,7 @@
     let panelPtr = 0;
     let classPtr = 0;
     let classOutputPtr = 0;
+    let classOutputLen = 3;
 
     function stringId(value) {
         const key = String(value || "").trim();
@@ -173,7 +174,8 @@
         diyPtr = wasm.yysls_alloc_f64(wasm.yysls_diy_input_len());
         panelPtr = wasm.yysls_alloc_f64(wasm.yysls_panel_len());
         classPtr = wasm.yysls_alloc_f64(wasm.yysls_class_input_len());
-        classOutputPtr = wasm.yysls_alloc_f64(3);
+        classOutputLen = typeof wasm.yysls_class_output_len === "function" ? wasm.yysls_class_output_len() : 3;
+        classOutputPtr = wasm.yysls_alloc_f64(classOutputLen);
         runtime.available = true;
         setTimeout(() => {
             if (typeof window.updateStats === "function") window.updateStats();
@@ -215,7 +217,7 @@
 
     function equipStatValue(equip, stat) {
         if (!stat) return undefined;
-        return equip && equip.isChengyin ? getChengyinValue(stat, stat.value) : stat.value;
+        return equip && equip.isChengyin && !equip.ignoreChengyinValue ? getChengyinValue(stat, stat.value) : stat.value;
     }
 
     function addInput(raw, slotKey, stat, rawValue) {
@@ -635,12 +637,16 @@
         let totalDamage = 0;
         let dps = 0;
         let graduationRatio = null;
+        let rdps = 0;
+        let rdpsGraduationRatio = null;
         if (typeof wasm.yysls_calc_class_outputs === "function") {
             wasm.yysls_calc_class_outputs(flowId, classPtr, classOutputPtr);
-            const outputs = readF64(classOutputPtr, 3);
+            const outputs = readF64(classOutputPtr, classOutputLen);
             totalDamage = outputs[0] || 0;
             dps = outputs[1] || 0;
             graduationRatio = Number.isFinite(outputs[2]) ? outputs[2] : null;
+            rdps = outputs[3] || 0;
+            rdpsGraduationRatio = Number.isFinite(outputs[4]) && outputs[4] > 0 ? outputs[4] : null;
         } else {
             totalDamage = wasm.yysls_calc_class(flowId, classPtr);
         }
@@ -654,6 +660,7 @@
         const baselineTotal = Number(generatedRotation.baselineTotal || generatedRotation.baseline) || fallbackBaseline;
         const baselineDps = Number(generatedRotation.baselineDps || generatedRotation.dps) || (baselineTotal / useTime);
         const graduationRate = graduationRatio !== null ? graduationRatio * 100 : (baselineDps ? dps / baselineDps * 100 : null);
+        const rdpsGraduationRate = rdpsGraduationRatio !== null ? rdpsGraduationRatio * 100 : null;
         const effectiveBaseline = graduationRatio ? dps / graduationRatio : baselineDps;
         return {
             source: "wasm",
@@ -662,10 +669,12 @@
             panel: cappedPanel,
             totalDamage,
             dps,
+            rdps,
             useTime,
             baseline: effectiveBaseline,
             baselineTotal,
             graduationRate,
+            rdpsGraduationRate,
             meta: { ...rotation, ...generatedRotation }
         };
     }
