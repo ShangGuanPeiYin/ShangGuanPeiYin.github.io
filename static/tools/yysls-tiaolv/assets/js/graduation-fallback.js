@@ -461,6 +461,48 @@
     return PERCENT_KEYS.has(key) || /率|增伤|增效|加成/.test(key || "");
   }
 
+  function hasXinfa(loadout, name) {
+    return Array.isArray(loadout) && loadout.includes(name);
+  }
+
+  function getLeoq7BasePanelPreset(options) {
+    const flowName = options.flowName || options.className || "";
+    const xinfa = options.xinfa || [];
+    const bow = options.bow || "";
+    if (
+      flowName !== "破竹鸢" ||
+      bow !== "precision" ||
+      !hasXinfa(xinfa, "扶摇直上") ||
+      !hasXinfa(xinfa, "擒天势") ||
+      !hasXinfa(xinfa, "易水歌") ||
+      !hasXinfa(xinfa, "三穷致知")
+    ) {
+      return null;
+    }
+
+    // 按 yysls.leoq7 右侧面板口径校准的破竹鸢无装备基准面板。
+    return {
+      "最小外功攻击": 1658,
+      "最大外功攻击": 2607,
+      "最小破竹攻击": 431,
+      "最大破竹攻击": 863,
+      "最小无相攻击": 66,
+      "最大无相攻击": 66,
+      "精准率": 86.3,
+      "实际精准率": 86.3,
+      "会心率": 28.2,
+      "实际会心率": 28.2,
+      "会意率": 9.9,
+      "实际会意率": 9.9,
+      "直接会心率": 9.2,
+      "会心伤害加成": 54,
+      "会意伤害加成": 35,
+      "外功伤害加成": 2.5,
+      "破竹伤害加成": 14.5,
+      "破竹穿透": 29
+    };
+  }
+
   function getBasePanelFromMetadata(options) {
     const meta = window.YYSLS_CALC_METADATA || {};
     const flowName = options.flowName || options.className || "";
@@ -481,6 +523,8 @@
     if (panel["精准率"] && !panel["实际精准率"]) panel["实际精准率"] = panel["精准率"];
     if (panel["会心率"] && !panel["实际会心率"]) panel["实际会心率"] = panel["会心率"];
     if (panel["会意率"] && !panel["实际会意率"]) panel["实际会意率"] = panel["会意率"];
+    const preset = getLeoq7BasePanelPreset(options);
+    if (preset) Object.assign(panel, preset);
     return panel;
   }
 
