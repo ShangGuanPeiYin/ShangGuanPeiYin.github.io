@@ -73,6 +73,12 @@
     img.src = placeholderDataUrl(labelFromImage(img));
   }
 
+  window.TiaolvImageFallback = {
+    applyToImage: applyFallback,
+    placeholderDataUrl,
+    labelFromImage
+  };
+
   document.addEventListener("error", function (event) {
     const target = event.target;
     if (!(target instanceof HTMLImageElement)) return;
