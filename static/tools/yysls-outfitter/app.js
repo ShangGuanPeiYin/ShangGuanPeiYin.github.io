@@ -194,9 +194,11 @@
 
   function currentEquipments() {
     if (!state.rawData || !state.selectedAccount) return [];
-    return Array.isArray(state.rawData[`game_equip_data_${state.selectedAccount}`])
+    const items = Array.isArray(state.rawData[`game_equip_data_${state.selectedAccount}`])
       ? state.rawData[`game_equip_data_${state.selectedAccount}`]
       : [];
+    items.forEach(item => { if (!item.level) item.level = 105; });
+    return items;
   }
 
   function countableStatOptions() {
@@ -877,6 +879,7 @@
     const rawWeaponName = weaponTypeName(item);
     const weaponPill =
       item.slotName === "武器" ? `<span class="pill">${escapeHtml(weaponTypeDisplayName(rawWeaponName))}</span>` : "";
+    const levelPillClass = item.level === 105 ? "level-105" : item.level === 100 ? "level-100" : "level-96";
     return `
       <article class="equipment-card">
         <div class="equipment-card-top">
@@ -885,6 +888,7 @@
             <div class="pill-row">
               <span class="pill">${escapeHtml(item.slotName || "未知部位")}</span>
               ${weaponPill}
+              <span class="pill ${levelPillClass}">${escapeHtml(item.level ? item.level + "级" : "105级")}</span>
               ${item.isChengyin ? '<span class="pill gold">承音</span>' : ""}
               ${item.isPurple ? '<span class="pill">紫装</span>' : ""}
             </div>
@@ -1123,11 +1127,19 @@
 
   function copySummary() {
     const aggregates = aggregateStats();
+    const equipments = {};
+    Object.entries(state.draftScheme.slots).forEach(([slot, id]) => {
+      if (id) {
+        const item = equipmentById(id);
+        if (item) equipments[slot] = { id: item.id, name: item.name, level: item.level || 105 };
+      }
+    });
     const payload = {
       account: state.selectedAccount,
       className: state.selectedClass,
       schemeName: state.draftScheme.name || "未命名方案",
       slots: state.draftScheme.slots,
+      equipments: equipments,
       totals: aggregates.total,
       counts: aggregates.count
     };
@@ -1138,11 +1150,19 @@
   }
 
   function exportToGraduationBridge() {
+    const equipments = {};
+    Object.entries(state.draftScheme.slots).forEach(([slot, id]) => {
+      if (id) {
+        const item = equipmentById(id);
+        if (item) equipments[slot] = { id: item.id, name: item.name, level: item.level || 105 };
+      }
+    });
     const payload = {
       account: state.selectedAccount,
       className: state.selectedClass,
       schemeName: state.draftScheme.name || "未命名方案",
       slots: state.draftScheme.slots,
+      equipments: equipments,
       aggregates: aggregateStats(),
       exportedAt: new Date().toISOString()
     };
