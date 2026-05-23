@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "a990fd9b";
+    const ASSET_VERSION = "e368e9e5";
     const WASM_URL = `assets/wasm/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -106,7 +106,6 @@
         intent: "会意"
     };
     const fallbackDiyAssumedOuterPen = 58.4;
-
     let wasm = null;
     let memory = null;
     let diyPtr = 0;
@@ -284,7 +283,8 @@
         setRawString(raw, diyIndex, "s2", bowLabels[options.bow] || "精准");
         setRawString(raw, diyIndex, "t2", options.setName || "");
         setRawString(raw, diyIndex, "g9", options.armory === "通用" ? "通用" : "本系");
-        setRawString(raw, diyIndex, "f14", options.className || "");
+        const diyClassName = options.className === "牵丝霖" ? "牵丝玉" : options.className || "";
+        setRawString(raw, diyIndex, "f14", diyClassName);
         (options.xinfa || []).slice(0, 4).forEach((name, index) => {
             setRawString(raw, diyIndex, `f${4 + index}`, name || "N/A");
         });
@@ -324,7 +324,7 @@
             "最大破竹攻击": byRow(20),
             "最小无相攻击": byRow(21),
             "最大无相攻击": byRow(22),
-            "外功穿透": normalizeDiyOuterPen(byRow(26)),
+            "外功穿透": byRow(26),
             "外功伤害加成": byRow(27) * 100,
             "鸣金穿透": byRow(28),
             "鸣金伤害加成": byRow(29) * 100,
@@ -363,7 +363,7 @@
     function applyClassPanelRules(panel, className) {
         if (!panel) return panel;
         const adjusted = { ...panel };
-        if (className === "牵丝玉" || className === "牵丝翊") {
+        if (className === "牵丝玉" || className === "牵丝翊" || className === "牵丝霖") {
             const minTsAttack = num(adjusted["最小牵丝攻击"]);
             adjusted["牵丝穿透"] = minTsAttack >= 441 ? 29.6 : 29;
             adjusted["牵丝伤害加成"] = minTsAttack >= 441 ? 14.8 : 14.5;
@@ -385,11 +385,6 @@
         const maxValues = window.CommonData && window.CommonData.MAX_VALUES || {};
         const maxOuterPen = Number(maxValues["外功穿透"]);
         return Number.isFinite(maxOuterPen) && maxOuterPen > 0 ? 4 * maxOuterPen : fallbackDiyAssumedOuterPen;
-    }
-
-    function normalizeDiyOuterPen(value) {
-        const normalized = num(value) - diyAssumedOuterPen();
-        return Math.abs(normalized) < 1e-9 ? 0 : normalized;
     }
 
     function applyRateOverflow(panel, options = {}) {
@@ -507,7 +502,11 @@
     function applyPanelBonuses(panel, bonuses, element, options = {}) {
         const adjusted = { ...panel };
         const hasExplicitBonuses = !!options.hasExplicitBonuses;
-        adjusted["外功穿透"] = (Number(adjusted["外功穿透"]) || 0) + (Number(bonuses["外功穿透"]) || 0);
+        const panelOuterPen = Number(adjusted["外功穿透"]) || 0;
+        const bonusOuterPen = Number(bonuses["外功穿透"]) || 0;
+        adjusted["外功穿透"] = bonusOuterPen
+            ? Math.max(0, panelOuterPen - diyAssumedOuterPen()) + bonusOuterPen
+            : panelOuterPen;
         const bonusElementPen = Number(bonuses["属攻穿透"]) || 0;
         const panelElementPen = Number(adjusted["属攻穿透"]) || 0;
         adjusted["属攻穿透"] = bonusElementPen || panelElementPen;
@@ -560,8 +559,9 @@
     function buildClassRaw(panel, options, className) {
         const raw = classRawFromDefaults(className);
         const pct = value => (Number(value) || 0) / 100;
+        const baseClassName = META.flowClassNames && META.flowClassNames[className] || className;
         const rateForClass = (actualField, whiteField, manualField) => {
-            if (className !== "鸣金影") return panel[actualField];
+            if (baseClassName !== "鸣金影") return panel[actualField];
             if (panel[whiteField] !== undefined) return panel[whiteField];
             if (panel[manualField] !== undefined) return panel[manualField];
             return panel[actualField];
@@ -569,6 +569,7 @@
         fillClassXinfa(raw, className, options.xinfa || panel["心法"] || []);
         const setField = META.classSetFields && META.classSetFields[className] || "g5";
         setRawString(raw, classIndex, setField, options.setName || panel["套装"] || "");
+        if (classIndex.has("g1")) setRawString(raw, classIndex, "g1", options.armory || panel["武库"] || "");
         setRaw(raw, classIndex, "b5", panel["最小外功攻击"]);
         setRaw(raw, classIndex, "c5", panel["最大外功攻击"]);
         setRaw(raw, classIndex, "d5", panel["外功穿透"]);
@@ -608,7 +609,8 @@
             if (classValueFields[label]) setRaw(raw, classIndex, classValueFields[label], pct(value));
         });
         if (classValueFields["全武器增伤"]) setRaw(raw, classIndex, classValueFields["全武器增伤"], pct(panel["全武学增效"]));
-        if (classValueFields["首领增"]) setRaw(raw, classIndex, classValueFields["首领增"], pct(panel["对首领单位增伤"]));
+        const bossBonusField = classValueFields["首领增"] || classValueFields["首领增伤"] || classValueFields["对首领单位增伤"];
+        if (bossBonusField) setRaw(raw, classIndex, bossBonusField, pct(panel["对首领单位增伤"]));
         if (classValueFields["单体奇术"]) setRaw(raw, classIndex, classValueFields["单体奇术"], pct(panel["单体类奇术增伤"]));
         if (classValueFields["群体奇术"]) setRaw(raw, classIndex, classValueFields["群体奇术"], pct(panel["群体类奇术增伤"]));
         if (panel["指定武学技能增伤"] !== undefined) {
@@ -616,6 +618,11 @@
                 setRaw(raw, classIndex, field, pct(panel["指定武学技能增伤"]));
             });
         }
+        Object.entries(options.classInputOverrides || {}).forEach(([field, value]) => {
+            if (!classIndex.has(field)) return;
+            const number = Number(value);
+            if (Number.isFinite(number)) setRaw(raw, classIndex, field, number);
+        });
         return raw;
     }
 
