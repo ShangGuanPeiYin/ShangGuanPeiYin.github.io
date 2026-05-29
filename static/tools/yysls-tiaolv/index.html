@@ -407,10 +407,13 @@
             </div>
             <div class="modal-body export-import-body">
                 <div class="export-import-buttons"><button id="export-data-btn" class="primary-btn">导出数据</button>
-                    <button id="download-data-btn" class="secondary-btn">下载为文件</button> <label for="import-file-input"
+                    <button id="download-data-btn" class="secondary-btn">下载为文件</button> <button
+                        id="download-json-data-btn" class="secondary-btn">下载 JSON</button> <label for="import-file-input"
                         class="secondary-btn cursor-pointer inline-flex"><input type="file" id="import-file-input"
-                            accept=".txt" class="hidden"> 上传文件导入</label> <button id="paste-import-btn"
-                        class="secondary-btn">粘贴导入</button>
+                            accept=".txt" class="hidden"> 上传文件导入</label> <label for="import-json-file-input"
+                        class="secondary-btn cursor-pointer inline-flex"><input type="file" id="import-json-file-input"
+                            accept=".json,application/json" class="hidden"> 上传 JSON</label> <button
+                        id="paste-import-btn" class="secondary-btn">粘贴导入</button>
                 </div>
                 <div class="export-import-textarea-container"><label class="export-import-label">数据内容：</label> <textarea
                         id="export-import-textarea" class="export-import-textarea"
