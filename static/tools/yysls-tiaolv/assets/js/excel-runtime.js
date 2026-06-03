@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "e368e9e5";
+    const ASSET_VERSION = "68f07db3";
     const WASM_URL = `assets/wasm/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -128,7 +128,25 @@
     }
 
     const diyIndex = fieldIndex(META.diyFields);
-    const classIndex = fieldIndex(META.classFields);
+    const classIndexCache = new Map();
+
+    function classFieldsFor(flowName) {
+        return META.flowClassFields && META.flowClassFields[flowName] || META.classFields || [];
+    }
+
+    function classKindsFor(flowName) {
+        return META.flowClassKinds && META.flowClassKinds[flowName] || META.classKinds || [];
+    }
+
+    function classDefaultsFor(flowName) {
+        return META.flowClassDefaultValues && META.flowClassDefaultValues[flowName] || META.classDefaultValues && META.classDefaultValues[flowName] || [];
+    }
+
+    function classIndexFor(flowName) {
+        const key = flowName || "";
+        if (!classIndexCache.has(key)) classIndexCache.set(key, fieldIndex(classFieldsFor(flowName)));
+        return classIndexCache.get(key);
+    }
 
     function setRaw(raw, indexMap, field, value) {
         const index = indexMap.get(field);
@@ -141,10 +159,11 @@
     }
 
     function classRawFromDefaults(className) {
-        const defaults = META.classDefaultValues && META.classDefaultValues[className] || [];
-        const raw = new Float64Array(META.classFields.length);
+        const defaults = classDefaultsFor(className);
+        const kinds = classKindsFor(className);
+        const raw = new Float64Array(classFieldsFor(className).length);
         defaults.forEach((value, index) => {
-            raw[index] = META.classKinds && META.classKinds[index] === "str" ? stringId(value) : Number(value) || 0;
+            raw[index] = kinds && kinds[index] === "str" ? stringId(value) : Number(value) || 0;
         });
         return raw;
     }
@@ -535,29 +554,30 @@
         return adjusted;
     }
 
-    function fillClassXinfa(raw, className, xinfa) {
+    function fillClassXinfa(raw, indexMap, className, xinfa) {
         const selected = new Set((xinfa || []).map(name => String(name || "").trim()).filter(Boolean));
         const used = new Set();
         const entries = META.classXinfaInputs && META.classXinfaInputs[className] || [];
         entries.forEach(entry => {
             if (entry.mode === "toggle") {
-                setRawString(raw, classIndex, entry.field, selected.has(entry.label) ? "√" : "×");
+                setRawString(raw, indexMap, entry.field, selected.has(entry.label) ? "√" : "×");
             } else if (entry.mode === "level_toggle") {
-                setRawString(raw, classIndex, entry.field, selected.has(entry.label) ? (entry.default || "六重") : "不带");
+                setRawString(raw, indexMap, entry.field, selected.has(entry.label) ? (entry.default || "六重") : "不带");
             } else if (entry.mode === "dropdown") {
                 const picked = (xinfa || []).map(name => String(name || "").trim()).find(name => {
                     return name && !used.has(name) && (entry.candidates || []).includes(name);
                 }) || "N/a";
                 used.add(picked);
-                setRawString(raw, classIndex, entry.field, picked);
+                setRawString(raw, indexMap, entry.field, picked);
             } else {
-                setRawString(raw, classIndex, entry.field, entry.default || "");
+                setRawString(raw, indexMap, entry.field, entry.default || "");
             }
         });
     }
 
     function buildClassRaw(panel, options, className) {
         const raw = classRawFromDefaults(className);
+        const classIndex = classIndexFor(className);
         const pct = value => (Number(value) || 0) / 100;
         const baseClassName = META.flowClassNames && META.flowClassNames[className] || className;
         const rateForClass = (actualField, whiteField, manualField) => {
@@ -566,7 +586,7 @@
             if (panel[manualField] !== undefined) return panel[manualField];
             return panel[actualField];
         };
-        fillClassXinfa(raw, className, options.xinfa || panel["心法"] || []);
+        fillClassXinfa(raw, classIndex, className, options.xinfa || panel["心法"] || []);
         const setField = META.classSetFields && META.classSetFields[className] || "g5";
         setRawString(raw, classIndex, setField, options.setName || panel["套装"] || "");
         if (classIndex.has("g1")) setRawString(raw, classIndex, "g1", options.armory || panel["武库"] || "");
