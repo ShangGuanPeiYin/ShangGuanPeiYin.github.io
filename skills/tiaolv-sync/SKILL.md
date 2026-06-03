@@ -19,7 +19,7 @@ That file is the source of truth for local features that must survive upstream s
 
 ## Workflow
 
-1. Treat `study/new/yysls.leoq7.com/` as an upstream/reference snapshot.
+1. Treat `study/new/new/yysls.leoq7.com/` as the latest upstream snapshot, and `study/new/old/yysls.leoq7.com/` as the previous snapshot.
 2. Treat `static/tools/yysls-tiaolv/` as the live customized site.
 3. Never directly overwrite `static/tools/yysls-tiaolv/` with the `study` directory.
 4. Prefer syncing upstream-generated/runtime files only after comparing changes.
@@ -31,7 +31,14 @@ That file is the source of truth for local features that must survive upstream s
    - needed-Chengyin count display;
    - `(承音)` / `(需承音)` distinction;
    - Top20 best-build results.
-7. Run the checker after changes:
+7. **Always update the WASM binary** when the upstream JS files change. Check the `ASSET_VERSION` constant in `excel-runtime.js` — if it differs from the previous snapshot, the WASM must also be updated:
+   ```bash
+   curl -L "https://yysls.leoq7.com/assets/wasm/yysls_calc.wasm?v=<ASSET_VERSION>" \
+     -H "Referer: https://yysls.leoq7.com/" \
+     -o static/tools/yysls-tiaolv/assets/wasm/yysls_calc.wasm
+   ```
+   Skipping this step causes flowId mismatches and wildly wrong graduation rates (e.g. 10000%+) for any newly added flow.
+8. Run the checker after changes:
 
 ```bash
 ./skills/tiaolv-sync/scripts/check_tiaolv_customizations.sh

@@ -26,12 +26,25 @@ check_contains() {
 INDEX="static/tools/yysls-tiaolv/index.html"
 APP="static/tools/yysls-tiaolv/assets/js/app.min.js"
 LOCAL_JS="static/tools/yysls-tiaolv/assets/js/local-customizations.js"
+RUNTIME="static/tools/yysls-tiaolv/assets/js/excel-runtime.js"
+WASM="static/tools/yysls-tiaolv/assets/wasm/yysls_calc.wasm"
 DOC="doc/tiaolv-local-customizations.md"
 
 check_file "$INDEX"
 check_file "$APP"
 check_file "$LOCAL_JS"
+check_file "$RUNTIME"
+check_file "$WASM"
 check_file "$DOC"
+
+# Verify WASM matches the ASSET_VERSION declared in excel-runtime.js
+expected_version="$(grep -o 'ASSET_VERSION = "[^"]*"' "$RUNTIME" | grep -o '"[^"]*"' | tr -d '"')"
+# WASM magic number: first 4 bytes must be \0asm
+wasm_magic="$(xxd -l 4 "$WASM" | awk '{print $2$3}' | head -1)"
+if [[ "$wasm_magic" != "0061736d" ]]; then
+  fail "WASM file is not a valid WebAssembly binary (bad magic number: $wasm_magic)"
+fi
+echo "OK: WASM magic number valid (asset version expected: $expected_version)"
 
 check_contains "$INDEX" "assets/js/local-customizations.js" "local customizations script tag"
 check_contains "$LOCAL_JS" "level-select" "equipment level control injection"
