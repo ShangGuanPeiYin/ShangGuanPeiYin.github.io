@@ -152,6 +152,27 @@
 
     function renderBuildStatsSummary(equippedItems) {
         var SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
+        // 根据当前流派确定属性攻击类型（兼容有无中文点号的格式）
+        var currentClass = window.AppState && window.AppState.currentClass || "";
+        var flowAttr = "";
+        if (currentClass.indexOf("鸣金") === 0) flowAttr = "鸣金";
+        else if (currentClass.indexOf("裂石") === 0) flowAttr = "裂石";
+        else if (currentClass.indexOf("牵丝") === 0) flowAttr = "牵丝";
+        else if (currentClass.indexOf("破竹") === 0) flowAttr = "破竹";
+
+        // 攻击行：最大外攻 → 最小外攻 → 本流派大属攻 → 本流派小属攻 → 其他
+        var attackOrder = ["最大外功攻击", "最小外功攻击"];
+        if (flowAttr) {
+            attackOrder.push("最大" + flowAttr + "攻击");
+            attackOrder.push("最小" + flowAttr + "攻击");
+        }
+        ["鸣金", "裂石", "牵丝", "破竹"].forEach(function (attr) {
+            if (attr !== flowAttr) {
+                attackOrder.push("最大" + attr + "攻击");
+                attackOrder.push("最小" + attr + "攻击");
+            }
+        });
+
         var CATEGORIES = [
             {
                 label: "三率",
@@ -163,13 +184,7 @@
             },
             {
                 label: "攻击",
-                stats: [
-                    "最小外功攻击", "最大外功攻击",
-                    "最小鸣金攻击", "最大鸣金攻击",
-                    "最小裂石攻击", "最大裂石攻击",
-                    "最小牵丝攻击", "最大牵丝攻击",
-                    "最小破竹攻击", "最大破竹攻击"
-                ]
+                stats: attackOrder
             },
             {
                 label: "神力",
