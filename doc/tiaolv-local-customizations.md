@@ -15,7 +15,7 @@
 | 装备等级控件注入 | 在装备录入弹窗中动态插入 `#level-select`，选项为 `105级 / 100级 / 96级`。主脚本仍负责保存、读取和展示等级字段。 |
 | JSON 下载 | 在导出/导入弹窗中动态插入 `下载 JSON` 按钮，导出明文 JSON，包含 `version`、`format`、`accountName`、`exportedAt`、`equipData`。 |
 | JSON 上传 | 在导出/导入弹窗中动态插入 `上传 JSON` 文件控件；读取 JSON 后转换为原有备份码格式，再复用现有导入确认流程。 |
-| 最佳配装词条汇总渲染 | 提供 `api.renderBuildStatsSummary(equippedItems)` 函数，统计 8 件装备的主词条+副词条分布（不含定音），按条数降序排列。由 `app.min.js` 的最佳配装模板调用（见下方主脚本定制表）。 |
+| 最佳配装词条汇总渲染 | 提供 `api.renderBuildStatsSummary(equippedItems)` 函数，统计 8 件装备的主词条+副词条分布（不含定音），按四行固定分类显示：三率（精准率/会心率/会意率）、五维（劲/敏/势）、攻击（各系最小/最大攻击）、神力（全武学增效/对首领单位增伤/对玩家单位增效/单体类奇术增伤/群体类奇术增伤/各武器武学增效）。每行只显示 count > 0 的词条，整行为空则隐藏。由 `app.min.js` 的最佳配装模板调用（见下方主脚本定制表）。 |
 
 同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
 
@@ -35,6 +35,7 @@
 | `(承音)` / `(需承音)` 区分 | `id.toString().includes("_chengyin")` | 原本已有承音显示 `(承音)`，系统模拟的承音版显示 `(需承音)`。 |
 | 最佳配装 Top20 | `top10Builds: o.slice(0, 20)` | 上游通常保留前 10 套，本站保留前 20 套并支持切换。 |
 | 最佳配装词条汇总调用 | `renderBuildStatsSummary`、`window.TiaolvLocalCustomizations` | 在最佳配装方案模板末尾（`.best-build-equips` 关闭后）插入词条汇总区块，调用 `local-customizations.js` 中的同名函数。 |
+| 统计文字位置调整 | `共检查了`、`border-bottom` | 将"共检查了 N 种装备组合，找到 N 套最佳方案"从横线下方移至横线上方（`border-top` 改为 `border-bottom`），并缩小下方空白（`margin-top: 15px; padding-bottom: 8px`）。 |
 
 ## 同步上游建议
 
