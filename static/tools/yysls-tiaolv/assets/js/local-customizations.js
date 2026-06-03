@@ -152,8 +152,38 @@
 
     function renderBuildStatsSummary(equippedItems) {
         var SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
-        var statsMap = {};
+        var CATEGORIES = [
+            {
+                label: "三率",
+                stats: ["精准率", "会心率", "会意率"]
+            },
+            {
+                label: "五维",
+                stats: ["劲", "敏", "势"]
+            },
+            {
+                label: "攻击",
+                stats: [
+                    "最小外功攻击", "最大外功攻击",
+                    "最小鸣金攻击", "最大鸣金攻击",
+                    "最小裂石攻击", "最大裂石攻击",
+                    "最小牵丝攻击", "最大牵丝攻击",
+                    "最小破竹攻击", "最大破竹攻击"
+                ]
+            },
+            {
+                label: "神力",
+                stats: [
+                    "全武学增效", "对首领单位增伤", "对玩家单位增效",
+                    "单体类奇术增伤", "群体类奇术增伤",
+                    "剑武学增效", "枪武学增效", "伞武学增效", "扇武学增效",
+                    "绳标武学增效", "双刀武学增效", "陌刀武学增效",
+                    "横刀武学增效", "拳甲武学增效", "鼓武学增效"
+                ]
+            }
+        ];
 
+        var statsMap = {};
         SLOT_KEYS.forEach(function (slot) {
             var equip = equippedItems && equippedItems[slot];
             if (!equip) return;
@@ -174,28 +204,34 @@
             // dingyinStat intentionally not counted
         });
 
-        var sorted = Object.keys(statsMap).map(function (type) {
-            return { type: type, count: statsMap[type].count, total: statsMap[type].total, isPercent: statsMap[type].isPercent };
-        }).sort(function (a, b) {
-            return b.count !== a.count ? b.count - a.count : b.total - a.total;
-        });
-
-        if (!sorted.length) return "";
-
-        var items = sorted.map(function (s) {
+        function renderChip(type) {
+            var s = statsMap[type];
+            if (!s || s.count === 0) return "";
             var totalStr = s.isPercent
                 ? (Math.round(s.total * 10) / 10) + "%"
                 : (Math.round(s.total * 10) / 10) + "";
             return "<span style=\"display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:4px;font-size:0.78rem;white-space:nowrap;\">"
-                + "<span style=\"color:var(--text-main);\">" + s.type + "</span>"
+                + "<span style=\"color:var(--text-main);\">" + type + "</span>"
                 + "<span style=\"color:var(--gold);font-weight:700;\">×" + s.count + "</span>"
                 + "<span style=\"color:var(--text-sub);\">+" + totalStr + "</span>"
                 + "</span>";
-        }).join("");
+        }
+
+        var rows = "";
+        CATEGORIES.forEach(function (cat) {
+            var chips = cat.stats.map(renderChip).join("");
+            if (!chips) return;
+            rows += "<div style=\"margin-bottom:8px;\">"
+                + "<div style=\"font-size:0.75rem;color:var(--text-sub);margin-bottom:4px;\">" + cat.label + "</div>"
+                + "<div style=\"display:flex;flex-wrap:wrap;gap:5px;\">" + chips + "</div>"
+                + "</div>";
+        });
+
+        if (!rows) return "";
 
         return "<div style=\"margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.2);border-radius:6px;border:1px solid var(--border);\">"
-            + "<div style=\"font-size:0.8rem;color:var(--text-sub);margin-bottom:7px;\">词条汇总（主+副，不含定音）</div>"
-            + "<div style=\"display:flex;flex-wrap:wrap;gap:5px;\">" + items + "</div>"
+            + "<div style=\"font-size:0.8rem;color:var(--text-sub);margin-bottom:8px;\">词条汇总（主+副，不含定音）</div>"
+            + rows
             + "</div>";
     }
 
