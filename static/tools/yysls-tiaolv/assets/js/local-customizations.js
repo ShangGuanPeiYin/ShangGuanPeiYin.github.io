@@ -150,10 +150,60 @@
         if (importInput) importInput.onchange = handleJsonFileImport;
     }
 
+    function renderBuildStatsSummary(equippedItems) {
+        var SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
+        var statsMap = {};
+
+        SLOT_KEYS.forEach(function (slot) {
+            var equip = equippedItems && equippedItems[slot];
+            if (!equip) return;
+
+            var ms = equip.mainStat;
+            if (ms && ms.type && ms.type !== "生存类词条") {
+                if (!statsMap[ms.type]) statsMap[ms.type] = { count: 0, total: 0, isPercent: !!ms.isPercent };
+                statsMap[ms.type].count += 1;
+                statsMap[ms.type].total += (ms.value || 0);
+            }
+
+            (equip.subStats || []).forEach(function (ss) {
+                if (!ss || !ss.type) return;
+                if (!statsMap[ss.type]) statsMap[ss.type] = { count: 0, total: 0, isPercent: !!ss.isPercent };
+                statsMap[ss.type].count += 1;
+                statsMap[ss.type].total += (ss.value || 0);
+            });
+            // dingyinStat intentionally not counted
+        });
+
+        var sorted = Object.keys(statsMap).map(function (type) {
+            return { type: type, count: statsMap[type].count, total: statsMap[type].total, isPercent: statsMap[type].isPercent };
+        }).sort(function (a, b) {
+            return b.count !== a.count ? b.count - a.count : b.total - a.total;
+        });
+
+        if (!sorted.length) return "";
+
+        var items = sorted.map(function (s) {
+            var totalStr = s.isPercent
+                ? (Math.round(s.total * 10) / 10) + "%"
+                : (Math.round(s.total * 10) / 10) + "";
+            return "<span style=\"display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:4px;font-size:0.78rem;white-space:nowrap;\">"
+                + "<span style=\"color:var(--text-main);\">" + s.type + "</span>"
+                + "<span style=\"color:var(--gold);font-weight:700;\">×" + s.count + "</span>"
+                + "<span style=\"color:var(--text-sub);\">+" + totalStr + "</span>"
+                + "</span>";
+        }).join("");
+
+        return "<div style=\"margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.2);border-radius:6px;border:1px solid var(--border);\">"
+            + "<div style=\"font-size:0.8rem;color:var(--text-sub);margin-bottom:7px;\">词条汇总（主+副，不含定音）</div>"
+            + "<div style=\"display:flex;flex-wrap:wrap;gap:5px;\">" + items + "</div>"
+            + "</div>";
+    }
+
     api.ensureLevelSelect = ensureLevelSelect;
     api.ensureJsonControls = ensureJsonControls;
     api.downloadJsonDataAsFile = downloadJsonDataAsFile;
     api.handleJsonFileImport = handleJsonFileImport;
+    api.renderBuildStatsSummary = renderBuildStatsSummary;
 
     ensureLevelSelect();
     ensureJsonControls();
