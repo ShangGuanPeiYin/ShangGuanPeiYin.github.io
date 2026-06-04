@@ -150,10 +150,10 @@
         if (importInput) importInput.onchange = handleJsonFileImport;
     }
 
-    function renderBuildStatsSummary(equippedItems) {
+    function renderBuildStatsSummary(equippedItems, className) {
         var SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
-        // 根据当前流派确定属性攻击类型（兼容有无中文点号的格式）
-        var currentClass = window.AppState && window.AppState.currentClass || "";
+        // className 由调用方（GradModal 模板）传入，回退到 AppState
+        var currentClass = className || (window.AppState && window.AppState.currentClass) || "";
         var flowAttr = "";
         if (currentClass.indexOf("鸣金") === 0) flowAttr = "鸣金";
         else if (currentClass.indexOf("裂石") === 0) flowAttr = "裂石";
