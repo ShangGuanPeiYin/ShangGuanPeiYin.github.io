@@ -236,10 +236,7 @@
         CATEGORIES.forEach(function (cat) {
             var chips = cat.stats.map(renderChip).join("");
             if (!chips) return;
-            rows += "<div style=\"margin-bottom:8px;\">"
-                + "<div style=\"font-size:0.75rem;color:var(--text-sub);margin-bottom:4px;\">" + cat.label + "</div>"
-                + "<div style=\"display:flex;flex-wrap:wrap;gap:5px;\">" + chips + "</div>"
-                + "</div>";
+            rows += "<div style=\"display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;\">" + chips + "</div>";
         });
 
         if (!rows) return "";
