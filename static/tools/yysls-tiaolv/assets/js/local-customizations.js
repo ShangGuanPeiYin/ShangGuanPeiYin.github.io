@@ -256,6 +256,27 @@
             + "</div>";
     }
 
+    window.cancelBestBuildSearch = function () {
+        if (window.GradModal && window.GradModal.state) {
+            window.GradModal.state.bestBuildCancelled = true;
+            var btn = document.getElementById("best-build-cancel-btn");
+            if (btn) { btn.disabled = true; btn.textContent = "正在取消..."; }
+        }
+    };
+
+    var _bestBuildObserver = new MutationObserver(function () {
+        var progressText = document.getElementById("best-build-progress-text");
+        if (progressText && !document.getElementById("best-build-cancel-btn")) {
+            var btn = document.createElement("button");
+            btn.id = "best-build-cancel-btn";
+            btn.textContent = "取消搜索";
+            btn.onclick = window.cancelBestBuildSearch;
+            btn.style.cssText = "margin-top:12px;padding:6px 20px;background:transparent;border:1px solid var(--border);color:var(--text-sub);border-radius:6px;cursor:pointer;font-size:0.85rem;display:block;margin-left:auto;margin-right:auto;";
+            progressText.parentNode.insertBefore(btn, progressText.nextSibling);
+        }
+    });
+    _bestBuildObserver.observe(document.body, { childList: true, subtree: true });
+
     api.ensureLevelSelect = ensureLevelSelect;
     api.ensureJsonControls = ensureJsonControls;
     api.downloadJsonDataAsFile = downloadJsonDataAsFile;
