@@ -219,14 +219,23 @@
             // dingyinStat intentionally not counted
         });
 
+        var ATTACK_ABBR = {
+            "最大外功攻击": "大外", "最小外功攻击": "小外",
+            "最大鸣金攻击": "大鸣金", "最小鸣金攻击": "小鸣金",
+            "最大裂石攻击": "大裂石", "最小裂石攻击": "小裂石",
+            "最大牵丝攻击": "大牵丝", "最小牵丝攻击": "小牵丝",
+            "最大破竹攻击": "大破竹", "最小破竹攻击": "小破竹"
+        };
+
         function renderChip(type) {
             var s = statsMap[type];
             if (!s || s.count === 0) return "";
+            var label = ATTACK_ABBR[type] || type;
             var totalStr = s.isPercent
                 ? (Math.round(s.total * 10) / 10) + "%"
                 : (Math.round(s.total * 10) / 10) + "";
             return "<span style=\"display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:4px;font-size:0.78rem;white-space:nowrap;\">"
-                + "<span style=\"color:var(--text-main);\">" + type + "</span>"
+                + "<span style=\"color:var(--text-main);\">" + label + "</span>"
                 + "<span style=\"color:var(--gold);font-weight:700;\">×" + s.count + "</span>"
                 + "<span style=\"color:var(--text-sub);\">+" + totalStr + "</span>"
                 + "</span>";
