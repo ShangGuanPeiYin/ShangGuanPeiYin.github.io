@@ -56,3 +56,18 @@ After syncing or editing the Tiaolv tool, run:
 ```bash
 ./skills/tiaolv-sync/scripts/check_tiaolv_customizations.sh
 ```
+
+## Tiaolv JS version tags
+
+Every time a JS file under `static/tools/yysls-tiaolv/assets/js/` is modified, update its `?v=` parameter in `static/tools/yysls-tiaolv/index.html` to the current datetime in `YYYYMMDDHHmm` format (e.g. `?v=202606041430`). This busts the browser cache so users load the new file immediately.
+
+Files that require version tag updates:
+
+- `app.min.js`
+- `local-customizations.js`
+- `excel-runtime.js`
+- `generated-calc-metadata.js`
+- `generated-calc-strings.js`
+- `generated-best40-stats.js`
+
+Use a new timestamp for each push, even if the file was already updated earlier the same day.
