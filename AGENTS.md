@@ -62,7 +62,9 @@ Pay special attention to preserving:
 
 - `static/tools/yysls-tiaolv/assets/js/local-customizations.js`;
 - the `index.html` script tag that loads `local-customizations.js`;
-- local customizations still embedded in `app.min.js`, including equipment levels, JSON import/export support, max-needed-Chengyin filtering, `(承音)` / `(需承音)` distinction, needed-Chengyin count display, and Top20 best-build results.
+- local customizations embedded in `app.min.js`: equipment levels, JSON import/export, max-needed-Chengyin filtering, `(承音)` / `(需承音)` distinction, needed-Chengyin count display, Top20 best-build results, `renderBuildStatsSummary` call, cancel-search support, stats text above border line.
+
+**For `app.min.js`, always use the new upstream file as the base and re-apply local customizations on top** — never patch the old live file in-place. See `skills/tiaolv-sync/SKILL.md` for the recommended method (diff → patch → apply).
 
 After syncing or editing the Tiaolv tool, run:
 
