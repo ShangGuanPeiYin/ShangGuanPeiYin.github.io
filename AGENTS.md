@@ -84,3 +84,14 @@ Files that require version tag updates:
 - `generated-best40-stats.js`
 
 Use a new timestamp for each push, even if the file was already updated earlier the same day.
+
+After each push, update the table below with the new version tags:
+
+| 文件 | 当前版本号 | 最后更新 |
+| --- | --- | --- |
+| `app.min.js` | `202606080049` | 2026-06-08 同步上游 |
+| `local-customizations.js` | `202606041027` | 2026-06-04 取消按钮 |
+| `excel-runtime.js` | `202606080049` | 2026-06-08 同步上游 |
+| `generated-calc-metadata.js` | `202606080049` | 2026-06-08 同步上游 |
+| `generated-calc-strings.js` | `202606080049` | 2026-06-08 同步上游 |
+| `generated-best40-stats.js` | `202606080049` | 2026-06-08 同步上游 |
