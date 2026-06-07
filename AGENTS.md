@@ -29,6 +29,19 @@ The script:
 - If unrelated changes already exist, mention them and pass only task-related paths to `skills/auto-site-publish/scripts/publish_site.sh`.
 - If the user explicitly asks not to publish, build or test locally but do not commit or push.
 
+## Tiaolv upstream snapshots
+
+The `study/` directory holds local snapshots of the upstream site `yysls.leoq7.com`:
+
+- `study/new/yysls.leoq7.com/` — latest upstream snapshot (use this as reference)
+- `study/old/yysls.leoq7.com/` — previous upstream snapshot (for diffing)
+
+To fetch the latest upstream code (rotate old → new, download fresh into new):
+
+```bash
+./skills/tiaolv-upstream-update/scripts/update_upstream.sh
+```
+
 ## Tiaolv upstream sync
 
 `static/tools/yysls-tiaolv/` is the live customized version of the upstream/reference site kept under `study/new/yysls.leoq7.com/`.
