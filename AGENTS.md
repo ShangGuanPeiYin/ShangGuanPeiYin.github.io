@@ -85,13 +85,7 @@ Files that require version tag updates:
 
 Use a new timestamp for each push, even if the file was already updated earlier the same day.
 
-After each push, update the table below with the new version tags:
+**每次修改调率站 JS 文件后，必须同时完成两件事，缺一不可：**
 
-| 文件 | 当前版本号 | 最后更新 |
-| --- | --- | --- |
-| `app.min.js` | `202606080049` | 2026-06-08 同步上游 |
-| `local-customizations.js` | `202606041027` | 2026-06-04 取消按钮 |
-| `excel-runtime.js` | `202606080049` | 2026-06-08 同步上游 |
-| `generated-calc-metadata.js` | `202606080049` | 2026-06-08 同步上游 |
-| `generated-calc-strings.js` | `202606080049` | 2026-06-08 同步上游 |
-| `generated-best40-stats.js` | `202606080049` | 2026-06-08 同步上游 |
+1. 更新 `index.html` 中对应文件的 `?v=` 版本号（格式 `YYYYMMDDHHmm`）
+2. 运行 `publish_site.sh` 将改动推送到线上
