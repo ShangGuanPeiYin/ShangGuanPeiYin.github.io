@@ -74,9 +74,12 @@ After syncing or editing the Tiaolv tool, run:
 
 ## Tiaolv JS version tags
 
-Every time a JS file under `static/tools/yysls-tiaolv/assets/js/` is modified, update its `?v=` parameter in `static/tools/yysls-tiaolv/index.html` to the current datetime in `YYYYMMDDHHmm` format (e.g. `?v=202606041430`). This busts the browser cache so users load the new file immediately.
+**每次推送前，无论修改了哪个文件，都必须同时完成两件事，缺一不可：**
 
-Files that require version tag updates:
+1. 将 `static/tools/yysls-tiaolv/index.html` 中**所有被修改过的** JS 文件的 `?v=` 更新为当前时间戳（格式 `YYYYMMDDHHmm`，如 `?v=202606081843`）
+2. 运行 `publish_site.sh` 将改动推送到线上
+
+需要维护版本号的文件：
 
 - `app.min.js`
 - `local-customizations.js`
@@ -85,9 +88,4 @@ Files that require version tag updates:
 - `generated-calc-strings.js`
 - `generated-best40-stats.js`
 
-Use a new timestamp for each push, even if the file was already updated earlier the same day.
-
-**每次修改调率站 JS 文件后，必须同时完成两件事，缺一不可：**
-
-1. 更新 `index.html` 中对应文件的 `?v=` 版本号（格式 `YYYYMMDDHHmm`）
-2. 运行 `publish_site.sh` 将改动推送到线上
+同一次推送中多次修改同一文件，只需在最终推送时更新一次版本号即可。
