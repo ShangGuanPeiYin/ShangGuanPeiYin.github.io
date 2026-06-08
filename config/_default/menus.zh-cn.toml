@@ -13,20 +13,6 @@
   pageRef = "tags"
   weight = 30
 
-[[main]]
-  name = "计算器"
-  url = "/tools/yysls-graduation/"
-  weight = 35
-
-[[main]]
-  name = "装备库"
-  url = "/tools/yysls-armory/"
-  weight = 36
-
-[[main]]
-  name = "搭配器"
-  url = "/tools/yysls-outfitter/"
-  weight = 37
 
 [[main]]
   name = "调率器"
