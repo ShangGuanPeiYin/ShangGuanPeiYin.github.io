@@ -74,7 +74,7 @@ After syncing or editing the Tiaolv tool, run:
 
 ## Tiaolv JS version tags
 
-**每次推送前，无论修改了哪个文件，都必须同时完成两件事，缺一不可：**
+**每次推送涉及调率站前端文件时，必须同时完成两件事，缺一不可：**
 
 1. 将 `static/tools/yysls-tiaolv/index.html` 中**所有被修改过的** JS 文件的 `?v=` 更新为当前时间戳（格式 `YYYYMMDDHHmm`，如 `?v=202606081843`）
 2. 运行 `publish_site.sh` 将改动推送到线上
