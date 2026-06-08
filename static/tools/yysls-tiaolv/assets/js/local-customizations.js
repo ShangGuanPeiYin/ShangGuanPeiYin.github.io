@@ -113,6 +113,10 @@
         URL.revokeObjectURL(url);
     }
 
+    // JSON 导入时从 payload 中提取的 zhuanlv 记录，按 "name|slotId" 索引
+    // null 表示本次是常规文件导入（或尚未发生 JSON 导入）
+    var _pendingZhuanlvFromJson = null;
+
     function handleJsonFileImport(event) {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
@@ -133,6 +137,14 @@
                     alert("JSON 数据转换失败，请重试");
                     return;
                 }
+                // 提取 zhuanlv 数据，按 "name|slotId" 暂存，等确认导入后按名称写回
+                _pendingZhuanlvFromJson = {};
+                (payload.equipData || []).forEach(function(item) {
+                    if (item.zhuanlv) {
+                        var key = (item.name || "") + "|" + (item.slotId || "");
+                        _pendingZhuanlvFromJson[key] = item.zhuanlv;
+                    }
+                });
                 const textarea = document.getElementById("export-import-textarea");
                 textarea.value = encoded;
                 showImportWarning();
@@ -790,14 +802,32 @@
             _importConfirmed = true;
         }, true);
 
-        // 导入弹窗关闭时，若是常规导入（非 JSON），清空 zhuanlv map
+        // 导入弹窗关闭时处理 zhuanlv
         new MutationObserver(function() {
             var isHidden = importModal.classList.contains("hidden");
-            if (isHidden && _importConfirmed) {
-                _importConfirmed = false;
+            if (!isHidden || !_importConfirmed) return;
+            _importConfirmed = false;
+
+            if (_pendingZhuanlvFromJson === null) {
+                // 常规文件导入：没有 zhuanlv 信息，全部重置为默认
                 saveZhuanlvMap({});
-                setTimeout(refreshAllZhuanlvBadges, 150);
+            } else {
+                // JSON 导入：按装备名称+槽位匹配新 ID，写回 zhuanlv 数据
+                var pending = _pendingZhuanlvFromJson;
+                _pendingZhuanlvFromJson = null;
+                if ("function" === typeof getDB && Object.keys(pending).length > 0) {
+                    var newMap = {};
+                    getDB().forEach(function(equip) {
+                        var key = (equip.name || "") + "|" + (equip.slotId || "");
+                        if (pending[key]) newMap[String(equip.id)] = pending[key];
+                    });
+                    saveZhuanlvMap(newMap);
+                } else {
+                    _pendingZhuanlvFromJson = null;
+                    saveZhuanlvMap({});
+                }
             }
+            setTimeout(refreshAllZhuanlvBadges, 150);
         }).observe(importModal, { attributes: true, attributeFilter: ["class"] });
     }
 
