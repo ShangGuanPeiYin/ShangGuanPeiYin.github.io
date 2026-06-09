@@ -16,6 +16,9 @@
 | JSON 下载 | 在导出/导入弹窗中动态插入 `下载 JSON` 按钮，导出明文 JSON，包含 `version`、`format`、`accountName`、`exportedAt`、`equipData`。 |
 | JSON 上传 | 在导出/导入弹窗中动态插入 `上传 JSON` 文件控件；读取 JSON 后转换为原有备份码格式，再复用现有导入确认流程。 |
 | 最佳配装词条汇总渲染 | 提供 `api.renderBuildStatsSummary(equippedItems)` 函数，统计 8 件装备的主词条+副词条分布（不含定音），按四行固定分类显示：三率（精准率/会心率/会意率）、五维（劲/敏/势）、攻击（各系最小/最大攻击）、神力（全武学增效/对首领单位增伤/对玩家单位增效/单体类奇术增伤/群体类奇术增伤/各武器武学增效）。每行只显示 count > 0 的词条，整行为空则隐藏。由 `app.min.js` 的最佳配装模板调用（见下方主脚本定制表）。 |
+| 转律状态追踪 | 仅 105 级非承音装备可用。三种状态：锁死/默认（null，无标记）、未转律（`state:"none"`，灰色标签）、已转律可继续转（`state:"active"`，琥珀色标签 + ► 箭头 + 可转目标行）。数据存储在独立 localStorage key `zhuanlv_status_${accountName}`，不修改装备主数据。包含：编辑弹窗中注入转律 UI section（`ensureZhuanlvSection`）、`change` 事件自动保存（不依赖 submit）、卡片标签注入（`refreshAllZhuanlvBadges`）、JSON 导出时附加 `zhuanlv` 字段、JSON 导入时按 `name+slotId` 匹配还原状态、常规文件导入时清空转律数据（通过 `_pendingZhuanlvFromJson` 标志区分两种导入类型）。 |
+| 承音装备隐藏转律冷却按钮 | 承音装备的编辑弹窗中隐藏「进入转律冷却」按钮和转律状态 section。通过 `patchTransmuteCdVisibility()` 在 `window.load` 时 wrap `updateEquipModalTransmuteCdVisibility` 函数实现，防止 app 调用后重新显示。 |
+| 承音文字绿色显示 | 装备卡片上的「(承音)」文字颜色改为绿色（`#4caf50`），通过 `colorChengyinOnCards()` 在 MutationObserver 触发时逐卡处理，幂等（已处理的卡片加 `data-chengyin-colored` 标记跳过）。 |
 
 同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
 
