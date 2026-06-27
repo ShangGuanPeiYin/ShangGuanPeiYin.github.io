@@ -4,19 +4,31 @@
 
 V2 只重构显示层，不改变装备、角色、配装、OCR、毕业率和最佳配装的业务逻辑。
 
-独立预览入口：
+正式入口：
+
+```text
+/tools/yysls-tiaolv/
+```
+
+保留入口：
 
 ```text
 /tools/yysls-tiaolv/index-v2.html
 ```
 
-正式入口 `/tools/yysls-tiaolv/` 在 V2 验收前保持不变。
+旧版回退入口：
+
+```text
+/tools/yysls-tiaolv/index-legacy.html
+```
 
 ## 文件边界
 
-V2 可以修改：
+V2 显示层文件：
 
+- `index.html`
 - `index-v2.html`
+- `index-legacy.html`
 - `assets/css/ui-v2.css`
 - `assets/js/ui-v2-presenter.js`
 
@@ -34,7 +46,7 @@ V2 不修改：
 
 ## DOM 兼容要求
 
-`index-v2.html` 必须保留原始 `index.html` 的全部业务元素 ID。当前基线共 142 个静态 ID。
+正式 `index.html` 和 `index-v2.html` 必须保留旧版 `index-legacy.html` 的全部业务元素 ID。当前基线共 142 个静态 ID。
 
 关键入口包括：
 
@@ -88,4 +100,4 @@ V2 不修改：
 
 ## 回滚
 
-V2 验收前不替换正式 `index.html`。发现问题时删除 V2 三个显示层文件即可，正式页面和全部业务数据不受影响。
+发现问题时，可将 `index-legacy.html` 恢复为 `index.html`。计算文件、业务逻辑和全部用户数据不受影响。

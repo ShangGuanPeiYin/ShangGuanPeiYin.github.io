@@ -7,48 +7,36 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>燕云武备案台 · 调率器 V2</title>
+    <title>调率器</title>
     <link rel="stylesheet" href="assets/css/style.css?v=18103dbe">
-    <link rel="stylesheet" href="assets/css/ui-v2.css?v=202606271923">
     <script src="assets/js/tesseract.min.js" async></script>
 </head>
 
-<body class="ui-v2" data-mobile-view="library">
-    <header class="workbench-header">
+<body>
+    <header>
         <div class="header-title-container">
-            <div class="brand-seal" aria-hidden="true">率</div>
             <div class="header-title-group">
-                <div class="brand-copy">
-                    <span class="brand-kicker">燕云武备案台</span>
-                    <h1>装备毕业率管理器</h1>
-                </div><button onclick="showAuthorInfo()" class="info-icon-btn" title="关于本网站"><svg
+                <h1>燕云十六声装备毕业率管理器</h1><button onclick="showAuthorInfo()" class="info-icon-btn" title="关于本网站"><svg
                         width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5" fill="none" />
                         <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                         <circle cx="10" cy="13" r="1" fill="currentColor" />
                     </svg></button>
-            </div><span id="xinli-hint" class="xinli-hint">数据更新：2026年6月2日 09:29:57</span>
+            </div><span id="xinli-hint" class="xinli-hint">最后更新时间：2026年6月2日 09:29:57</span>
         </div>
         <div class="header-controls">
-            <div class="account-select-group"><label>角色档案</label> <select id="account-select">
-                    <option value="" disabled="disabled" selected="selected">选择或新建角色</option>
-                </select> <button id="rename-account-btn" class="secondary-btn" title="重命名当前角色">修改名称</button> <button id="delete-account-btn" class="danger-btn" title="删除当前选中的角色">删除角色</button></div>
-            <div class="header-action-group"><button id="create-account-btn" class="primary-btn">新建角色</button> <button id="export-import-btn"
-                class="secondary-btn">数据管理</button> <button id="batch-ocr-btn" class="secondary-btn">识别装备</button></div>
+            <div class="account-select-group"><label>当前角色：</label> <select id="account-select">
+                    <option value="" disabled="disabled" selected="selected">-- 请选择/添加角色 --</option>
+                </select> <button id="rename-account-btn" class="secondary-btn" title="重命名当前角色">改名</button> <button id="delete-account-btn" class="danger-btn" title="删除当前选中的角色">删除</button></div><button
+                id="create-account-btn" class="secondary-btn">+ 新建角色</button> <button id="export-import-btn"
+                class="secondary-btn">导出/导入数据</button> <button id="batch-ocr-btn" class="secondary-btn">批量OCR</button>
         </div>
     </header>
     <div class="app-layout">
-        <nav class="v2-mobile-nav" aria-label="工作区视图">
-            <button type="button" data-v2-view="library" aria-selected="true">装备库</button>
-            <button type="button" data-v2-view="loadout" aria-selected="false">配装</button>
-            <button type="button" data-v2-view="metrics" aria-selected="false">面板</button>
-        </nav>
         <div id="welcome-message" class="welcome-message hidden">
             <div class="welcome-content">
-                <span class="welcome-eyebrow">建立第一份武备档案</span>
-                <h2 class="welcome-title">从一名角色开始整理装备</h2>
-                <p class="welcome-text">创建角色后，即可录入装备、组合配装并计算毕业率。</p>
-                <button type="button" class="welcome-create-btn" onclick="document.getElementById('create-account-btn').click()">新建角色档案</button>
+                <h2 class="welcome-title">欢迎使用燕云十六声装备毕业率管理器</h2>
+                <p class="welcome-text">请点击右上角 <strong class="text-accent">"+ 新建角色"</strong> 按钮创建新角色</p>
             </div>
         </div>
         <div class="layout-left hidden" id="main-content">
@@ -480,7 +468,6 @@
     <script src="assets/js/excel-runtime.js?v=202606080049"></script>
     <script src="assets/js/local-customizations.js?v=202606041027"></script>
     <script src="assets/js/app.min.js?v=202606082103"></script>
-    <script src="assets/js/ui-v2-presenter.js?v=202606271918"></script>
 </body>
 
 </html>

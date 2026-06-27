@@ -1768,6 +1768,107 @@ body.ui-v2 .text-gray {
     }
 }
 
+@media (min-width: 561px) and (max-width: 768px) {
+    body.ui-v2 #graduation-modal .modal-content {
+        height: 94vh;
+        max-height: 94vh;
+    }
+
+    body.ui-v2 #graduation-modal .grad-layout-container,
+    body.ui-v2 #graduation-modal .grad-layout-container-inline {
+        display: flex !important;
+        height: auto;
+        max-height: none;
+        padding: 0;
+        flex: 1 1 auto;
+        flex-direction: column !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    body.ui-v2 #graduation-modal .grad-left-panel {
+        display: block;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        max-height: none !important;
+        flex: 0 0 auto;
+        overflow: visible !important;
+        border-right: 0;
+        border-bottom: 1px solid var(--v2-line);
+    }
+
+    body.ui-v2 #graduation-modal .grad-left-panel-toggle {
+        display: none !important;
+    }
+
+    body.ui-v2 #graduation-modal .grad-left-panel-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100% !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+    }
+
+    body.ui-v2 #graduation-modal .current-rate-box,
+    body.ui-v2 #graduation-modal .grad-excel-rate-box {
+        display: grid;
+        min-height: 88px;
+        align-content: center;
+    }
+
+    body.ui-v2 #graduation-modal .grad-meta-info-inline,
+    body.ui-v2 #graduation-modal .current-equip-list {
+        grid-column: 1 / -1;
+    }
+
+    body.ui-v2 #graduation-modal .current-equip-list {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 7px;
+        padding: 10px;
+        overflow: visible;
+    }
+
+    body.ui-v2 #graduation-modal .grad-equip-item {
+        min-width: 0;
+        min-height: 50px;
+        margin: 0;
+        padding: 7px;
+    }
+
+    body.ui-v2 #graduation-modal .grad-right-panel {
+        width: 100%;
+        min-width: 0;
+        max-height: none;
+        flex: 0 0 auto;
+        overflow: visible;
+    }
+
+    body.ui-v2 #graduation-modal .grad-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    body.ui-v2 #graduation-modal .grad-tab {
+        min-height: 42px;
+        flex: 0 0 auto;
+        padding: 10px 13px;
+        font-size: 12px;
+    }
+
+    body.ui-v2 #graduation-modal .grad-tab-content {
+        min-height: 560px;
+        padding: 14px;
+        overflow: visible;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     body.ui-v2 *,
     body.ui-v2 *::before,
