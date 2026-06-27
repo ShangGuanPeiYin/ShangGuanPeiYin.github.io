@@ -17,7 +17,7 @@ enableStructuredBreadcrumbs = true
 replyByEmail = false
 
 mainSections = ["posts"]
-# robots = ""
+robots = "noindex, nofollow"
 
 disableImageOptimization = false
 disableImageOptimizationMD = false
