@@ -1,0 +1,867 @@
+/* Codex Command Classic — 保持原版布局，仅替换寒铁指挥舱视觉系统。 */
+:root {
+    --cc-void: #071015;
+    --cc-deck: #0b171e;
+    --cc-panel: #10222b;
+    --cc-panel-hot: #142d37;
+    --cc-line: #26434d;
+    --cc-line-hot: #4f7884;
+    --cc-text: #d9e7e7;
+    --cc-muted: #769099;
+    --cc-cyan: #58d5d0;
+    --cc-lime: #b6db66;
+    --cc-orange: #ff8a4b;
+    --cc-red: #ee6262;
+    --cc-purple: #d49cf2;
+    --cc-mono: "IBM Plex Mono", "Sarasa Mono SC", "Noto Sans Mono CJK SC", Consolas, monospace;
+    --cc-condensed: "DIN Condensed", "Arial Narrow", "Microsoft YaHei", sans-serif;
+}
+
+html {
+    background-color: var(--cc-void);
+}
+
+body.ui-codex-command-classic {
+    color: var(--cc-text);
+    background-color: var(--cc-void);
+    background-image:
+        repeating-linear-gradient(0deg, transparent 0 3px, rgba(88, 213, 208, .014) 3px 4px),
+        linear-gradient(135deg, rgba(88, 213, 208, .035), transparent 34%);
+    font-family: var(--cc-mono);
+    color-scheme: dark;
+}
+
+body.ui-codex-command-classic button,
+body.ui-codex-command-classic input,
+body.ui-codex-command-classic select,
+body.ui-codex-command-classic textarea {
+    font-family: var(--cc-mono);
+}
+
+body.ui-codex-command-classic button:focus-visible,
+body.ui-codex-command-classic input:focus-visible,
+body.ui-codex-command-classic select:focus-visible,
+body.ui-codex-command-classic textarea:focus-visible,
+body.ui-codex-command-classic [tabindex]:focus-visible {
+    outline: 2px solid var(--cc-lime);
+    outline-offset: 2px;
+}
+
+body.ui-codex-command-classic ::selection {
+    color: var(--cc-void);
+    background: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic > header {
+    color: var(--cc-text);
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background-color: rgba(8, 21, 27, .97);
+    background-image: linear-gradient(90deg, rgba(88, 213, 208, .055), transparent 34%);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .24);
+    backdrop-filter: blur(10px);
+}
+
+body.ui-codex-command-classic .header-title-group h1 {
+    color: #edf8f7;
+    font-family: var(--cc-condensed);
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-shadow: 0 0 16px rgba(88, 213, 208, .08);
+}
+
+body.ui-codex-command-classic .header-title-group h1::first-letter {
+    color: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic #xinli-hint,
+body.ui-codex-command-classic .account-select-group > label {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .info-icon-btn {
+    color: var(--cc-muted);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: transparent;
+}
+
+body.ui-codex-command-classic .info-icon-btn:hover {
+    color: var(--cc-cyan);
+    border-color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .06);
+}
+
+body.ui-codex-command-classic select,
+body.ui-codex-command-classic input[type="text"],
+body.ui-codex-command-classic input[type="number"],
+body.ui-codex-command-classic input[type="file"],
+body.ui-codex-command-classic textarea {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background-color: #071218;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .22);
+}
+
+body.ui-codex-command-classic select:hover,
+body.ui-codex-command-classic input:hover,
+body.ui-codex-command-classic textarea:hover {
+    border-color: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic select:focus,
+body.ui-codex-command-classic input:focus,
+body.ui-codex-command-classic textarea:focus {
+    border-color: var(--cc-cyan);
+    box-shadow: 0 0 0 1px rgba(88, 213, 208, .24);
+}
+
+body.ui-codex-command-classic .primary-btn,
+body.ui-codex-command-classic .secondary-btn,
+body.ui-codex-command-classic .danger-btn,
+body.ui-codex-command-classic .save-btn,
+body.ui-codex-command-classic .cancel-btn {
+    border-radius: 0;
+    box-shadow: none;
+    font-weight: 700;
+}
+
+body.ui-codex-command-classic .primary-btn,
+body.ui-codex-command-classic .save-btn {
+    color: var(--cc-void);
+    border-color: var(--cc-cyan);
+    background: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic .primary-btn:hover,
+body.ui-codex-command-classic .save-btn:hover {
+    color: var(--cc-void);
+    border-color: #8bf0eb;
+    background: #8bf0eb;
+    box-shadow: 0 0 16px rgba(88, 213, 208, .15);
+    transform: none;
+}
+
+body.ui-codex-command-classic .secondary-btn,
+body.ui-codex-command-classic .cancel-btn {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    background: var(--cc-deck);
+}
+
+body.ui-codex-command-classic .secondary-btn:hover,
+body.ui-codex-command-classic .cancel-btn:hover {
+    color: var(--cc-cyan);
+    border-color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .06);
+    transform: none;
+}
+
+body.ui-codex-command-classic .danger-btn {
+    color: #ff9b9b;
+    border-color: rgba(238, 98, 98, .55);
+    background: rgba(238, 98, 98, .05);
+}
+
+body.ui-codex-command-classic .danger-btn:hover {
+    color: var(--cc-void);
+    border-color: var(--cc-red);
+    background: var(--cc-red);
+    transform: none;
+}
+
+body.ui-codex-command-classic #add-btn {
+    color: var(--cc-void) !important;
+    border-color: var(--cc-orange) !important;
+    border-radius: 0 !important;
+    background: var(--cc-orange) !important;
+    box-shadow: none !important;
+}
+
+body.ui-codex-command-classic #add-btn:hover {
+    border-color: #ffad7f !important;
+    background: #ffad7f !important;
+}
+
+body.ui-codex-command-classic .app-layout {
+    background-color: transparent;
+}
+
+body.ui-codex-command-classic #main-content {
+    border-color: var(--cc-line);
+    background: rgba(7, 16, 21, .45);
+}
+
+body.ui-codex-command-classic #filter-bar {
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background: rgba(11, 23, 30, .97);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
+    backdrop-filter: blur(10px);
+}
+
+body.ui-codex-command-classic #filter-container {
+    border-color: transparent;
+    border-radius: 0;
+    background: transparent;
+}
+
+body.ui-codex-command-classic #filter-container .filter-btn,
+body.ui-codex-command-classic #filter-container .filter-toggle-btn {
+    color: var(--cc-muted);
+    border: 1px solid var(--cc-line);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.ui-codex-command-classic #filter-container .filter-btn:hover {
+    color: var(--cc-cyan);
+    border-color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .05);
+}
+
+body.ui-codex-command-classic #filter-container .filter-btn.active {
+    color: var(--cc-void);
+    border-color: var(--cc-cyan);
+    background: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-on {
+    color: var(--cc-void);
+    border-color: var(--cc-lime);
+    background: var(--cc-lime);
+}
+
+body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-off {
+    color: var(--cc-muted);
+    border-color: var(--cc-line);
+    background: var(--cc-deck);
+}
+
+body.ui-codex-command-classic #sort-select {
+    color: var(--cc-text) !important;
+    border-color: var(--cc-line) !important;
+    border-radius: 0 !important;
+    background: #071218 !important;
+    box-shadow: none !important;
+}
+
+body.ui-codex-command-classic #empty-equip-message {
+    color: var(--cc-muted);
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background: rgba(11, 23, 30, .6);
+}
+
+body.ui-codex-command-classic .equip-card {
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: var(--cc-deck);
+    box-shadow: none;
+}
+
+body.ui-codex-command-classic .equip-card:hover {
+    border-color: var(--cc-cyan);
+    background: var(--cc-panel);
+    box-shadow: 0 0 18px rgba(88, 213, 208, .08);
+    transform: none;
+}
+
+body.ui-codex-command-classic .equip-card.equip-card-equipped,
+body.ui-codex-command-classic .equip-card.equipped {
+    border-color: var(--cc-lime);
+    box-shadow: inset 3px 0 0 var(--cc-lime);
+}
+
+body.ui-codex-command-classic .equip-card-purple {
+    border-color: #596080;
+}
+
+body.ui-codex-command-classic .card-header {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    background: #08151b;
+}
+
+body.ui-codex-command-classic .card-title,
+body.ui-codex-command-classic .card-title h3 {
+    color: var(--cc-text);
+    font-family: var(--cc-condensed);
+    letter-spacing: .03em;
+}
+
+body.ui-codex-command-classic .card-body {
+    color: var(--cc-text);
+    background: transparent;
+}
+
+body.ui-codex-command-classic .equip-icon {
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    filter: saturate(.72) contrast(1.08);
+}
+
+body.ui-codex-command-classic .edit-btn,
+body.ui-codex-command-classic .delete-btn {
+    color: var(--cc-muted);
+    border-radius: 0;
+    background: transparent;
+}
+
+body.ui-codex-command-classic .edit-btn:hover {
+    color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .08);
+}
+
+body.ui-codex-command-classic .delete-btn:hover {
+    color: var(--cc-red);
+    background: rgba(238, 98, 98, .08);
+}
+
+body.ui-codex-command-classic .equipped-badge,
+body.ui-codex-command-classic .zhuanlv-badge {
+    border-radius: 0 !important;
+}
+
+body.ui-codex-command-classic .quality-purple {
+    color: var(--cc-purple) !important;
+}
+
+body.ui-codex-command-classic .quality-gold {
+    color: #f3d16d !important;
+}
+
+body.ui-codex-command-classic .quality-green {
+    color: var(--cc-lime) !important;
+}
+
+body.ui-codex-command-classic .quality-gray {
+    color: var(--cc-muted) !important;
+}
+
+body.ui-codex-command-classic .stat-line,
+body.ui-codex-command-classic .stat-row {
+    border-color: var(--cc-line);
+}
+
+/* 保持原版右侧面板位置，只换成寒铁仪表 */
+body.ui-codex-command-classic #simulator-panel {
+    color: var(--cc-text);
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background: var(--cc-deck);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .2);
+}
+
+body.ui-codex-command-classic .sim-header {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    background: var(--cc-panel);
+}
+
+body.ui-codex-command-classic .sim-header h2 {
+    color: var(--cc-text);
+    font-family: var(--cc-condensed);
+    letter-spacing: .08em;
+}
+
+body.ui-codex-command-classic .sim-label {
+    color: var(--cc-muted);
+    letter-spacing: .06em;
+}
+
+body.ui-codex-command-classic .scheme-controls {
+    border-color: var(--cc-line) !important;
+    background: #0b1920;
+}
+
+body.ui-codex-command-classic .xinfa-section {
+    border-color: var(--cc-line);
+    background: #08151b;
+}
+
+body.ui-codex-command-classic .xinfa-slot {
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: var(--cc-void);
+}
+
+body.ui-codex-command-classic .xinfa-slot:hover {
+    border-color: var(--cc-lime);
+    box-shadow: 0 0 12px rgba(182, 219, 102, .14);
+    transform: none;
+}
+
+body.ui-codex-command-classic .xinfa-slot img {
+    filter: saturate(.55) contrast(1.1);
+}
+
+body.ui-codex-command-classic .xinfa-name {
+    color: var(--cc-text);
+    background: rgba(7, 16, 21, .88);
+}
+
+body.ui-codex-command-classic .sim-layout-container {
+    border-color: var(--cc-line);
+    background: #0a161c;
+}
+
+body.ui-codex-command-classic .sim-slot {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: #071218;
+    box-shadow: none;
+}
+
+body.ui-codex-command-classic .sim-slot:hover {
+    border-color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .05);
+    box-shadow: inset 0 0 12px rgba(88, 213, 208, .06);
+    transform: none;
+}
+
+body.ui-codex-command-classic .slot-placeholder {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .sim-side-panel .bow-slot img {
+    filter: saturate(.65) hue-rotate(130deg);
+}
+
+body.ui-codex-command-classic .panel-checkbox-container {
+    border-color: var(--cc-line);
+    background: #0b1920;
+}
+
+body.ui-codex-command-classic .panel-checkbox-label {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .panel-checkbox-input,
+body.ui-codex-command-classic input[type="checkbox"] {
+    accent-color: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic .panel-check-hint {
+    color: var(--cc-lime);
+}
+
+body.ui-codex-command-classic .graduation-banner {
+    color: var(--cc-text);
+    border-color: var(--cc-line-hot);
+    border-left-color: var(--cc-orange);
+    border-radius: 0;
+    background:
+        linear-gradient(90deg, rgba(255, 138, 75, .08), transparent 72%),
+        var(--cc-panel);
+    box-shadow: none;
+}
+
+body.ui-codex-command-classic .graduation-banner:hover {
+    border-color: var(--cc-orange);
+    background:
+        linear-gradient(90deg, rgba(255, 138, 75, .12), transparent 72%),
+        var(--cc-panel-hot);
+    transform: none;
+}
+
+body.ui-codex-command-classic .banner-label,
+body.ui-codex-command-classic .banner-footer-text {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .banner-value {
+    color: var(--cc-lime);
+    text-shadow: 0 0 14px rgba(182, 219, 102, .18);
+}
+
+body.ui-codex-command-classic .banner-arrow {
+    color: var(--cc-orange);
+}
+
+body.ui-codex-command-classic .banner-footer {
+    border-color: transparent;
+    background: transparent;
+}
+
+body.ui-codex-command-classic #stats-display {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: #08151b;
+    box-shadow: none;
+}
+
+body.ui-codex-command-classic .stat-row-display,
+body.ui-codex-command-classic .stat-item,
+body.ui-codex-command-classic .stat-group {
+    border-color: var(--cc-line);
+}
+
+body.ui-codex-command-classic .text-bbb,
+body.ui-codex-command-classic .text-gray {
+    color: var(--cc-muted) !important;
+}
+
+body.ui-codex-command-classic .text-e0,
+body.ui-codex-command-classic .text-white {
+    color: var(--cc-text) !important;
+}
+
+/* 欢迎页 */
+body.ui-codex-command-classic #welcome-message {
+    color: var(--cc-text);
+    background:
+        repeating-linear-gradient(0deg, transparent 0 3px, rgba(88, 213, 208, .014) 3px 4px),
+        var(--cc-void);
+}
+
+body.ui-codex-command-classic .welcome-content {
+    color: var(--cc-text);
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background: var(--cc-deck);
+    box-shadow: 12px 12px 0 #03090c;
+}
+
+body.ui-codex-command-classic .welcome-title {
+    color: var(--cc-text);
+    font-family: var(--cc-condensed);
+    letter-spacing: .04em;
+}
+
+body.ui-codex-command-classic .welcome-text {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .text-accent {
+    color: var(--cc-cyan);
+}
+
+/* 所有弹窗保持原版尺寸与位置 */
+body.ui-codex-command-classic .modal {
+    background: rgba(2, 7, 10, .86);
+    backdrop-filter: blur(7px);
+}
+
+body.ui-codex-command-classic .modal-content {
+    color: var(--cc-text);
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background: var(--cc-deck);
+    box-shadow: 12px 12px 0 #020709;
+}
+
+body.ui-codex-command-classic .modal-header {
+    border-color: var(--cc-line-hot);
+    background: #071218;
+}
+
+body.ui-codex-command-classic .modal-header h2,
+body.ui-codex-command-classic .modal-title-no-margin {
+    color: var(--cc-text);
+    font-family: var(--cc-condensed);
+    letter-spacing: .06em;
+}
+
+body.ui-codex-command-classic .close-btn,
+body.ui-codex-command-classic .ocr-float-close,
+body.ui-codex-command-classic .equip-detail-float-close {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .close-btn:hover,
+body.ui-codex-command-classic .ocr-float-close:hover,
+body.ui-codex-command-classic .equip-detail-float-close:hover {
+    color: var(--cc-void);
+    background: var(--cc-red);
+}
+
+body.ui-codex-command-classic .modal-body {
+    color: var(--cc-text);
+    background: var(--cc-deck);
+}
+
+body.ui-codex-command-classic .modal h3 {
+    color: var(--cc-cyan);
+    font-family: var(--cc-condensed);
+}
+
+body.ui-codex-command-classic .form-group > label,
+body.ui-codex-command-classic .export-import-label,
+body.ui-codex-command-classic .batch-ocr-label,
+body.ui-codex-command-classic .ocr-example-text,
+body.ui-codex-command-classic .batch-ocr-text {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .modal hr {
+    border-color: var(--cc-line);
+}
+
+body.ui-codex-command-classic .available-classes-select-display,
+body.ui-codex-command-classic .options-list,
+body.ui-codex-command-classic .paste-area {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: #071218;
+}
+
+body.ui-codex-command-classic .options-list label:hover,
+body.ui-codex-command-classic .xinfa-select-item:hover {
+    color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .06);
+}
+
+body.ui-codex-command-classic .max-btn {
+    color: var(--cc-cyan);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: var(--cc-panel);
+}
+
+body.ui-codex-command-classic .max-btn:hover {
+    color: var(--cc-void);
+    border-color: var(--cc-cyan);
+    background: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic .quality-tag,
+body.ui-codex-command-classic .unit-suffix {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .modal-footer {
+    border-color: var(--cc-line);
+    background: #0b1920;
+}
+
+body.ui-codex-command-classic .ocr-example-container,
+body.ui-codex-command-classic .ocr-progress-wrapper,
+body.ui-codex-command-classic .import-warning {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: #08151b;
+}
+
+body.ui-codex-command-classic .progress-bar-container {
+    border-radius: 0;
+    background: var(--cc-line);
+}
+
+body.ui-codex-command-classic .ocr-progress-fill {
+    border-radius: 0;
+    background: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic .import-warning {
+    border-color: rgba(238, 98, 98, .5);
+    background: rgba(238, 98, 98, .06);
+}
+
+body.ui-codex-command-classic .import-warning-title {
+    color: var(--cc-red);
+}
+
+body.ui-codex-command-classic .ocr-float-window,
+body.ui-codex-command-classic .equip-detail-float-window {
+    color: var(--cc-text);
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background: var(--cc-deck);
+    box-shadow: 9px 9px 0 #020709;
+}
+
+body.ui-codex-command-classic .ocr-float-header,
+body.ui-codex-command-classic .equip-detail-float-header {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    background: #071218;
+}
+
+body.ui-codex-command-classic .ocr-float-body,
+body.ui-codex-command-classic .equip-detail-float-body {
+    color: var(--cc-text);
+    background: var(--cc-deck);
+}
+
+/* 毕业率分析保持原版工作区结构 */
+body.ui-codex-command-classic #graduation-modal .modal-content {
+    border-color: var(--cc-line-hot);
+    background: var(--cc-deck);
+}
+
+body.ui-codex-command-classic .grad-layout-container {
+    background: var(--cc-deck);
+}
+
+body.ui-codex-command-classic .grad-left-panel {
+    border-color: var(--cc-line-hot);
+    background: #071218;
+}
+
+body.ui-codex-command-classic .grad-left-panel-toggle {
+    color: var(--cc-cyan);
+    border-color: var(--cc-line-hot);
+    border-radius: 0;
+    background: var(--cc-panel);
+}
+
+body.ui-codex-command-classic .current-rate-box {
+    color: var(--cc-text);
+    border-color: var(--cc-orange);
+    border-radius: 0;
+    background: rgba(255, 138, 75, .06);
+}
+
+body.ui-codex-command-classic .current-rate-box .value {
+    color: var(--cc-lime);
+    text-shadow: 0 0 12px rgba(182, 219, 102, .18);
+}
+
+body.ui-codex-command-classic .grad-excel-rate-box,
+body.ui-codex-command-classic .grad-meta-info {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: transparent;
+}
+
+body.ui-codex-command-classic .grad-tabs {
+    border-color: var(--cc-line-hot);
+    background: #071218;
+}
+
+body.ui-codex-command-classic .grad-tab {
+    color: var(--cc-muted);
+    border-color: transparent;
+    border-radius: 0;
+    background: transparent;
+}
+
+body.ui-codex-command-classic .grad-tab:hover {
+    color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .04);
+}
+
+body.ui-codex-command-classic .grad-tab.active {
+    color: var(--cc-lime);
+    border-bottom-color: var(--cc-lime);
+    background: rgba(182, 219, 102, .04);
+}
+
+body.ui-codex-command-classic .grad-tab-content {
+    color: var(--cc-text);
+    background: var(--cc-deck);
+}
+
+body.ui-codex-command-classic .grad-equip-info,
+body.ui-codex-command-classic .compare-list > *,
+body.ui-codex-command-classic .picker-list-container > * {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: #0b1920;
+}
+
+body.ui-codex-command-classic .grad-equip-name {
+    color: var(--cc-text);
+}
+
+body.ui-codex-command-classic .grad-equip-sub,
+body.ui-codex-command-classic .tab-placeholder {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .best-build-panel,
+body.ui-codex-command-classic .best-build-solution,
+body.ui-codex-command-classic .stat-priority-panel,
+body.ui-codex-command-classic .transmute-result-card,
+body.ui-codex-command-classic .transmute-bestbuild-card,
+body.ui-codex-command-classic .transmute-target-card,
+body.ui-codex-command-classic .cultivation-content-inline {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: #0b1920;
+    box-shadow: none;
+}
+
+body.ui-codex-command-classic .best-build-summary,
+body.ui-codex-command-classic .best-build-intro {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic .best-build-start-btn {
+    color: var(--cc-void);
+    border-color: var(--cc-orange);
+    border-radius: 0;
+    background: var(--cc-orange);
+}
+
+body.ui-codex-command-classic .best-build-start-btn:hover {
+    background: #ffad7f;
+}
+
+body.ui-codex-command-classic .stat-priority-title-red {
+    color: var(--cc-red);
+}
+
+body.ui-codex-command-classic .stat-priority-title-green {
+    color: var(--cc-lime);
+}
+
+body.ui-codex-command-classic .transmute-sub-btn {
+    color: var(--cc-text);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: var(--cc-panel);
+}
+
+body.ui-codex-command-classic .transmute-sub-btn:hover,
+body.ui-codex-command-classic .transmute-sub-btn.active {
+    color: var(--cc-void);
+    border-color: var(--cc-cyan);
+    background: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic .chengyin-toggle {
+    color: var(--cc-muted);
+}
+
+body.ui-codex-command-classic a {
+    color: var(--cc-cyan);
+}
+
+body.ui-codex-command-classic a:hover {
+    color: #8bf0eb;
+}
+
+body.ui-codex-command-classic ::-webkit-scrollbar-track {
+    background: var(--cc-void);
+}
+
+body.ui-codex-command-classic ::-webkit-scrollbar-thumb {
+    border-color: var(--cc-void);
+    border-radius: 0;
+    background: var(--cc-line-hot);
+}
+
+body.ui-codex-command-classic ::-webkit-scrollbar-thumb:hover {
+    background: var(--cc-cyan);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.ui-codex-command-classic *,
+    body.ui-codex-command-classic *::before,
+    body.ui-codex-command-classic *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
