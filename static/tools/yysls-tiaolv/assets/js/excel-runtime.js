@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "8a1ec544";
+    const ASSET_VERSION = "8ec57ef7";
     const WASM_URL = `assets/wasm/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -19,14 +19,14 @@
     };
     const purpleBaseAttackPenalty = {
         weapon: {
-            "最小外功攻击": 8,
-            "最大外功攻击": 20
+            "最小外功攻击": 10,
+            "最大外功攻击": 23
         },
         ring: {
-            "最小外功攻击": 11
+            "最小外功攻击": 13
         },
         pendant: {
-            "最大外功攻击": 17
+            "最大外功攻击": 20
         }
     };
     const purplePenaltySlotKeys = {
@@ -87,6 +87,7 @@
         "拳甲": "拳甲武学增效",
         "鼓": "鼓武学增效"
     };
+    const damageBonusResistance = 1.15;
     const classSkillLabels = {
         "鸣金影": "积矩九剑·流血增伤",
         "鸣金虹": "无名剑法·蓄力技增伤",
@@ -99,6 +100,13 @@
         "破竹鸢": "天志垂象·蓄力技增伤",
         "牵丝翊": "鼓特殊技",
         "牵丝霖": "明川药典·治疗技增疗"
+    };
+    const xinfaOuterPenBonuses = {
+        "征人归": 5.1,
+        "绳舟行木": 5.1,
+        "明晦同尘": 5.1,
+        "纵地摘星": 5.1,
+        "凝神章": 5.1
     };
     const bowLabels = {
         precision: "精准",
@@ -113,12 +121,37 @@
     let classPtr = 0;
     let classOutputPtr = 0;
     let classOutputLen = 3;
+    const panelDamageBonusStates = new WeakMap();
+
+    function markPanelDamageBonusState(panel, state) {
+        if (panel && typeof panel === "object") {
+            panelDamageBonusStates.set(panel, {
+                commonEffective: !!state.commonEffective,
+                genericWeaponEffective: !!state.genericWeaponEffective,
+                weaponSpecificEffective: !!state.weaponSpecificEffective,
+                qishuEffective: !!state.qishuEffective,
+                dingyinEffective: !!state.dingyinEffective
+            });
+        }
+        return panel;
+    }
+
+    function panelDamageBonusState(panel) {
+        if (!panel || typeof panel !== "object") return {};
+        return panelDamageBonusStates.get(panel) || {};
+    }
 
     function stringId(value) {
         const key = String(value || "").trim();
         if (Object.prototype.hasOwnProperty.call(STRING_IDS, key)) return STRING_IDS[key];
         if (Object.prototype.hasOwnProperty.call(STRING_IDS, "N/A") && !key) return STRING_IDS["N/A"];
         return 0;
+    }
+
+    const stringByIdMap = new Map(Object.entries(STRING_IDS).map(([key, value]) => [Number(value), key]));
+
+    function stringById(value) {
+        return stringByIdMap.get(Number(value) || 0) || "";
     }
 
     function fieldIndex(fields) {
@@ -136,6 +169,10 @@
 
     function classKindsFor(flowName) {
         return META.flowClassKinds && META.flowClassKinds[flowName] || META.classKinds || [];
+    }
+
+    function classCellsFor(flowName) {
+        return META.flowClassCells && META.flowClassCells[flowName] || META.classCells || [];
     }
 
     function classDefaultsFor(flowName) {
@@ -471,7 +508,16 @@
         wasm.yysls_calc_diy(diyPtr, panelPtr);
         const panel = panelFromArray(readF64(panelPtr, wasm.yysls_panel_len()));
         const withPurplePenalty = applyPurpleBaseAttackPenalty(panel, options.equippedItems);
-        return applyRateOverflow(applyClassPanelRules(withPurplePenalty, options.className), options);
+        return markPanelDamageBonusState(
+            applyRateOverflow(applyClassPanelRules(withPurplePenalty, options.className), options),
+            {
+                commonEffective: true,
+                genericWeaponEffective: true,
+                weaponSpecificEffective: false,
+                qishuEffective: true,
+                dingyinEffective: true
+            }
+        );
     }
 
     function addBonus(bonuses, type, rawValue) {
@@ -479,6 +525,35 @@
         const value = Number(rawValue);
         if (!Number.isFinite(value) || value === 0) return;
         bonuses[type] = (bonuses[type] || 0) + value;
+    }
+
+    function effectiveDamageBonus(value) {
+        const number = Number(value) || 0;
+        return number ? number / damageBonusResistance : 0;
+    }
+
+    function effectivePenetration(value) {
+        const number = Number(value) || 0;
+        return number ? number / damageBonusResistance : 0;
+    }
+
+    function displayDamageBonus(value, alreadyEffective) {
+        const number = Number(value) || 0;
+        return alreadyEffective ? number : effectiveDamageBonus(number);
+    }
+
+    function dingyinBonusValue(type, value) {
+        return type === "外功穿透" ? effectivePenetration(value) : value;
+    }
+
+    function xinfaOuterPenBonus(xinfa) {
+        const seen = new Set();
+        return (Array.isArray(xinfa) ? xinfa : []).reduce((total, name) => {
+            const key = String(name || "").trim();
+            if (!key || seen.has(key)) return total;
+            seen.add(key);
+            return total + (xinfaOuterPenBonuses[key] || 0);
+        }, 0);
     }
 
     function applyBonusModifier(bonuses, modifier) {
@@ -496,12 +571,12 @@
             addBonus(bonuses, equip.mainStat && equip.mainStat.type, equipStatValue(equip, equip.mainStat));
             (equip.subStats || []).forEach(stat => addBonus(bonuses, stat.type, equipStatValue(equip, stat)));
             if (!options.loanDingyin && equip.dingyinStat) {
-                addBonus(bonuses, equip.dingyinStat.type, equip.dingyinStat.value);
+                addBonus(bonuses, equip.dingyinStat.type, dingyinBonusValue(equip.dingyinStat.type, equip.dingyinStat.value));
             }
         });
         if (options.loanDingyin) {
             const loan = options.loanDingyinValue || [];
-            bonuses["外功穿透"] = Number(loan[0]) || 0;
+            bonuses["外功穿透"] = effectivePenetration(loan[0]);
             bonuses["属攻穿透"] = Number(loan[1]) || 0;
             bonuses["指定武学技能增伤"] = Number(loan[2]) || 0;
         }
@@ -521,19 +596,28 @@
     function applyPanelBonuses(panel, bonuses, element, options = {}) {
         const adjusted = { ...panel };
         const hasExplicitBonuses = !!options.hasExplicitBonuses;
+        const damageState = options.damageState || {};
         const panelOuterPen = Number(adjusted["外功穿透"]) || 0;
         const bonusOuterPen = Number(bonuses["外功穿透"]) || 0;
         adjusted["外功穿透"] = bonusOuterPen
-            ? Math.max(0, panelOuterPen - diyAssumedOuterPen()) + bonusOuterPen
+            ? Math.max(0, panelOuterPen - diyAssumedOuterPen(), xinfaOuterPenBonus(options.xinfa)) + bonusOuterPen
             : panelOuterPen;
         const bonusElementPen = Number(bonuses["属攻穿透"]) || 0;
         const panelElementPen = Number(adjusted["属攻穿透"]) || 0;
         adjusted["属攻穿透"] = bonusElementPen || panelElementPen;
         adjusted["无相穿透"] = Number(bonuses["无相穿透"]) || Number(adjusted["无相穿透"]) || 0;
+        ["对首领单位增伤", "对玩家单位增效", "全武学增效"].forEach(statName => {
+            if (adjusted[statName] !== undefined) {
+                adjusted[statName] = displayDamageBonus(adjusted[statName], damageState.commonEffective);
+            }
+        });
+        if (adjusted["指定武学增效"] !== undefined) {
+            adjusted["指定武学增效"] = displayDamageBonus(adjusted["指定武学增效"], damageState.genericWeaponEffective);
+        }
         if (hasExplicitBonuses) {
-            adjusted["指定武学技能增伤"] = Number(bonuses["指定武学技能增伤"]) || 0;
+            adjusted["指定武学技能增伤"] = effectiveDamageBonus(bonuses["指定武学技能增伤"]);
         } else if (adjusted["指定武学技能增伤"] !== undefined) {
-            adjusted["指定武学技能增伤"] = Number(adjusted["指定武学技能增伤"]) || 0;
+            adjusted["指定武学技能增伤"] = displayDamageBonus(adjusted["指定武学技能增伤"], damageState.dingyinEffective);
         }
         const elementPenField = element ? `${element}穿透` : "";
         if (elementPenField) {
@@ -542,14 +626,17 @@
             adjusted[elementPenField] = currentElementPen + genericElementPen;
         }
         Object.values(weaponStatLabels).forEach(statName => {
-            adjusted[statName] = Number(bonuses[statName]) || Number(adjusted[statName]) || 0;
+            const bonusValue = Number(bonuses[statName]) || 0;
+            adjusted[statName] = bonusValue
+                ? effectiveDamageBonus(bonusValue)
+                : displayDamageBonus(adjusted[statName], damageState.weaponSpecificEffective);
         });
         if (hasExplicitBonuses) {
-            adjusted["单体类奇术增伤"] = Number(bonuses["单体类奇术增伤"]) || 0;
-            adjusted["群体类奇术增伤"] = Number(bonuses["群体类奇术增伤"]) || 0;
+            adjusted["单体类奇术增伤"] = effectiveDamageBonus(bonuses["单体类奇术增伤"]);
+            adjusted["群体类奇术增伤"] = effectiveDamageBonus(bonuses["群体类奇术增伤"]);
         } else {
-            adjusted["单体类奇术增伤"] = Number(adjusted["单体类奇术增伤"]) || 0;
-            adjusted["群体类奇术增伤"] = Number(adjusted["群体类奇术增伤"]) || 0;
+            adjusted["单体类奇术增伤"] = displayDamageBonus(adjusted["单体类奇术增伤"], damageState.qishuEffective);
+            adjusted["群体类奇术增伤"] = displayDamageBonus(adjusted["群体类奇术增伤"], damageState.qishuEffective);
         }
         return adjusted;
     }
@@ -564,7 +651,9 @@
             } else if (entry.mode === "level_toggle") {
                 setRawString(raw, indexMap, entry.field, selected.has(entry.label) ? (entry.default || "六重") : "不带");
             } else if (entry.mode === "dropdown") {
-                const picked = (xinfa || []).map(name => String(name || "").trim()).find(name => {
+                const slotIndex = entry.field === "third_xinfa" ? 2 : entry.field === "fourth_xinfa" ? 3 : -1;
+                const slotPicked = slotIndex >= 0 ? String((xinfa || [])[slotIndex] || "").trim() : "";
+                const picked = slotPicked && (entry.candidates || []).includes(slotPicked) ? slotPicked : (xinfa || []).map(name => String(name || "").trim()).find(name => {
                     return name && !used.has(name) && (entry.candidates || []).includes(name);
                 }) || "N/a";
                 used.add(picked);
@@ -579,13 +668,9 @@
         const raw = classRawFromDefaults(className);
         const classIndex = classIndexFor(className);
         const pct = value => (Number(value) || 0) / 100;
-        const baseClassName = META.flowClassNames && META.flowClassNames[className] || className;
-        const rateForClass = (actualField, whiteField, manualField) => {
-            if (baseClassName !== "鸣金影") return panel[actualField];
-            if (panel[whiteField] !== undefined) return panel[whiteField];
-            if (panel[manualField] !== undefined) return panel[manualField];
-            return panel[actualField];
-        };
+        const damagePct = (value, alreadyEffective = false) => pct(alreadyEffective ? value : effectiveDamageBonus(value));
+        const damageState = options.damageBonusState || {};
+        const rateForClass = actualField => panel[actualField];
         fillClassXinfa(raw, classIndex, className, options.xinfa || panel["心法"] || []);
         const setField = META.classSetFields && META.classSetFields[className] || "g5";
         setRawString(raw, classIndex, setField, options.setName || panel["套装"] || "");
@@ -621,21 +706,22 @@
         setRaw(raw, classIndex, "c20", pct(panel["直接会意率"]));
         setRaw(raw, classIndex, "e16", pct(panel["会心伤害加成"]));
         setRaw(raw, classIndex, "e17", pct(panel["会意伤害加成"]));
-        setRaw(raw, classIndex, "e18", pct(panel["对首领单位增伤"]));
+        setRaw(raw, classIndex, "e18", damagePct(panel["对首领单位增伤"], damageState.commonEffective));
         const classValueFields = META.classValueFields && META.classValueFields[className] || {};
         const hasWeaponBonus = Object.values(weaponStatLabels).some(statName => Number(panel[statName]) !== 0);
         Object.entries(weaponStatLabels).forEach(([label, statName]) => {
             const value = hasWeaponBonus ? panel[statName] : panel[statName] || panel["指定武学增效"];
-            if (classValueFields[label]) setRaw(raw, classIndex, classValueFields[label], pct(value));
+            const alreadyEffective = hasWeaponBonus ? damageState.weaponSpecificEffective : damageState.genericWeaponEffective;
+            if (classValueFields[label]) setRaw(raw, classIndex, classValueFields[label], damagePct(value, alreadyEffective));
         });
-        if (classValueFields["全武器增伤"]) setRaw(raw, classIndex, classValueFields["全武器增伤"], pct(panel["全武学增效"]));
+        if (classValueFields["全武器增伤"]) setRaw(raw, classIndex, classValueFields["全武器增伤"], damagePct(panel["全武学增效"], damageState.commonEffective));
         const bossBonusField = classValueFields["首领增"] || classValueFields["首领增伤"] || classValueFields["对首领单位增伤"];
-        if (bossBonusField) setRaw(raw, classIndex, bossBonusField, pct(panel["对首领单位增伤"]));
-        if (classValueFields["单体奇术"]) setRaw(raw, classIndex, classValueFields["单体奇术"], pct(panel["单体类奇术增伤"]));
-        if (classValueFields["群体奇术"]) setRaw(raw, classIndex, classValueFields["群体奇术"], pct(panel["群体类奇术增伤"]));
+        if (bossBonusField) setRaw(raw, classIndex, bossBonusField, damagePct(panel["对首领单位增伤"], damageState.commonEffective));
+        if (classValueFields["单体奇术"]) setRaw(raw, classIndex, classValueFields["单体奇术"], damagePct(panel["单体类奇术增伤"], damageState.qishuEffective));
+        if (classValueFields["群体奇术"]) setRaw(raw, classIndex, classValueFields["群体奇术"], damagePct(panel["群体类奇术增伤"], damageState.qishuEffective));
         if (panel["指定武学技能增伤"] !== undefined) {
             (META.classSkillDingyinFields && META.classSkillDingyinFields[className] || []).forEach(field => {
-                setRaw(raw, classIndex, field, pct(panel["指定武学技能增伤"]));
+                setRaw(raw, classIndex, field, damagePct(panel["指定武学技能增伤"], damageState.dingyinEffective));
             });
         }
         Object.entries(options.classInputOverrides || {}).forEach(([field, value]) => {
@@ -653,13 +739,36 @@
         const flowName = resolveFlowName(className, options);
         const flowId = META.flowIds && META.flowIds[flowName];
         if (flowId === undefined) return null;
+        const sourceDamageState = panelDamageBonusState(panel);
+        const hasExplicitBonuses = Object.prototype.hasOwnProperty.call(options, "bonuses");
+        const panelDamageBonusesAlreadyEffective = !!options.panelDamageBonusesAlreadyEffective;
+        const inputDamageBonusState = {
+            commonEffective: !!sourceDamageState.commonEffective || panelDamageBonusesAlreadyEffective,
+            genericWeaponEffective: !!sourceDamageState.genericWeaponEffective || panelDamageBonusesAlreadyEffective,
+            weaponSpecificEffective: !!sourceDamageState.weaponSpecificEffective || panelDamageBonusesAlreadyEffective,
+            qishuEffective: !!sourceDamageState.qishuEffective || panelDamageBonusesAlreadyEffective,
+            dingyinEffective: !!sourceDamageState.dingyinEffective || panelDamageBonusesAlreadyEffective
+        };
+        const outputDamageBonusState = {
+            commonEffective: true,
+            genericWeaponEffective: true,
+            weaponSpecificEffective: true,
+            qishuEffective: true,
+            dingyinEffective: true
+        };
         const element = META.classElements && (META.classElements[flowName] || META.classElements[className]) || "";
         const normalizedPanel = applyClassPanelRules(normalizePanelAliases(panel, originalClassName || className), className);
         const adjustedPanel = applyPanelBonuses(normalizedPanel, options.bonuses || {}, element, {
-            hasExplicitBonuses: Object.prototype.hasOwnProperty.call(options, "bonuses")
+            hasExplicitBonuses,
+            damageState: inputDamageBonusState,
+            xinfa: options.xinfa || panel["心法"] || []
         });
         const cappedPanel = applyRateOverflow(adjustedPanel, { ...options, className: originalClassName, originalClassName });
-        const raw = buildClassRaw(cappedPanel, options, flowName);
+        const raw = buildClassRaw(cappedPanel, {
+            ...options,
+            damageBonusState: outputDamageBonusState
+        }, flowName);
+        markPanelDamageBonusState(cappedPanel, outputDamageBonusState);
         writeF64(classPtr, raw);
         let totalDamage = 0;
         let dps = 0;
@@ -719,6 +828,46 @@
         }
     }
 
+    function exportClassInputData(options) {
+        try {
+            if (!runtime.available) return null;
+            const result = calculate(options);
+            if (!result || !result.panel) return null;
+            const flowName = result.flowName || resolveFlowName(options.className, options);
+            const outputDamageBonusState = {
+                commonEffective: true,
+                genericWeaponEffective: true,
+                weaponSpecificEffective: true,
+                qishuEffective: true,
+                dingyinEffective: true
+            };
+            const raw = buildClassRaw(result.panel, {
+                ...options,
+                damageBonusState: outputDamageBonusState
+            }, flowName);
+            const fields = classFieldsFor(flowName);
+            const kinds = classKindsFor(flowName);
+            const cells = classCellsFor(flowName);
+            const values = Array.from(raw).map((value, index) => kinds[index] === "str" ? stringById(value) : value);
+            const generatedRotation = META.classRotationStats && (META.classRotationStats[flowName] || META.classRotationStats[options.className]) || {};
+            const workbookName = generatedRotation.version ? `${generatedRotation.version}.xlsx` : "";
+            return {
+                className: options.className || result.className,
+                flowName,
+                workbookName,
+                fields,
+                kinds,
+                cells,
+                values,
+                panel: result.panel,
+                meta: { ...result.meta, ...generatedRotation }
+            };
+        } catch (error) {
+            console.warn("Excel 表格导出输入生成失败：", error);
+            return null;
+        }
+    }
+
     const runtime = {
         available: false,
         ready: init().catch(error => {
@@ -735,6 +884,7 @@
                 return null;
             }
         },
+        exportClassInputData,
         clearCache() {}
     };
 
