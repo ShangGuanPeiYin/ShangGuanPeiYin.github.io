@@ -14,7 +14,7 @@
 
         const wrapper = document.createElement("div");
         wrapper.className = "form-group flex-08";
-        wrapper.innerHTML = '<label>装备等级</label> <select id="level-select"><option value="105" selected="selected">105级</option><option value="100">100级</option><option value="96">96级</option></select>';
+        wrapper.innerHTML = '<label>装备等级</label> <select id="level-select"><option value="110" selected="selected">110级</option><option value="105">105级</option><option value="100">100级</option><option value="96">96级</option></select>';
         insertAfter(weaponTypeGroup, wrapper);
     }
 
