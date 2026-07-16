@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "8ec57ef7";
+    const ASSET_VERSION = "21652c0c";
     const WASM_URL = `assets/wasm/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -104,6 +104,7 @@
     const xinfaOuterPenBonuses = {
         "征人归": 5.1,
         "绳舟行木": 5.1,
+        "心弥泥鱼": 5.1,
         "明晦同尘": 5.1,
         "纵地摘星": 5.1,
         "凝神章": 5.1
@@ -122,15 +123,22 @@
     let classOutputPtr = 0;
     let classOutputLen = 3;
     const panelDamageBonusStates = new WeakMap();
+    const panelDamageBonusStateKey = Symbol("yyslsPanelDamageBonusState");
 
     function markPanelDamageBonusState(panel, state) {
         if (panel && typeof panel === "object") {
-            panelDamageBonusStates.set(panel, {
+            const normalizedState = {
                 commonEffective: !!state.commonEffective,
                 genericWeaponEffective: !!state.genericWeaponEffective,
                 weaponSpecificEffective: !!state.weaponSpecificEffective,
                 qishuEffective: !!state.qishuEffective,
                 dingyinEffective: !!state.dingyinEffective
+            };
+            panelDamageBonusStates.set(panel, normalizedState);
+            Object.defineProperty(panel, panelDamageBonusStateKey, {
+                value: normalizedState,
+                enumerable: true,
+                configurable: true
             });
         }
         return panel;
@@ -138,7 +146,7 @@
 
     function panelDamageBonusState(panel) {
         if (!panel || typeof panel !== "object") return {};
-        return panelDamageBonusStates.get(panel) || {};
+        return panelDamageBonusStates.get(panel) || panel[panelDamageBonusStateKey] || {};
     }
 
     function stringId(value) {
