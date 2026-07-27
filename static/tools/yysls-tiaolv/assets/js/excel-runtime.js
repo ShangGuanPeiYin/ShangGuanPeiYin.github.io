@@ -836,6 +836,107 @@
         }
     }
 
+    function fullDingyinStat(slotKey) {
+        const isOuter = slotKey === "weapon1" || slotKey === "weapon2" || slotKey === "ring" || slotKey === "pendant";
+        const type = isOuter ? "外功穿透" : "指定武学技能增伤";
+        const commonMaxValues = window.CommonData && window.CommonData.MAX_VALUES || {},
+            maxValues = META.maxValues || {};
+        return {
+            type,
+            value: Number(commonMaxValues[type]) || Number(maxValues[type]) || 0
+        };
+    }
+
+    function compileBestBuildEquip(slotKey, equip) {
+        if (!equip) return null;
+        const rawEntries = [];
+        const bonusEntries = [];
+        const append = (stat, rawValue, isDingyin) => {
+            if (!stat || !stat.type || rawValue === undefined || rawValue === null) return;
+            const col = slotColumns[slotKey];
+            const row = statInputRow(stat.type);
+            const index = col && row ? diyIndex.get(`${col}${row}`) : undefined;
+            if (index !== undefined) rawEntries.push(index, inputValue(stat, rawValue));
+            const bonusValue = isDingyin ? dingyinBonusValue(stat.type, rawValue) : Number(rawValue);
+            if (Number.isFinite(bonusValue) && bonusValue !== 0) bonusEntries.push(stat.type, bonusValue);
+        };
+        append(equip.mainStat, equipStatValue(equip, equip.mainStat), false);
+        (equip.subStats || []).forEach(stat => append(stat, equipStatValue(equip, stat), false));
+        const dingyin = fullDingyinStat(slotKey);
+        append(dingyin, dingyin.value, true);
+        const normalizedSlot = purplePenaltySlotKeys[slotKey] || purplePenaltySlotIdKeys[String(equip.slotId || "")];
+        return {
+            rawEntries,
+            bonusEntries,
+            purplePenalty: equip.isPurple && normalizedSlot ? purpleBaseAttackPenalty[normalizedSlot] || null : null
+        };
+    }
+
+    function createBestBuildContext(options) {
+        if (!runtime.available) return null;
+        const normalized = {
+            ...options,
+            equippedItems: {},
+            loanDingyin: false
+        };
+        return {
+            options: normalized,
+            baseRaw: buildDiyRaw({
+                ...normalized,
+                modifiers: []
+            })
+        };
+    }
+
+    function calculateBestBuildCompiled(context, compiledEquips) {
+        try {
+            if (!runtime.available || !context || !context.baseRaw) return null;
+            const raw = context.baseRaw.slice();
+            const bonuses = {};
+            const purplePenalties = [];
+            (compiledEquips || []).forEach(compiled => {
+                if (!compiled) return;
+                for (let index = 0; index < compiled.rawEntries.length; index += 2) {
+                    raw[compiled.rawEntries[index]] += compiled.rawEntries[index + 1];
+                }
+                for (let index = 0; index < compiled.bonusEntries.length; index += 2) {
+                    addBonus(bonuses, compiled.bonusEntries[index], compiled.bonusEntries[index + 1]);
+                }
+                if (compiled.purplePenalty) purplePenalties.push(compiled.purplePenalty);
+            });
+            modifierList(context.options.modifiers).forEach(modifier => addRawModifier(raw, modifier));
+            modifierList(context.options.modifiers).forEach(modifier => applyBonusModifier(bonuses, modifier));
+            writeF64(diyPtr, raw);
+            wasm.yysls_calc_diy(diyPtr, panelPtr);
+            let panel = panelFromArray(readF64(panelPtr, wasm.yysls_panel_len()));
+            if (purplePenalties.length) {
+                panel = { ...panel };
+                purplePenalties.forEach(penalty => {
+                    Object.entries(penalty).forEach(([stat, value]) => {
+                        panel[stat] = Math.max(0, num(panel[stat]) - value);
+                    });
+                });
+            }
+            panel = markPanelDamageBonusState(
+                applyRateOverflow(applyClassPanelRules(panel, context.options.className), context.options),
+                {
+                    commonEffective: true,
+                    genericWeaponEffective: true,
+                    weaponSpecificEffective: false,
+                    qishuEffective: true,
+                    dingyinEffective: true
+                }
+            );
+            return calculateFromPanel(panel, {
+                ...context.options,
+                bonuses
+            });
+        } catch (error) {
+            console.warn("最佳配装向量计算失败：", error);
+            return null;
+        }
+    }
+
     function exportClassInputData(options) {
         try {
             if (!runtime.available) return null;
@@ -884,6 +985,9 @@
         }),
         calculate,
         calculatePanel,
+        compileBestBuildEquip,
+        createBestBuildContext,
+        calculateBestBuildCompiled,
         calculateFromPanel(panel, options = {}) {
             try {
                 return calculateFromPanel(panel, options);
