@@ -22,6 +22,12 @@
 
 同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
 
+文件：`static/tools/yysls-tiaolv/assets/js/best-build-algorithms.js`
+
+| 功能 | 说明 |
+| --- | --- |
+| 最佳配装算法注册中心 | 提供 `window.YYSLSBestBuildAlgorithms.register/get/list`，供最佳配装下拉框动态枚举和分派搜索算法。当前只注册 `legacy-exhaustive` 默认遍历算法，后续算法应通过同一接口接入。 |
+
 ## 仍在主脚本中的定制
 
 文件：`static/tools/yysls-tiaolv/assets/js/app.min.js`
@@ -35,6 +41,7 @@
 | 装备等级展示 | `levelColor`、`levelText` | 在装备卡片、穿搭槽位、最佳配装装备卡片显示 `[110]`、`[105]`、`[100]`、`[96]` 等等级标签。 |
 | 旧数据默认等级 | `getDB()` 中 `if (!item.level) item.level = 105` | 旧装备数据没有等级时默认按 105 处理。 |
 | 最多需要承音筛选 | `maxNeedChengyin`、`max-need-chengyin-select`、`countNeedChengyin` | 在最佳配装搜索阶段限制 `(需承音)` 装备数量。 |
+| 最佳配装算法选择 | `bestBuildAlgorithmId`、`best-build-algorithm-select`、`runBestBuildAlgorithm` | 最佳配装页根据算法注册中心动态生成下拉框；普通搜索和指定转律搜索通过统一算法入口分派，缓存键包含算法 ID。 |
 | 需承音数量展示 | `needChengyinCount`、`需承音` | 每套最佳方案显示 `需承音：N 件`。 |
 | `(承音)` / `(需承音)` 区分 | `id.toString().includes("_chengyin")` | 原本已有承音显示 `(承音)`，系统模拟的承音版显示 `(需承音)`。 |
 | 最佳配装 Top20 | `top10Builds: o.slice(0, 20)` | 上游通常保留前 10 套，本站保留前 20 套并支持切换。 |

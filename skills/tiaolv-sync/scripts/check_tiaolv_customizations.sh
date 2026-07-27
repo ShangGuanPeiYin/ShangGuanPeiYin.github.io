@@ -26,6 +26,7 @@ check_contains() {
 INDEX="static/tools/yysls-tiaolv/index.html"
 APP="static/tools/yysls-tiaolv/assets/js/app.min.js"
 LOCAL_JS="static/tools/yysls-tiaolv/assets/js/local-customizations.js"
+ALGORITHMS_JS="static/tools/yysls-tiaolv/assets/js/best-build-algorithms.js"
 RUNTIME="static/tools/yysls-tiaolv/assets/js/excel-runtime.js"
 WASM="static/tools/yysls-tiaolv/assets/wasm/yysls_calc.wasm"
 DOC="doc/tiaolv-local-customizations.md"
@@ -33,6 +34,7 @@ DOC="doc/tiaolv-local-customizations.md"
 check_file "$INDEX"
 check_file "$APP"
 check_file "$LOCAL_JS"
+check_file "$ALGORITHMS_JS"
 check_file "$RUNTIME"
 check_file "$WASM"
 check_file "$DOC"
@@ -47,6 +49,10 @@ fi
 echo "OK: WASM magic number valid (asset version expected: $expected_version)"
 
 check_contains "$INDEX" "assets/js/local-customizations.js" "local customizations script tag"
+check_contains "$INDEX" "assets/js/best-build-algorithms.js" "best-build algorithms script tag"
+check_contains "$ALGORITHMS_JS" "window.YYSLSBestBuildAlgorithms" "best-build algorithm registry"
+check_contains "$APP" "best-build-algorithm-select" "best-build algorithm selector"
+check_contains "$APP" 'id: "legacy-exhaustive"' "legacy best-build algorithm registration"
 check_contains "$LOCAL_JS" "level-select" "equipment level control injection"
 check_contains "$LOCAL_JS" "download-json-data-btn" "download JSON control"
 check_contains "$LOCAL_JS" "import-json-file-input" "upload JSON control"
@@ -69,6 +75,9 @@ echo "OK: app.min.js syntax"
 
 node --check "$LOCAL_JS" >/dev/null
 echo "OK: local-customizations.js syntax"
+
+node --check "$ALGORITHMS_JS" >/dev/null
+echo "OK: best-build-algorithms.js syntax"
 
 if [[ -x "$repo/.tools/hugo/hugo" ]]; then
   "$repo/.tools/hugo/hugo" --gc --minify >/dev/null
