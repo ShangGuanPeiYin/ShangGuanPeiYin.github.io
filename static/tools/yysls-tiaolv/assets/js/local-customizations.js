@@ -519,8 +519,8 @@
     var MANUAL_STAT_COUNT_MAX = 40;
     var MANUAL_STAT_SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
     var MANUAL_STAT_SLOT_IDS = {
-        weapon1: "1", weapon2: "1", head: "2", chest: "5",
-        ring: "3", pendant: "4", legs: "6", hands: "7"
+        weapon1: "1", weapon2: "1", head: "5", chest: "6",
+        ring: "3", pendant: "4", legs: "7", hands: "8"
     };
 
     function getManualStatCountOptions() {
@@ -705,6 +705,59 @@
         }, 0);
     }
 
+    function getManualStatCountCategories() {
+        var className = GradModal.state.currentClass || UIManager.dom.classSelect.value || "";
+        var flowAttr = "";
+        if (0 === className.indexOf("鸣金")) flowAttr = "鸣金";
+        else if (0 === className.indexOf("裂石")) flowAttr = "裂石";
+        else if (0 === className.indexOf("牵丝")) flowAttr = "牵丝";
+        else if (0 === className.indexOf("破竹")) flowAttr = "破竹";
+        var weaponStatsByClass = {
+            "鸣金影": ["剑武学增效"],
+            "鸣金虹": ["剑武学增效"],
+            "破竹尘": ["伞武学增效"],
+            "破竹风": ["双刀武学增效", "绳标武学增效"],
+            "破竹鸢": ["拳甲武学增效"],
+            "裂石钧": ["陌刀武学增效"],
+            "裂石钧（纯唐）": ["横刀武学增效"],
+            "裂石威": ["陌刀武学增效"],
+            "牵丝玉": ["伞武学增效"],
+            "牵丝翊": ["鼓武学增效", "扇武学增效"],
+            "牵丝霖": ["扇武学增效"]
+        };
+        var attackStats = ["最大外功攻击", "最小外功攻击"];
+        if (flowAttr) attackStats.push("最大" + flowAttr + "攻击", "最小" + flowAttr + "攻击");
+        var godPowerStats = [
+            ...(weaponStatsByClass[className] || []),
+            "全武学增效",
+            "对首领单位增伤"
+        ];
+        if (AppState.PVPMode) godPowerStats.push("对玩家单位增效");
+        godPowerStats.push("单体类奇术增伤", "群体类奇术增伤");
+        var maxValues = CommonData.MAX_VALUES || {};
+        function available(stats) {
+            return stats.filter(function(stat) { return Number(maxValues[stat]) > 0; });
+        }
+        return [
+            { title: "三率", stats: available(["精准率", "会心率", "会意率"]) },
+            { title: "五维", stats: available(["劲", "敏", "势"]) },
+            { title: "攻击", stats: available(attackStats) },
+            { title: "神力", stats: available(godPowerStats) }
+        ];
+    }
+
+    function getManualRelevantWeaponStats() {
+        var categories = getManualStatCountCategories();
+        var godPower = categories.find(function(category) { return "神力" === category.title; });
+        return new Set((godPower && godPower.stats || []).filter(function(stat) {
+            return stat.indexOf("武学增效") >= 0 && "全武学增效" !== stat;
+        }));
+    }
+
+    function escapeManualStatText(value) {
+        return String(value || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
     function initManualStatCountMode() {
         if (!window.GradModal || GradModal.__statCountModePatched) return;
         GradModal.__statCountModePatched = true;
@@ -746,15 +799,19 @@
                 '  </label>',
                 '</div>',
                 '<div id="grad-manual-stat-count-panel" style="margin-top:14px;">',
-                '  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">',
-                '    <select id="grad-manual-stat-select" class="stat-select" style="flex:1;min-width:180px;"></select>',
-                '    <input id="grad-manual-stat-add-count" type="number" min="1" max="40" step="1" value="1" style="width:76px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">',
-                '    <button id="grad-manual-stat-add-btn" type="button" class="secondary-btn">添加词条</button>',
-                '  </div>',
-                '  <div id="grad-manual-stat-count-list" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>',
+                '  <div id="grad-manual-stat-category-panels" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;"></div>',
+                '  <details id="grad-manual-other-stats" style="margin-top:12px;padding:10px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.08);border-radius:7px;">',
+                '    <summary style="cursor:pointer;color:var(--text-main);font-weight:bold;">其他词条</summary>',
+                '    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;">',
+                '      <select id="grad-manual-stat-select" class="stat-select" style="flex:1;min-width:180px;"></select>',
+                '      <input id="grad-manual-stat-add-count" type="number" min="1" max="40" step="1" value="1" style="width:76px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">',
+                '      <button id="grad-manual-stat-add-btn" type="button" class="secondary-btn">添加词条</button>',
+                '    </div>',
+                '    <div id="grad-manual-stat-count-list" style="display:flex;flex-direction:column;gap:8px;margin-top:10px;"></div>',
+                '  </details>',
                 '  <div style="display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:.9rem;">',
                 '    <span id="grad-manual-stat-count-message" style="color:#ff8a80;"></span>',
-                '    <span style="color:var(--text-sub);">普通词条：<strong id="grad-manual-stat-count-total" style="color:var(--gold);">0</strong>/40</span>',
+                '    <span style="display:flex;align-items:center;gap:10px;color:var(--text-sub);"><button id="grad-manual-stat-clear-btn" type="button" class="secondary-btn" style="padding:4px 9px;font-size:.8rem;">清空词条</button>普通词条：<strong id="grad-manual-stat-count-total" style="color:var(--gold);">0</strong>/40</span>',
                 '  </div>',
                 '  <div style="margin-top:8px;color:var(--text-sub);font-size:.82rem;line-height:1.5;">不区分主词条和副词条；按理论金装换算。定音沿用当前装备，开启“贷款定音”时沿用该设置。</div>',
                 '</div>'
@@ -772,15 +829,14 @@
             var statSelect = controls.querySelector("#grad-manual-stat-select");
             var addCountInput = controls.querySelector("#grad-manual-stat-add-count");
             var addButton = controls.querySelector("#grad-manual-stat-add-btn");
+            var categoryPanels = controls.querySelector("#grad-manual-stat-category-panels");
             var list = controls.querySelector("#grad-manual-stat-count-list");
+            var clearButton = controls.querySelector("#grad-manual-stat-clear-btn");
             var totalElement = controls.querySelector("#grad-manual-stat-count-total");
             var messageElement = controls.querySelector("#grad-manual-stat-count-message");
             var panelInputs = container.querySelectorAll(".grad-manual-input");
             var countResultTimer = null;
 
-            statSelect.innerHTML = getManualStatCountOptions().map(function(stat) {
-                return '<option value="' + stat.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;") + '">' + stat + '</option>';
-            }).join("");
             modeSelect.value = config.mode;
             valueModeSelect.value = config.valueMode;
 
@@ -816,40 +872,83 @@
                 }
             }
 
+            function updateStatCount(stat, requested) {
+                var oldCount = config.counts[stat] || 0;
+                var otherTotal = manualStatCountTotal(config) - oldCount;
+                requested = Math.max(0, Math.floor(Number(requested) || 0));
+                var allowed = Math.max(0, MANUAL_STAT_COUNT_MAX - otherTotal);
+                if (requested > allowed) showMessage("普通词条总数最多 40 条");
+                var nextCount = Math.min(requested, allowed);
+                if (nextCount > 0) config.counts[stat] = nextCount;
+                else delete config.counts[stat];
+                saveConfig();
+                renderCountList();
+                applyCountPanel();
+            }
+
+            function statCountRowHtml(stat, fixed) {
+                var value = manualStatTargetValue(stat, config.valueMode);
+                var count = config.counts[stat] || 0;
+                var suffix = CommonData.PERCENT_STATS.includes(stat) ? "%" : "";
+                return '<div class="grad-manual-stat-count-row" data-stat="' + escapeManualStatText(stat) + '" data-fixed="' + (fixed ? "true" : "false") + '" style="display:grid;grid-template-columns:minmax(95px,1fr) 28px 48px 28px' + (fixed ? "" : " 28px") + ';gap:5px;align-items:center;padding:7px;background:rgba(0,0,0,.2);border-radius:6px;">'
+                    + '<span style="color:var(--text-main);font-size:.88rem;">' + escapeManualStatText(stat) + '</span>'
+                    + '<button type="button" class="grad-manual-stat-minus secondary-btn" style="padding:3px 7px;min-width:0;"' + (count <= 0 ? " disabled" : "") + '>−</button>'
+                    + '<input class="grad-manual-stat-row-count" type="number" min="0" max="40" step="1" value="' + count + '" style="width:100%;box-sizing:border-box;padding:5px;text-align:center;border-radius:5px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">'
+                    + '<button type="button" class="grad-manual-stat-plus secondary-btn" style="padding:3px 7px;min-width:0;"' + (manualStatCountTotal(config) >= MANUAL_STAT_COUNT_MAX ? " disabled" : "") + '>+</button>'
+                    + (fixed ? "" : '<button type="button" class="grad-manual-stat-remove remove-btn" title="删除">×</button>')
+                    + '<span style="grid-column:1/-1;text-align:right;color:var(--text-sub);font-size:.76rem;">' + value + suffix + ' × ' + count + ' = ' + (Math.round(value * count * 100) / 100) + suffix + '</span>'
+                    + '</div>';
+            }
+
             function renderCountList() {
-                var stats = Object.keys(config.counts);
-                list.innerHTML = stats.length ? stats.map(function(stat) {
-                    var value = manualStatTargetValue(stat, config.valueMode);
-                    var count = config.counts[stat];
-                    var suffix = CommonData.PERCENT_STATS.includes(stat) ? "%" : "";
-                    return '<div class="grad-manual-stat-count-row" data-stat="' + stat.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;") + '" style="display:grid;grid-template-columns:minmax(130px,1fr) 80px minmax(120px,auto) 34px;gap:8px;align-items:center;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;">'
-                        + '<span style="color:var(--text-main);">' + stat + '</span>'
-                        + '<input class="grad-manual-stat-row-count" type="number" min="1" max="40" step="1" value="' + count + '" style="width:100%;box-sizing:border-box;padding:6px;border-radius:5px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">'
-                        + '<span style="color:var(--text-sub);font-size:.82rem;">' + value + suffix + ' × ' + count + ' = ' + (Math.round(value * count * 100) / 100) + suffix + '</span>'
-                        + '<button type="button" class="grad-manual-stat-remove remove-btn" title="删除">×</button>'
-                        + '</div>';
-                }).join("") : '<div style="padding:12px;text-align:center;color:var(--text-sub);">请添加需要模拟的普通词条</div>';
+                var categories = getManualStatCountCategories();
+                var fixedStats = new Set();
+                categories.forEach(function(category) {
+                    category.stats.forEach(function(stat) { fixedStats.add(stat); });
+                });
+                var relevantWeaponStats = getManualRelevantWeaponStats();
+                var allWeaponStats = new Set((CommonData.WEAPON_TYPES || []).map(function(weapon) {
+                    return weapon && weapon.stat;
+                }).filter(Boolean));
+                var prunedIrrelevantWeaponStat = false;
+                Object.keys(config.counts).forEach(function(stat) {
+                    if (allWeaponStats.has(stat) && !relevantWeaponStats.has(stat)) {
+                        delete config.counts[stat];
+                        prunedIrrelevantWeaponStat = true;
+                    }
+                });
+                if (prunedIrrelevantWeaponStat) saveConfig();
+                categoryPanels.innerHTML = categories.map(function(category) {
+                    return '<section style="padding:10px;background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.07);border-radius:7px;">'
+                        + '<h4 style="margin:0 0 8px;color:var(--gold);font-size:.95rem;">' + category.title + '</h4>'
+                        + '<div style="display:flex;flex-direction:column;gap:6px;">'
+                        + category.stats.map(function(stat) { return statCountRowHtml(stat, true); }).join("")
+                        + '</div></section>';
+                }).join("");
+                var otherOptions = getManualStatCountOptions().filter(function(stat) {
+                    return !fixedStats.has(stat) && (!allWeaponStats.has(stat) || relevantWeaponStats.has(stat));
+                });
+                statSelect.innerHTML = otherOptions.map(function(stat) {
+                    return '<option value="' + escapeManualStatText(stat) + '">' + escapeManualStatText(stat) + '</option>';
+                }).join("");
+                var otherStats = Object.keys(config.counts).filter(function(stat) { return !fixedStats.has(stat); });
+                list.innerHTML = otherStats.length
+                    ? otherStats.map(function(stat) { return statCountRowHtml(stat, false); }).join("")
+                    : '<div style="padding:8px;text-align:center;color:var(--text-sub);font-size:.84rem;">暂无其他词条</div>';
                 totalElement.textContent = manualStatCountTotal(config);
-                list.querySelectorAll(".grad-manual-stat-count-row").forEach(function(row) {
+                controls.querySelectorAll(".grad-manual-stat-count-row").forEach(function(row) {
                     var stat = row.dataset.stat;
                     row.querySelector(".grad-manual-stat-row-count").addEventListener("change", function() {
-                        var oldCount = config.counts[stat] || 0;
-                        var otherTotal = manualStatCountTotal(config) - oldCount;
-                        var requested = Math.max(1, Math.floor(Number(this.value) || 1));
-                        var allowed = Math.max(0, MANUAL_STAT_COUNT_MAX - otherTotal);
-                        if (requested > allowed) showMessage("普通词条总数最多 40 条");
-                        config.counts[stat] = Math.min(requested, allowed);
-                        if (config.counts[stat] <= 0) delete config.counts[stat];
-                        saveConfig();
-                        renderCountList();
-                        applyCountPanel();
+                        updateStatCount(stat, this.value);
                     });
-                    row.querySelector(".grad-manual-stat-remove").addEventListener("click", function() {
-                        delete config.counts[stat];
-                        saveConfig();
-                        renderCountList();
-                        applyCountPanel();
+                    row.querySelector(".grad-manual-stat-minus").addEventListener("click", function() {
+                        updateStatCount(stat, (config.counts[stat] || 0) - 1);
                     });
+                    row.querySelector(".grad-manual-stat-plus").addEventListener("click", function() {
+                        updateStatCount(stat, (config.counts[stat] || 0) + 1);
+                    });
+                    var removeButton = row.querySelector(".grad-manual-stat-remove");
+                    if (removeButton) removeButton.addEventListener("click", function() { updateStatCount(stat, 0); });
                 });
             }
 
@@ -889,6 +988,12 @@
                 var added = Math.min(requested, remaining);
                 config.counts[stat] = (config.counts[stat] || 0) + added;
                 if (added < requested) showMessage("普通词条总数最多 40 条");
+                saveConfig();
+                renderCountList();
+                applyCountPanel();
+            });
+            clearButton.addEventListener("click", function() {
+                config.counts = {};
                 saveConfig();
                 renderCountList();
                 applyCountPanel();
