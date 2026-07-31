@@ -2135,6 +2135,197 @@
         }).observe(importModal, { attributes: true, attributeFilter: ["class"] });
     }
 
+    // ─────────────────────────────────────────
+    // 两状态转律建议：未转律比较全部副词条，已转律只分析指定槽位。
+    // ─────────────────────────────────────────
+
+    function getAdviceStatus(equip) {
+        return normalizeZhuanlvStatus(getZhuanlvForEquip(equip && equip.id), equip);
+    }
+
+    function installTwoStateTransmutationAdvice() {
+        if ("undefined" === typeof GradModal || !GradModal) return;
+
+        GradModal.renderTransmutationTab = function(slotKey) {
+            var container = this.dom.tabContentTransmutation;
+            if (!container) return;
+            this.state.transmutationAdviceToken = null;
+            var currentEquip = this.state.currentEquips[slotKey];
+            var equip = this.state.transmutationTarget || currentEquip;
+            if (!equip) {
+                container.innerHTML = '<p style="color:#888;text-align:center;margin-top:30px;">当前部位未穿戴装备，请先穿戴或选择分析装备</p>'
+                    + '<div style="text-align:center;margin-top:16px;"><button class="primary-btn" id="transmute-pick-btn">选择/录入装备</button></div>'
+                    + '<div id="transmute-result-area" style="margin-top:14px;"></div>';
+                document.getElementById("transmute-pick-btn").addEventListener("click", function() {
+                    GradModal.handlePickTransmutationEquip(slotKey, null);
+                });
+                return;
+            }
+            if (!isTransmutableEquip(equip)) {
+                container.innerHTML = '<p style="color:#ff9800;text-align:center;margin-top:30px;">只有110级非承音装备可以使用转律功能</p>'
+                    + '<div style="text-align:center;margin-top:16px;"><button class="primary-btn" id="transmute-pick-btn">选择110级装备</button></div>'
+                    + '<div id="transmute-result-area" style="margin-top:14px;"></div>';
+                document.getElementById("transmute-pick-btn").addEventListener("click", function() {
+                    GradModal.handlePickTransmutationEquip(slotKey, null);
+                });
+                return;
+            }
+
+            var status = getAdviceStatus(equip);
+            var activeIndex = status ? status.subStatIndex : null;
+            var isActive = null !== activeIndex;
+            var statCards = (equip.subStats || []).map(function(stat, index) {
+                var selected = isActive && index === activeIndex;
+                var muted = isActive && !selected;
+                return '<div class="transmute-sub-btn ' + (selected ? 'selected' : '') + '" style="' + (muted ? 'opacity:.45;' : '') + '">'
+                    + '<span>第' + (index + 1) + '条：' + stat.type + '</span>'
+                    + '<span style="color:#aaa;">+' + stat.value + (stat.isPercent ? '%' : '') + '</span></div>';
+            }).join("");
+            var explanation = isActive
+                ? '该装备已转律，只分析指定的第' + (activeIndex + 1) + '条副词条；结果包含转律库全部合法词条和切回原词条。'
+                : '该装备未转律，将分别分析所有副词条，比较最值得指定的槽位；每个槽位均包含保留原词条的结果。';
+            container.innerHTML = '<div class="transmute-target-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+                + '<div style="display:flex;align-items:center;gap:10px;"><img src="' + getEquipIcon(equip) + '" style="width:44px;height:44px;border-radius:4px;border:1px solid #555;">'
+                + '<div><div style="color:#fff;font-weight:700;">' + equip.name + '</div><div style="color:#9aa0a6;font-size:.85rem;">分析部位：' + this.getSlotName(slotKey) + '</div></div></div>'
+                + '<button class="secondary-btn" id="transmute-pick-btn" style="padding:6px 10px;">更换分析装备</button></div></div>'
+                + '<div style="color:#aaa;font-size:.9rem;line-height:1.7;">' + explanation + '</div>'
+                + '<div class="transmute-subs-container">' + statCards + '</div>'
+                + '<div style="display:flex;justify-content:center;margin-bottom:12px;"><button class="primary-btn" id="transmute-start-btn">'
+                + (isActive ? '计算当前最佳切换' : '比较所有副词条') + '</button></div><div id="transmute-result-area"></div>';
+            document.getElementById("transmute-pick-btn").addEventListener("click", function() {
+                GradModal.handlePickTransmutationEquip(slotKey, equip);
+            });
+            document.getElementById("transmute-start-btn").addEventListener("click", function() {
+                GradModal.startTransmutationCalc(slotKey);
+            });
+            var cached = this.state.transmutationResult;
+            if (cached && cached.slotKey === slotKey && String(cached.equipId) === String(equip.id)) {
+                this.renderTransmutationResult(cached);
+            }
+        };
+
+        GradModal.startTransmutationCalc = function(slotKey) {
+            var resultElement = document.getElementById("transmute-result-area");
+            if (!resultElement) return;
+            var equip = this.state.transmutationTarget || this.state.currentEquips[slotKey];
+            if (!equip || !Array.isArray(equip.subStats) || !equip.subStats.length) {
+                resultElement.innerHTML = '<p class="error-text">该装备没有可分析的副词条</p>';
+                return;
+            }
+            if (!isTransmutableEquip(equip)) {
+                resultElement.innerHTML = '<p class="error-text">只有110级非承音装备可以计算转律建议</p>';
+                return;
+            }
+            var className = UIManager.dom.classSelect.value;
+            if (!className) {
+                resultElement.innerHTML = '<p class="error-text">请先在主界面选择流派</p>';
+                return;
+            }
+            var status = getAdviceStatus(equip);
+            var isActive = !!status;
+            var indexes = isActive ? [status.subStatIndex] : equip.subStats.map(function(_, index) { return index; });
+            var baseEquips = Object.assign({}, this.state.currentEquips);
+            baseEquips[slotKey] = equip;
+            var baseRate = parseFloat(this.calcRate(baseEquips).graduationRate);
+            if (!Number.isFinite(baseRate)) {
+                resultElement.innerHTML = '<p class="error-text">当前方案毕业率计算失败</p>';
+                return;
+            }
+            var calculationToken = String(equip.id) + ":" + slotKey + ":" + Date.now();
+            this.state.transmutationAdviceToken = calculationToken;
+            resultElement.innerHTML = '<div class="transmute-result-card transmute-result-loading"><div class="loading-spinner">正在比较转律库词条，请稍候...</div></div>';
+
+            setTimeout(function() {
+                if (GradModal.state.transmutationAdviceToken !== calculationToken) return;
+                try {
+                    var comparisons = indexes.map(function(subStatIndex) {
+                        var originalStat = equip.subStats[subStatIndex];
+                        var options = [{
+                            subIndex: subStatIndex,
+                            fromStat: originalStat.type,
+                            toStat: originalStat.type,
+                            rate: baseRate,
+                            isOriginal: true
+                        }];
+                        GradModal.getTransmutationVariants(equip, className, subStatIndex, true).forEach(function(item) {
+                            var variantEquips = Object.assign({}, baseEquips);
+                            variantEquips[slotKey] = item.variant;
+                            var rate = parseFloat(GradModal.calcRate(variantEquips).graduationRate);
+                            if (Number.isFinite(rate)) {
+                                options.push({
+                                    subIndex: subStatIndex,
+                                    fromStat: item.fromStat,
+                                    toStat: item.toStat,
+                                    rate: rate,
+                                    isOriginal: false
+                                });
+                            }
+                        });
+                        options.sort(function(left, right) { return right.rate - left.rate; });
+                        return {
+                            subIndex: subStatIndex,
+                            fromStat: originalStat.type,
+                            best: options[0],
+                            checkedCount: options.length
+                        };
+                    });
+                    comparisons.sort(function(left, right) {
+                        return right.best.rate - left.best.rate || left.subIndex - right.subIndex;
+                    });
+                    var bestComparison = comparisons[0];
+                    var result = {
+                        slotKey: slotKey,
+                        equipId: equip.id,
+                        isActive: isActive,
+                        currentRate: baseRate,
+                        bestRate: bestComparison.best.rate,
+                        diff: bestComparison.best.rate - baseRate,
+                        comparisons: comparisons,
+                        best: bestComparison.best,
+                        checkedCount: comparisons.reduce(function(total, item) { return total + item.checkedCount; }, 0)
+                    };
+                    if (GradModal.state.transmutationAdviceToken !== calculationToken) return;
+                    GradModal.state.transmutationResult = result;
+                    GradModal.renderTransmutationResult(result);
+                } catch (error) {
+                    resultElement.innerHTML = '<p class="error-text">计算过程中出现错误：' + error.message + '</p>';
+                }
+            }, 20);
+        };
+
+        GradModal.renderTransmutationResult = function(result) {
+            var resultElement = document.getElementById("transmute-result-area");
+            if (!resultElement || !result) return;
+            var diff = result.diff;
+            var sign = diff > 0 ? "+" : "";
+            var diffClass = diff > 1e-4 ? "diff-up" : diff < -1e-4 ? "diff-down" : "diff-equal";
+            var color = diff > 1e-4 ? "#4caf50" : diff < -1e-4 ? "#f44336" : "#ffc107";
+            var title = diff > 1e-4
+                ? (result.isActive ? "建议切换" : "建议指定该副词条")
+                : (result.isActive ? "建议切回或保持原词条" : "暂不建议转律");
+            var bestComparison = result.comparisons[0];
+            var advice = bestComparison.best.isOriginal
+                ? (result.isActive ? "当前指定槽位的最佳结果是切回或保持原词条" : "所有副词条的最佳结果均为保留原词条")
+                : "第" + (bestComparison.subIndex + 1) + "条：" + bestComparison.fromStat + " → " + bestComparison.best.toStat;
+            var rows = result.comparisons.slice().sort(function(left, right) { return left.subIndex - right.subIndex; }).map(function(item) {
+                var itemDiff = item.best.rate - result.currentRate;
+                var itemSign = itemDiff > 1e-4 ? "+" : "";
+                var action = item.best.isOriginal ? "保留原词条" : item.fromStat + " → " + item.best.toStat;
+                return '<div style="display:grid;grid-template-columns:minmax(82px,.6fr) minmax(145px,1.4fr) minmax(105px,.8fr);gap:10px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.08);align-items:center;">'
+                    + '<span>第' + (item.subIndex + 1) + '条</span><span>' + action + '</span>'
+                    + '<span style="text-align:right;color:' + (itemDiff > 1e-4 ? '#4caf50' : '#ffc107') + ';">' + item.best.rate.toFixed(2) + '%（' + itemSign + itemDiff.toFixed(2) + '）</span></div>';
+            }).join("");
+            resultElement.innerHTML = '<div class="transmute-result-card transmute-result-centered">'
+                + '<div style="color:' + color + ';font-weight:700;font-size:1.05rem;margin-bottom:8px;">' + title + '</div>'
+                + '<div style="color:#ddd;line-height:1.7;">当前装备原词条毕业率：<span style="color:#fff;font-weight:700;">' + result.currentRate.toFixed(2) + '%</span><br>'
+                + '最佳转律毕业率：<span style="color:#fff;font-weight:700;">' + result.bestRate.toFixed(2) + '%</span><br>'
+                + '差值：<span class="' + diffClass + '" style="font-weight:700;">' + sign + diff.toFixed(2) + '%</span></div>'
+                + '<div style="margin-top:10px;color:#fff;font-size:.9rem;">' + advice + '</div></div>'
+                + '<div class="transmute-bestbuild-card transmute-result-centered" style="text-align:left;">'
+                + '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;">副词条比较（共计算' + result.checkedCount + '种状态）</div>' + rows + '</div>';
+        };
+    }
+
     // ─────────────────────────────────────────────
 
     api.ensureLevelSelect = ensureLevelSelect;
@@ -2145,7 +2336,9 @@
     api.allocateManualStatCounts = allocateManualStatCounts;
     api.isTransmutableEquip = isTransmutableEquip;
     api.loadZhuanlvMap = loadZhuanlvMap;
+    api.getZhuanlvForEquip = getZhuanlvForEquip;
     api.refreshAllZhuanlvBadges = refreshAllZhuanlvBadges;
+    api.installTwoStateTransmutationAdvice = installTwoStateTransmutationAdvice;
 
     purgeRemovedTransmutationCooldownData();
     migrateTransmutationStatusesToLevel110();
@@ -2157,5 +2350,6 @@
     window.addEventListener("load", function() {
         initRegularImportClear();
         initManualStatCountMode();
+        installTwoStateTransmutationAdvice();
     });
 })();

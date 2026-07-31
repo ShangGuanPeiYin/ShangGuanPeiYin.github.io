@@ -17,7 +17,7 @@
 | 完整 JSON 恢复 | 在导出/导入弹窗中动态插入 `恢复完整备份` 文件控件；导入前校验格式、角色/装备/方案结构和装备引用，汇总展示角色数、装备数、方案数及同名角色，确认后按角色覆盖并保留未包含的本地角色；写入失败时回滚。继续兼容旧版 `1.2` 单角色装备 JSON。 |
 | 手动毕业率词条数量模式 | 在“毕业率分析 → 手动填写”中增加“按词条数量 / 直接填写面板”双模式。数量模式可选择满值或承音值，用户只填总数量；统一分配器按 8 个首词条、32 个副词条及每件装备的天然词条池寻找占用首词条最少的合法方案，动态限制每行上限，并显示首/副/普通词条计数。理论面板直接使用该真实分配，不计转律额外来源；旧组合按原字段顺序自动收敛并提示。三率、五维、当前流派攻击和神力以快捷专栏展示，弓箭与当前方案同步；少见词条收进“其他词条”。右侧最终面板复用最佳配装分组，并直接展示计算结果中的三率白值溢出。每个角色、流派及版本可保存最多 50 个组合。双输入模式使用隔离结果节点，避免旧防抖任务造成闪动。配置保存在原手动面板记录中并随完整备份迁移。 |
 | 最佳配装词条汇总渲染 | 提供 `api.renderBuildStatsSummary(equippedItems)` 函数，统计 8 件装备的主词条+副词条分布（不含定音），按四行固定分类显示：三率（精准率/会心率/会意率）、五维（劲/敏/势）、攻击（各系最小/最大攻击）、神力（全武学增效/对首领单位增伤/对玩家单位增效/单体类奇术增伤/群体类奇术增伤/各武器武学增效）。每行只显示 count > 0 的词条，整行为空则隐藏。由 `app.min.js` 的最佳配装模板调用（见下方主脚本定制表）。 |
-| 转律状态追踪 | 仅 110 级非承音装备可用。只有未转律和已转律两种状态：缺失记录即未转律，卡片显示灰色标签；已转律记录固定为 `{state:"active", subStatIndex, modelVersion:2}`，只指定一个真实存在的副词条，卡片显示名称与 ► 标记。数据存储在独立 localStorage key `zhuanlv_status_${accountName}`，不修改装备主数据。旧版目标列表和 active 状态升级时全部重置，转律建议及最佳配装指定转律入口暂时隐藏。 |
+| 转律状态追踪 | 仅 110 级非承音装备可用。只有未转律和已转律两种状态：缺失记录即未转律，卡片显示灰色标签；已转律记录固定为 `{state:"active", subStatIndex, modelVersion:2}`，只指定一个真实存在的副词条，卡片显示名称与 ► 标记。数据存储在独立 localStorage key `zhuanlv_status_${accountName}`，不修改装备主数据。旧版目标列表和 active 状态升级时全部重置；转律建议已按两状态模型恢复，最佳配装指定转律入口继续隐藏。 |
 | 承音文字绿色显示 | 装备卡片上的「(承音)」文字颜色改为绿色（`#4caf50`），通过 `colorChengyinOnCards()` 在 MutationObserver 触发时逐卡处理，幂等（已处理的卡片加 `data-chengyin-colored` 标记跳过）。 |
 
 ### 2026-07-31 新增定制
@@ -57,7 +57,12 @@
    - 装备编辑只提供“未转律 / 已转律”；已转律只能指定一个当前存在的副词条，不登记目标词条。
    - `TRANSMUTATION_STATUS_MODEL_VERSION = 2` 标识新记录；`migrateTransmutationStatusesToTwoState` 首次加载时按已确认策略清空全部旧 active 记录，缺失记录统一表示未转律。
    - 完整备份保持 `schemaVersion: 2`，只导出和恢复合法的新模型 active 记录；旧 `targets` 数据及无模型版本的 active 记录会被忽略。
-   - 当前阶段隐藏转律建议页签；普通最佳配装会清空缓存的指定转律目标并始终按非转律模式运行，底层转律池与变体代码留待后续开发。
+   - 普通最佳配装会清空缓存的指定转律目标并始终按非转律模式运行；最佳配装自动转律与方案级转律选择留待后续开发。
+7. **两状态转律建议**
+   - 恢复“毕业率分析 → 转律建议”；未转律装备一次比较所有副词条，给出最值得指定的槽位及其最佳转律词条。
+   - 已转律装备只分析状态中指定的副词条，不允许算法改换槽位；原词条始终作为合法候选，最优时明确建议切回或保持原词条。
+   - 建议只替换当前分析部位并保持其他七件装备不变，按当前流派、弓箭、套装、心法、赛季与贷款定音环境实时计算，不再混入全库换装收益。
+   - 每个副词条显示最佳目标、最终毕业率和相对原词条差值；最佳配装“指定转律目标”入口仍保持隐藏。
 
 主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`isTransmutableEquip`、`TRANSMUTATION_LEVEL_MIGRATION_MARKER`、`TRANSMUTATION_TWO_STATE_MIGRATION_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
 
