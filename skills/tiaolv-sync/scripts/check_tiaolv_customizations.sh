@@ -56,7 +56,9 @@ check_contains "$APP" 'id: "legacy-exhaustive"' "legacy best-build algorithm reg
 check_contains "$LOCAL_JS" "level-select" "equipment level control injection"
 check_contains "$LOCAL_JS" "download-json-data-btn" "download JSON control"
 check_contains "$LOCAL_JS" "import-json-file-input" "upload JSON control"
-check_contains "$LOCAL_JS" "format: \"plain-json\"" "plain JSON export marker"
+check_contains "$LOCAL_JS" "yysls-tiaolv-full-backup" "full JSON backup marker"
+check_contains "$LOCAL_JS" "schemaVersion: FULL_BACKUP_SCHEMA_VERSION" "full JSON backup schema version"
+check_contains "$LOCAL_JS" "isValidJsonPayload(payload)" "legacy JSON import compatibility"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
 

@@ -13,8 +13,8 @@
 | 功能 | 说明 |
 | --- | --- |
 | 装备等级控件注入 | 在装备录入弹窗中动态插入 `#level-select`，选项为 `110级 / 105级 / 100级 / 96级`，新建装备默认 `110级`。主脚本仍负责保存、读取和展示等级字段。 |
-| JSON 下载 | 在导出/导入弹窗中动态插入 `下载 JSON` 按钮，导出明文 JSON，包含 `version`、`format`、`accountName`、`exportedAt`、`equipData`。 |
-| JSON 上传 | 在导出/导入弹窗中动态插入 `上传 JSON` 文件控件；读取 JSON 后转换为原有备份码格式，再复用现有导入确认流程。 |
+| 完整 JSON 备份 | 在导出/导入弹窗中动态插入 `下载完整备份` 按钮；单个明文 JSON 备份全部角色，以及每个角色的装备（保留 ID）、全部流派方案、转律状态、转律冷却和毕业率手动面板数据。格式标识为 `yysls-tiaolv-full-backup`、版本为 `schemaVersion: 2`，不包含可重建的计算缓存。 |
+| 完整 JSON 恢复 | 在导出/导入弹窗中动态插入 `恢复完整备份` 文件控件；导入前校验格式、角色/装备/方案结构和装备引用，汇总展示角色数、装备数、方案数及同名角色，确认后按角色覆盖并保留未包含的本地角色；写入失败时回滚。继续兼容旧版 `1.2` 单角色装备 JSON。 |
 | 最佳配装词条汇总渲染 | 提供 `api.renderBuildStatsSummary(equippedItems)` 函数，统计 8 件装备的主词条+副词条分布（不含定音），按四行固定分类显示：三率（精准率/会心率/会意率）、五维（劲/敏/势）、攻击（各系最小/最大攻击）、神力（全武学增效/对首领单位增伤/对玩家单位增效/单体类奇术增伤/群体类奇术增伤/各武器武学增效）。每行只显示 count > 0 的词条，整行为空则隐藏。由 `app.min.js` 的最佳配装模板调用（见下方主脚本定制表）。 |
 | 转律状态追踪 | 仅 105 级非承音装备可用。三种状态：锁死/默认（null，无标记）、未转律（`state:"none"`，灰色标签）、已转律可继续转（`state:"active"`，琥珀色标签 + ► 箭头 + 可转目标行）。数据存储在独立 localStorage key `zhuanlv_status_${accountName}`，不修改装备主数据。包含：编辑弹窗中注入转律 UI section（`ensureZhuanlvSection`）、`change` 事件自动保存（不依赖 submit）、卡片标签注入（`refreshAllZhuanlvBadges`）、JSON 导出时附加 `zhuanlv` 字段、JSON 导入时按 `name+slotId` 匹配还原状态、常规文件导入时清空转律数据（通过 `_pendingZhuanlvFromJson` 标志区分两种导入类型）。 |
 | 承音装备隐藏转律冷却按钮 | 承音装备的编辑弹窗中隐藏「进入转律冷却」按钮和转律状态 section。通过 `patchTransmuteCdVisibility()` 在 `window.load` 时 wrap `updateEquipModalTransmuteCdVisibility` 函数实现，防止 app 调用后重新显示。 |

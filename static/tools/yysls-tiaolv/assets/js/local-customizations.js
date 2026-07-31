@@ -30,7 +30,7 @@
             downloadButton.id = "download-json-data-btn";
             downloadButton.type = "button";
             downloadButton.className = "secondary-btn";
-            downloadButton.textContent = "下载 JSON";
+            downloadButton.textContent = "下载完整备份";
             const downloadTxt = document.getElementById("download-data-btn");
             downloadTxt ? insertAfter(downloadTxt, downloadButton) : buttonRow.appendChild(downloadButton);
         }
@@ -39,7 +39,7 @@
             const jsonLabel = document.createElement("label");
             jsonLabel.setAttribute("for", "import-json-file-input");
             jsonLabel.className = "secondary-btn cursor-pointer inline-flex";
-            jsonLabel.innerHTML = '<input type="file" id="import-json-file-input" accept=".json,application/json" class="hidden"> 上传 JSON';
+            jsonLabel.innerHTML = '<input type="file" id="import-json-file-input" accept=".json,application/json" class="hidden"> 恢复完整备份';
             if (importLabel) insertAfter(importLabel, jsonLabel);
             else if (pasteButton) buttonRow.insertBefore(jsonLabel, pasteButton);
             else buttonRow.appendChild(jsonLabel);
@@ -80,17 +80,154 @@
         });
     }
 
-    function buildJsonPayload() {
-        if ("undefined" == typeof AppState || !AppState.currentAccount) {
-            alert("请先选择角色");
+    var FULL_BACKUP_KIND = "yysls-tiaolv-full-backup";
+    var FULL_BACKUP_SCHEMA_VERSION = 2;
+    var EQUIP_SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
+    var SCHEME_FIELDS = [
+        "name", "bowType", "setType", "flowVersion", "xinfa", "earlySeasonBonus",
+        "PVPMode", "loanDingyin", "loanDingyinValue", "classInputOverrides",
+        "armory", "advancedSettings"
+    ];
+
+    function isPlainObject(value) {
+        return !!value && "object" == typeof value && !Array.isArray(value);
+    }
+
+    function isSafeObjectKey(key) {
+        return "__proto__" !== key && "prototype" !== key && "constructor" !== key;
+    }
+
+    function cloneSafeJson(value, depth) {
+        depth = depth || 0;
+        if (depth > 30) throw new Error("备份数据嵌套层级过深");
+        if (value === null || "string" == typeof value || "boolean" == typeof value) return value;
+        if ("number" == typeof value) {
+            if (!Number.isFinite(value)) throw new Error("备份中包含无效数字");
+            return value;
+        }
+        if (Array.isArray(value)) return value.map(function(item) {
+            return cloneSafeJson(item, depth + 1);
+        });
+        if (isPlainObject(value)) {
+            var result = {};
+            Object.keys(value).forEach(function(key) {
+                if (!isSafeObjectKey(key)) return;
+                result[key] = cloneSafeJson(value[key], depth + 1);
+            });
+            return result;
+        }
+        throw new Error("备份中包含不支持的数据类型");
+    }
+
+    function parseStoredObject(key) {
+        var raw = localStorage.getItem(key);
+        if (!raw) return {};
+        try {
+            var parsed = JSON.parse(raw);
+            return isPlainObject(parsed) ? parsed : {};
+        } catch (error) {
+            console.warn("忽略无法解析的本地数据：", key, error);
+            return {};
+        }
+    }
+
+    function parseStoredArray(key) {
+        var raw = localStorage.getItem(key);
+        if (!raw) return [];
+        try {
+            var parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.warn("忽略无法解析的本地数据：", key, error);
+            return [];
+        }
+    }
+
+    function sanitizeStat(stat) {
+        if (!isPlainObject(stat) || "string" != typeof stat.type) throw new Error("装备词条格式错误");
+        var result = { type: stat.type, value: cloneSafeJson(stat.value) };
+        if ("boolean" == typeof stat.isPercent) result.isPercent = stat.isPercent;
+        return result;
+    }
+
+    function sanitizeEquip(equip, requireId) {
+        if (!isPlainObject(equip)) throw new Error("装备数据格式错误");
+        if (requireId && (null == equip.id || "" === equip.id)) throw new Error("完整备份中的装备缺少 ID");
+        if ("string" != typeof equip.slotId || "string" != typeof equip.name) throw new Error("装备缺少部位或名称");
+        var result = {
+            id: null == equip.id ? null : cloneSafeJson(equip.id),
+            slotId: equip.slotId,
+            slotName: "string" == typeof equip.slotName ? equip.slotName : "",
+            weaponTypeId: null == equip.weaponTypeId ? null : String(equip.weaponTypeId),
+            name: equip.name,
+            isChengyin: !!equip.isChengyin,
+            isPurple: !!equip.isPurple,
+            level: Number(equip.level) || 105,
+            availableClasses: Array.isArray(equip.availableClasses) ? equip.availableClasses.map(String) : [],
+            mainStat: sanitizeStat(equip.mainStat),
+            subStats: Array.isArray(equip.subStats) ? equip.subStats.map(sanitizeStat) : []
+        };
+        if (equip.dingyinStat) result.dingyinStat = sanitizeStat(equip.dingyinStat);
+        return result;
+    }
+
+    function buildFullExportEquipData(accountName) {
+        return parseStoredArray("game_equip_data_" + accountName).map(function(equip) {
+            return sanitizeEquip(equip, true);
+        });
+    }
+
+    function getManualGradOwner(key, accountNames) {
+        var base = "grad_manual_form_v2_";
+        if (0 !== key.indexOf(base)) return null;
+        var matches = accountNames.filter(function(name) {
+            return 0 === key.indexOf(base + name + "_");
+        }).sort(function(a, b) { return b.length - a.length; });
+        return matches[0] || null;
+    }
+
+    function collectManualGradData(accountName, accountNames) {
+        var prefix = "grad_manual_form_v2_" + accountName + "_";
+        var result = {};
+        for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (!key || 0 !== key.indexOf(prefix)) continue;
+            if (getManualGradOwner(key, accountNames) !== accountName) continue;
+            var suffix = key.slice(prefix.length);
+            if (!suffix) continue;
+            var raw = localStorage.getItem(key);
+            try {
+                result[suffix] = cloneSafeJson(JSON.parse(raw));
+            } catch (error) {
+                console.warn("忽略无法解析的手动面板数据：", key, error);
+            }
+        }
+        return result;
+    }
+
+    function buildFullBackupPayload() {
+        var accountNames = parseStoredArray("game_account_list").filter(function(name) {
+            return "string" == typeof name && !!name.trim();
+        });
+        if (!accountNames.length) {
+            alert("当前没有可备份的角色");
             return null;
         }
         return {
-            version: "1.2",
-            format: "plain-json",
-            accountName: AppState.currentAccount,
+            kind: FULL_BACKUP_KIND,
+            schemaVersion: FULL_BACKUP_SCHEMA_VERSION,
             exportedAt: (new Date()).toISOString(),
-            equipData: buildExportEquipData()
+            lastSelectedAccount: localStorage.getItem("last_selected_account") || accountNames[0],
+            accounts: accountNames.map(function(accountName) {
+                return {
+                    name: accountName,
+                    equipData: buildFullExportEquipData(accountName),
+                    simulatorData: parseStoredObject("game_sim_data_" + accountName),
+                    zhuanlvData: parseStoredObject("zhuanlv_status_" + accountName),
+                    transmutationCooldowns: parseStoredObject("game_transmutation_cd_" + accountName),
+                    manualGradData: collectManualGradData(accountName, accountNames)
+                };
+            })
         };
     }
 
@@ -99,18 +236,224 @@
     }
 
     function downloadJsonDataAsFile() {
-        const payload = buildJsonPayload();
+        const payload = buildFullBackupPayload();
         if (!payload) return;
         const text = JSON.stringify(payload, null, 2);
         const blob = new Blob([text], { type: "application/json;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${AppState.currentAccount}.json`;
+        var now = new Date();
+        var stamp = now.getFullYear()
+            + String(now.getMonth() + 1).padStart(2, "0")
+            + String(now.getDate()).padStart(2, "0") + "-"
+            + String(now.getHours()).padStart(2, "0")
+            + String(now.getMinutes()).padStart(2, "0")
+            + String(now.getSeconds()).padStart(2, "0");
+        link.download = "调率站完整备份-" + stamp + ".json";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    }
+
+    function sanitizeScheme(scheme, validEquipIds, warningState) {
+        if (!isPlainObject(scheme)) throw new Error("方案数据格式错误");
+        var result = {};
+        EQUIP_SLOT_KEYS.forEach(function(slotKey) {
+            var equipId = scheme[slotKey];
+            if (null == equipId || "" === equipId) {
+                result[slotKey] = null;
+            } else if (validEquipIds.has(String(equipId))) {
+                result[slotKey] = cloneSafeJson(equipId);
+            } else {
+                result[slotKey] = null;
+                warningState.missingEquipRefs++;
+            }
+        });
+        SCHEME_FIELDS.forEach(function(field) {
+            if (Object.prototype.hasOwnProperty.call(scheme, field)) {
+                result[field] = cloneSafeJson(scheme[field]);
+            }
+        });
+        return result;
+    }
+
+    function sanitizeSimulatorData(data, validEquipIds, warningState) {
+        if (!isPlainObject(data)) throw new Error("模拟器数据格式错误");
+        var result = {
+            currentClass: "string" == typeof data.currentClass ? data.currentClass : "",
+            currentArmory: "string" == typeof data.currentArmory ? data.currentArmory : "通用",
+            currentFlowVersions: isPlainObject(data.currentFlowVersions) ? cloneSafeJson(data.currentFlowVersions) : {},
+            loadouts: {}
+        };
+        if (!isPlainObject(data.loadouts)) return result;
+        Object.keys(data.loadouts).forEach(function(className) {
+            if (!isSafeObjectKey(className)) throw new Error("流派名称无效");
+            var classData = data.loadouts[className];
+            if (!isPlainObject(classData)) throw new Error("流派方案数据格式错误");
+            var cleanClassData = { schemes: {}, currentSchemeId: null };
+            if (isPlainObject(classData.schemes)) {
+                Object.keys(classData.schemes).forEach(function(schemeId) {
+                    if (!isSafeObjectKey(schemeId)) throw new Error("方案 ID 无效");
+                    cleanClassData.schemes[schemeId] = sanitizeScheme(classData.schemes[schemeId], validEquipIds, warningState);
+                });
+                if (null != classData.currentSchemeId && Object.prototype.hasOwnProperty.call(cleanClassData.schemes, classData.currentSchemeId)) {
+                    cleanClassData.currentSchemeId = String(classData.currentSchemeId);
+                } else {
+                    cleanClassData.currentSchemeId = Object.keys(cleanClassData.schemes)[0] || null;
+                }
+            } else {
+                cleanClassData.schemes["默认"] = sanitizeScheme(classData, validEquipIds, warningState);
+                cleanClassData.currentSchemeId = "默认";
+            }
+            result.loadouts[className] = cleanClassData;
+        });
+        return result;
+    }
+
+    function sanitizeIdMap(map, validEquipIds) {
+        if (!isPlainObject(map)) throw new Error("装备关联数据格式错误");
+        var result = {};
+        Object.keys(map).forEach(function(equipId) {
+            if (validEquipIds.has(String(equipId))) result[equipId] = cloneSafeJson(map[equipId]);
+        });
+        return result;
+    }
+
+    function sanitizeManualGradData(data) {
+        if (!isPlainObject(data)) throw new Error("手动面板数据格式错误");
+        var result = {};
+        Object.keys(data).forEach(function(suffix) {
+            if (!suffix || !isSafeObjectKey(suffix) || suffix.indexOf("..") >= 0) throw new Error("手动面板数据键无效");
+            result[suffix] = cloneSafeJson(data[suffix]);
+        });
+        return result;
+    }
+
+    function validateFullBackup(payload) {
+        if (!isPlainObject(payload) || payload.kind !== FULL_BACKUP_KIND) throw new Error("这不是调率站完整备份文件");
+        if (Number(payload.schemaVersion) !== FULL_BACKUP_SCHEMA_VERSION) {
+            throw new Error("不支持的完整备份版本：" + payload.schemaVersion);
+        }
+        if (!Array.isArray(payload.accounts) || !payload.accounts.length) throw new Error("完整备份中没有角色数据");
+        var seenNames = new Set();
+        var warningState = { missingEquipRefs: 0 };
+        var cleanAccounts = payload.accounts.map(function(account) {
+            if (!isPlainObject(account) || "string" != typeof account.name || !account.name.trim()) throw new Error("角色名称无效");
+            var name = account.name.trim();
+            if (seenNames.has(name)) throw new Error("完整备份中存在重复角色：" + name);
+            seenNames.add(name);
+            if (!Array.isArray(account.equipData)) throw new Error("角色“" + name + "”的装备数据无效");
+            var equipData = account.equipData.map(function(equip) { return sanitizeEquip(equip, true); });
+            var validEquipIds = new Set();
+            equipData.forEach(function(equip) {
+                var id = String(equip.id);
+                if (validEquipIds.has(id)) throw new Error("角色“" + name + "”存在重复装备 ID");
+                validEquipIds.add(id);
+            });
+            return {
+                name: name,
+                equipData: equipData,
+                simulatorData: sanitizeSimulatorData(account.simulatorData || {}, validEquipIds, warningState),
+                zhuanlvData: sanitizeIdMap(account.zhuanlvData || {}, validEquipIds),
+                transmutationCooldowns: sanitizeIdMap(account.transmutationCooldowns || {}, validEquipIds),
+                manualGradData: sanitizeManualGradData(account.manualGradData || {})
+            };
+        });
+        var lastSelected = "string" == typeof payload.lastSelectedAccount && seenNames.has(payload.lastSelectedAccount)
+            ? payload.lastSelectedAccount : cleanAccounts[0].name;
+        return { accounts: cleanAccounts, lastSelectedAccount: lastSelected, warnings: warningState };
+    }
+
+    function countSchemes(simulatorData) {
+        var total = 0;
+        var loadouts = simulatorData && simulatorData.loadouts || {};
+        Object.keys(loadouts).forEach(function(className) {
+            total += Object.keys(loadouts[className].schemes || {}).length;
+        });
+        return total;
+    }
+
+    function removeManualGradKeys(accountName, accountNames, setValue) {
+        var prefix = "grad_manual_form_v2_" + accountName + "_";
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (key && 0 === key.indexOf(prefix) && getManualGradOwner(key, accountNames) === accountName) keys.push(key);
+        }
+        keys.forEach(function(key) { setValue(key, null); });
+    }
+
+    function restoreFullBackup(payload) {
+        var validated = validateFullBackup(payload);
+        var existingAccounts = parseStoredArray("game_account_list").filter(function(name) {
+            return "string" == typeof name && !!name;
+        });
+        var existingSet = new Set(existingAccounts);
+        var conflicts = validated.accounts.map(function(account) { return account.name; }).filter(function(name) {
+            return existingSet.has(name);
+        });
+        var equipCount = validated.accounts.reduce(function(total, account) { return total + account.equipData.length; }, 0);
+        var schemeCount = validated.accounts.reduce(function(total, account) {
+            return total + countSchemes(account.simulatorData);
+        }, 0);
+        var message = "备份包含 " + validated.accounts.length + " 个角色、" + equipCount + " 件装备、" + schemeCount + " 个方案。";
+        if (conflicts.length) {
+            message += "\n\n以下同名角色将被完整覆盖：\n- " + conflicts.join("\n- ");
+        } else {
+            message += "\n\n不会覆盖现有角色。";
+        }
+        message += "\n\n确定恢复此完整备份吗？";
+        if (!confirm(message)) return;
+
+        var mergedAccounts = existingAccounts.slice();
+        validated.accounts.forEach(function(account) {
+            if (!existingSet.has(account.name)) {
+                existingSet.add(account.name);
+                mergedAccounts.push(account.name);
+            }
+        });
+        var previousValues = {};
+        var touchedKeys = [];
+        function setValue(key, value) {
+            if (!Object.prototype.hasOwnProperty.call(previousValues, key)) {
+                previousValues[key] = localStorage.getItem(key);
+                touchedKeys.push(key);
+            }
+            if (null === value) localStorage.removeItem(key);
+            else localStorage.setItem(key, value);
+        }
+        try {
+            validated.accounts.forEach(function(account) {
+                setValue("game_equip_data_" + account.name, JSON.stringify(account.equipData));
+                setValue("game_sim_data_" + account.name, JSON.stringify(account.simulatorData));
+                setValue("zhuanlv_status_" + account.name, JSON.stringify(account.zhuanlvData));
+                setValue("game_transmutation_cd_" + account.name, JSON.stringify(account.transmutationCooldowns));
+                removeManualGradKeys(account.name, mergedAccounts, setValue);
+                Object.keys(account.manualGradData).forEach(function(suffix) {
+                    setValue("grad_manual_form_v2_" + account.name + "_" + suffix, JSON.stringify(account.manualGradData[suffix]));
+                });
+            });
+            setValue("game_account_list", JSON.stringify(mergedAccounts));
+            setValue("last_selected_account", validated.lastSelectedAccount);
+        } catch (error) {
+            for (var i = touchedKeys.length - 1; i >= 0; i--) {
+                var key = touchedKeys[i];
+                try {
+                    if (null === previousValues[key]) localStorage.removeItem(key);
+                    else localStorage.setItem(key, previousValues[key]);
+                } catch (rollbackError) {
+                    console.error("回滚本地备份数据失败：", key, rollbackError);
+                }
+            }
+            throw new Error("恢复写入失败，已尝试回滚：" + error.message);
+        }
+        var warning = validated.warnings.missingEquipRefs
+            ? "\n有 " + validated.warnings.missingEquipRefs + " 个方案装备引用找不到对应装备，相关部位已留空。"
+            : "";
+        alert("完整备份恢复成功！" + warning + "\n页面将刷新以加载全部数据。");
+        window.location.reload();
     }
 
     // JSON 导入时从 payload 中提取的 zhuanlv 记录，按 "name|slotId" 索引
@@ -124,8 +467,12 @@
         reader.onload = function (loadEvent) {
             try {
                 const payload = JSON.parse(loadEvent.target.result);
+                if (payload && payload.kind === FULL_BACKUP_KIND) {
+                    restoreFullBackup(payload);
+                    return;
+                }
                 if (!isValidJsonPayload(payload)) {
-                    alert("JSON 数据格式错误，请确认包含 accountName 和 equipData");
+                    alert("JSON 数据格式错误：既不是完整备份，也不是包含 accountName 和 equipData 的旧版装备备份");
                     return;
                 }
                 if ("function" != typeof encryptData || "function" != typeof showImportWarning) {
