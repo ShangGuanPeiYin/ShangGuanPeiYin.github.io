@@ -548,25 +548,47 @@
 
     function normalizeManualStatCountConfig(config) {
         config = isPlainObject(config) ? config : {};
-        var counts = {};
-        var total = 0;
         var allowed = new Set(getManualStatCountOptions());
-        if (isPlainObject(config.counts)) {
-            Object.keys(config.counts).forEach(function(stat) {
+        function normalizeCounts(source) {
+            var counts = {};
+            var total = 0;
+            if (!isPlainObject(source)) return counts;
+            Object.keys(source).forEach(function(stat) {
                 if (!allowed.has(stat) || total >= MANUAL_STAT_COUNT_MAX) return;
-                var count = Math.max(0, Math.floor(Number(config.counts[stat]) || 0));
+                var count = Math.max(0, Math.floor(Number(source[stat]) || 0));
                 count = Math.min(count, MANUAL_STAT_COUNT_MAX - total);
                 if (count > 0) {
                     counts[stat] = count;
                     total += count;
                 }
             });
+            return counts;
         }
+        var presets = [];
+        var presetIds = new Set();
+        if (Array.isArray(config.presets)) {
+            config.presets.slice(0, 50).forEach(function(preset) {
+                if (!isPlainObject(preset) || "string" != typeof preset.name || !preset.name.trim()) return;
+                var id = String(preset.id || "");
+                if (!id || presetIds.has(id)) return;
+                presetIds.add(id);
+                presets.push({
+                    id: id,
+                    name: preset.name.trim().slice(0, 40),
+                    valueMode: "chengyin" === preset.valueMode ? "chengyin" : "max",
+                    counts: normalizeCounts(preset.counts)
+                });
+            });
+        }
+        var currentPresetId = null != config.currentPresetId ? String(config.currentPresetId) : null;
+        if (!presetIds.has(currentPresetId)) currentPresetId = null;
         return {
             mode: "count" === config.mode ? "count" : "panel",
             valueMode: "chengyin" === config.valueMode ? "chengyin" : "max",
-            counts: counts,
-            manualPanel: isPlainObject(config.manualPanel) ? cloneSafeJson(config.manualPanel) : {}
+            counts: normalizeCounts(config.counts),
+            manualPanel: isPlainObject(config.manualPanel) ? cloneSafeJson(config.manualPanel) : {},
+            presets: presets,
+            currentPresetId: currentPresetId
         };
     }
 
@@ -798,6 +820,14 @@
                 '  </label>',
                 '</div>',
                 '<div id="grad-manual-stat-count-panel" style="margin-top:14px;">',
+                '  <div id="grad-manual-stat-preset-bar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;padding:10px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.08);border-radius:7px;">',
+                '    <span style="color:var(--text-sub);font-size:.88rem;">词条组合</span>',
+                '    <select id="grad-manual-stat-preset-select" class="stat-select" style="flex:1;min-width:150px;"></select>',
+                '    <button id="grad-manual-stat-preset-new" type="button" class="secondary-btn">保存为新组合</button>',
+                '    <button id="grad-manual-stat-preset-update" type="button" class="secondary-btn">更新组合</button>',
+                '    <button id="grad-manual-stat-preset-rename" type="button" class="secondary-btn">重命名</button>',
+                '    <button id="grad-manual-stat-preset-delete" type="button" class="danger-btn">删除</button>',
+                '  </div>',
                 '  <div id="grad-manual-stat-category-panels" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;"></div>',
                 '  <details id="grad-manual-other-stats" style="margin-top:12px;padding:10px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.08);border-radius:7px;">',
                 '    <summary style="cursor:pointer;color:var(--text-main);font-weight:bold;">其他词条</summary>',
@@ -825,6 +855,11 @@
             var valueModeSelect = controls.querySelector("#grad-manual-value-mode");
             var valueModeWrap = controls.querySelector("#grad-manual-value-mode-wrap");
             var countPanel = controls.querySelector("#grad-manual-stat-count-panel");
+            var presetSelect = controls.querySelector("#grad-manual-stat-preset-select");
+            var presetNewButton = controls.querySelector("#grad-manual-stat-preset-new");
+            var presetUpdateButton = controls.querySelector("#grad-manual-stat-preset-update");
+            var presetRenameButton = controls.querySelector("#grad-manual-stat-preset-rename");
+            var presetDeleteButton = controls.querySelector("#grad-manual-stat-preset-delete");
             var statSelect = controls.querySelector("#grad-manual-stat-select");
             var addCountInput = controls.querySelector("#grad-manual-stat-add-count");
             var addButton = controls.querySelector("#grad-manual-stat-add-btn");
@@ -850,6 +885,40 @@
                 if (text) setTimeout(function() {
                     if (messageElement.textContent === text) messageElement.textContent = "";
                 }, 2500);
+            }
+
+            function findCurrentPreset() {
+                return config.presets.find(function(preset) {
+                    return preset.id === config.currentPresetId;
+                }) || null;
+            }
+
+            function canonicalCounts(counts) {
+                var result = {};
+                Object.keys(counts || {}).sort().forEach(function(stat) {
+                    if (Number(counts[stat]) > 0) result[stat] = Number(counts[stat]);
+                });
+                return JSON.stringify(result);
+            }
+
+            function isCurrentPresetDirty() {
+                var preset = findCurrentPreset();
+                return !!preset && (preset.valueMode !== config.valueMode
+                    || canonicalCounts(preset.counts) !== canonicalCounts(config.counts));
+            }
+
+            function renderPresetSelect() {
+                var dirty = isCurrentPresetDirty();
+                presetSelect.innerHTML = '<option value="">当前组合（未保存）</option>'
+                    + config.presets.map(function(preset) {
+                        var label = preset.name + (dirty && preset.id === config.currentPresetId ? " *" : "");
+                        return '<option value="' + escapeManualStatText(preset.id) + '">' + escapeManualStatText(label) + '</option>';
+                    }).join("");
+                presetSelect.value = config.currentPresetId || "";
+                var hasPreset = !!findCurrentPreset();
+                presetUpdateButton.disabled = !hasPreset;
+                presetRenameButton.disabled = !hasPreset;
+                presetDeleteButton.disabled = !hasPreset;
             }
 
             function applyCountPanel() {
@@ -939,6 +1008,7 @@
                     ? otherStats.map(function(stat) { return statCountRowHtml(stat, false); }).join("")
                     : '<div style="padding:8px;text-align:center;color:var(--text-sub);font-size:.84rem;">暂无其他词条</div>';
                 totalElement.textContent = manualStatCountTotal(config);
+                renderPresetSelect();
                 controls.querySelectorAll(".grad-manual-stat-count-row").forEach(function(row) {
                     var stat = row.dataset.stat;
                     row.querySelector(".grad-manual-stat-row-count").addEventListener("change", function() {
@@ -982,6 +1052,68 @@
                 saveConfig();
                 renderCountList();
                 applyCountPanel();
+            });
+            presetSelect.addEventListener("change", function() {
+                var nextPresetId = this.value || null;
+                if (isCurrentPresetDirty() && nextPresetId && nextPresetId !== config.currentPresetId
+                    && !confirm("当前词条组合有未更新的改动，确定切换并放弃这些改动吗？")) {
+                    this.value = config.currentPresetId || "";
+                    return;
+                }
+                config.currentPresetId = nextPresetId;
+                var preset = findCurrentPreset();
+                if (preset) {
+                    config.valueMode = preset.valueMode;
+                    config.counts = cloneSafeJson(preset.counts);
+                    valueModeSelect.value = config.valueMode;
+                }
+                saveConfig();
+                renderCountList();
+                applyCountPanel();
+            });
+            presetNewButton.addEventListener("click", function() {
+                if (config.presets.length >= 50) return showMessage("每个流派最多保存 50 个词条组合");
+                var suggestedName = "组合 " + (config.presets.length + 1);
+                var name = prompt("请输入词条组合名称：", suggestedName);
+                if (!name || !name.trim()) return;
+                var id = "stat-combo-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+                config.presets.push({
+                    id: id,
+                    name: name.trim().slice(0, 40),
+                    valueMode: config.valueMode,
+                    counts: cloneSafeJson(config.counts)
+                });
+                config.currentPresetId = id;
+                saveConfig();
+                renderPresetSelect();
+                showMessage("词条组合已保存");
+            });
+            presetUpdateButton.addEventListener("click", function() {
+                var preset = findCurrentPreset();
+                if (!preset) return showMessage("请先选择已保存的词条组合");
+                preset.valueMode = config.valueMode;
+                preset.counts = cloneSafeJson(config.counts);
+                saveConfig();
+                renderPresetSelect();
+                showMessage("词条组合已更新");
+            });
+            presetRenameButton.addEventListener("click", function() {
+                var preset = findCurrentPreset();
+                if (!preset) return;
+                var name = prompt("请输入新的词条组合名称：", preset.name);
+                if (!name || !name.trim()) return;
+                preset.name = name.trim().slice(0, 40);
+                saveConfig();
+                renderPresetSelect();
+            });
+            presetDeleteButton.addEventListener("click", function() {
+                var preset = findCurrentPreset();
+                if (!preset || !confirm("确定删除词条组合“" + preset.name + "”吗？")) return;
+                config.presets = config.presets.filter(function(item) { return item.id !== preset.id; });
+                config.currentPresetId = null;
+                saveConfig();
+                renderPresetSelect();
+                showMessage("词条组合已删除");
             });
             addButton.addEventListener("click", function() {
                 var stat = statSelect.value;
