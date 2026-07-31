@@ -4,20 +4,48 @@
     const api = window.TiaolvLocalCustomizations = window.TiaolvLocalCustomizations || {};
     const REMOVED_TRANSMUTATION_CD_MARKER = "tiaolv_transmutation_cd_removed_v1";
     const TRANSMUTATION_LEVEL_MIGRATION_MARKER = "tiaolv_transmutation_level_110_v1";
+    const TRANSMUTATION_TWO_STATE_MIGRATION_MARKER = "tiaolv_transmutation_two_state_v2";
+    const TRANSMUTATION_STATUS_MODEL_VERSION = 2;
 
     function isTransmutableEquip(equip) {
         return !!equip && 110 === Number(equip.level) && !equip.isChengyin;
     }
 
+    function normalizeZhuanlvStatus(status, equip) {
+        if (!isTransmutableEquip(equip) || !status || "active" !== status.state
+            || TRANSMUTATION_STATUS_MODEL_VERSION !== Number(status.modelVersion)) return null;
+        var subStatIndex = Number(status.subStatIndex);
+        if (!Number.isInteger(subStatIndex) || subStatIndex < 0
+            || !Array.isArray(equip.subStats) || !equip.subStats[subStatIndex]
+            || !equip.subStats[subStatIndex].type) return null;
+        return { state: "active", subStatIndex: subStatIndex, modelVersion: TRANSMUTATION_STATUS_MODEL_VERSION };
+    }
+
     function filterZhuanlvMapForEquips(map, equips) {
-        var eligibleIds = new Set((equips || []).filter(isTransmutableEquip).map(function(equip) {
-            return String(equip.id);
+        var equipById = new Map((equips || []).map(function(equip) {
+            return [String(equip.id), equip];
         }));
         var result = {};
         Object.keys(map || {}).forEach(function(equipId) {
-            if (eligibleIds.has(String(equipId))) result[equipId] = map[equipId];
+            var status = normalizeZhuanlvStatus(map[equipId], equipById.get(String(equipId)));
+            if (status) result[equipId] = status;
         });
         return result;
+    }
+
+    function migrateTransmutationStatusesToTwoState() {
+        try {
+            if ("1" === localStorage.getItem(TRANSMUTATION_TWO_STATE_MIGRATION_MARKER)) return;
+            var statusKeys = [];
+            for (var index = 0; index < localStorage.length; index++) {
+                var key = localStorage.key(index);
+                if (key && 0 === key.indexOf("zhuanlv_status_")) statusKeys.push(key);
+            }
+            statusKeys.forEach(function(statusKey) { localStorage.setItem(statusKey, "{}"); });
+            localStorage.setItem(TRANSMUTATION_TWO_STATE_MIGRATION_MARKER, "1");
+        } catch (error) {
+            console.warn("迁移两状态转律数据失败：", error);
+        }
     }
 
     function migrateTransmutationStatusesToLevel110() {
@@ -126,7 +154,7 @@
                     value: equip.dingyinStat.value
                 };
             }
-            var zhuanlv = isTransmutableEquip(equip) ? getZhuanlvForEquip(equip.id) : null;
+            var zhuanlv = normalizeZhuanlvStatus(getZhuanlvForEquip(equip.id), equip);
             if (zhuanlv) item.zhuanlv = zhuanlv;
             return item;
         });
@@ -364,13 +392,9 @@
         return result;
     }
 
-    function sanitizeIdMap(map, validEquipIds) {
+    function sanitizeZhuanlvMap(map, equipData) {
         if (!isPlainObject(map)) throw new Error("装备关联数据格式错误");
-        var result = {};
-        Object.keys(map).forEach(function(equipId) {
-            if (validEquipIds.has(String(equipId))) result[equipId] = cloneSafeJson(map[equipId]);
-        });
-        return result;
+        return filterZhuanlvMapForEquips(map, equipData);
     }
 
     function sanitizeManualGradData(data) {
@@ -399,18 +423,16 @@
             if (!Array.isArray(account.equipData)) throw new Error("角色“" + name + "”的装备数据无效");
             var equipData = account.equipData.map(function(equip) { return sanitizeEquip(equip, true); });
             var validEquipIds = new Set();
-            var transmutableEquipIds = new Set();
             equipData.forEach(function(equip) {
                 var id = String(equip.id);
                 if (validEquipIds.has(id)) throw new Error("角色“" + name + "”存在重复装备 ID");
                 validEquipIds.add(id);
-                if (isTransmutableEquip(equip)) transmutableEquipIds.add(id);
             });
             return {
                 name: name,
                 equipData: equipData,
                 simulatorData: sanitizeSimulatorData(account.simulatorData || {}, validEquipIds, warningState),
-                zhuanlvData: sanitizeIdMap(account.zhuanlvData || {}, transmutableEquipIds),
+                zhuanlvData: sanitizeZhuanlvMap(account.zhuanlvData || {}, equipData),
                 manualGradData: sanitizeManualGradData(account.manualGradData || {})
             };
         });
@@ -539,9 +561,10 @@
                 // 提取 zhuanlv 数据，按 "name|slotId" 暂存，等确认导入后按名称写回
                 _pendingZhuanlvFromJson = {};
                 (payload.equipData || []).forEach(function(item) {
-                    if (item.zhuanlv && isTransmutableEquip(item)) {
+                    var importedStatus = normalizeZhuanlvStatus(item.zhuanlv, item);
+                    if (importedStatus) {
                         var key = (item.name || "") + "|" + (item.slotId || "");
-                        _pendingZhuanlvFromJson[key] = item.zhuanlv;
+                        _pendingZhuanlvFromJson[key] = importedStatus;
                     }
                 });
                 const textarea = document.getElementById("export-import-textarea");
@@ -1692,18 +1715,6 @@
         saveZhuanlvMap(map);
     }
 
-    // 从表单 sub-stat-select 读取可用的词条类型选项
-    function getSubStatOptions() {
-        var sel = document.querySelector(".sub-stat-select");
-        if (!sel) return [];
-        var opts = [];
-        for (var i = 0; i < sel.options.length; i++) {
-            var o = sel.options[i];
-            if (o.value) opts.push({ value: o.value, text: o.text });
-        }
-        return opts;
-    }
-
     // 读取表单中第 idx 条副词条当前选中的词条类型名
     function getSubStatLabelAt(idx) {
         var rows = document.querySelectorAll("#sub-stats-container .stat-row");
@@ -1713,54 +1724,23 @@
         return (sel && sel.value) ? sel.value : "";
     }
 
-    // 刷新「选定副词条」下拉的选项文字
+    // 只列出表单中实际存在的副词条，避免保存空槽位。
     function updateSubStatIndexLabels() {
         var sel = document.getElementById("zhuanlv-substat-index");
         if (!sel) return;
+        var previous = sel.value;
         var rows = document.querySelectorAll("#sub-stats-container .stat-row");
-        for (var i = 0; i < sel.options.length; i++) {
+        var options = [];
+        for (var i = 0; i < rows.length; i++) {
             var label = getSubStatLabelAt(i);
-            sel.options[i].text = "第" + (i + 1) + "条" + (label ? "（" + label + "）" : "");
+            if (label) options.push('<option value="' + i + '">第' + (i + 1) + '条（' + label + '）</option>');
         }
-    }
-
-    // 构建单个目标词条下拉行
-    function buildTargetRow(value, canDelete) {
-        var opts = getSubStatOptions();
-        var optHtml = '<option value="">请选择词条</option>';
-        opts.forEach(function(o) {
-            optHtml += '<option value="' + o.value + '"' + (o.value === value ? ' selected' : '') + '>' + o.text + '</option>';
-        });
-
-        var row = document.createElement("div");
-        row.className = "zhuanlv-target-row";
-        row.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:4px;";
-        row.innerHTML = '<select class="stat-select zhuanlv-target-select" style="flex:1;">' + optHtml + '</select>'
-            + '<button type="button" class="zhuanlv-target-remove remove-btn" style="'
-            + (canDelete ? '' : 'visibility:hidden;')
-            + '">✕</button>';
-
-        row.querySelector(".zhuanlv-target-remove").addEventListener("click", function() {
-            row.parentNode.removeChild(row);
-            refreshTargetDeleteButtons();
-            updateAddTargetBtnVisibility();
-        });
-        return row;
-    }
-
-    function refreshTargetDeleteButtons() {
-        var rows = document.querySelectorAll("#zhuanlv-targets-container .zhuanlv-target-row");
-        rows.forEach(function(r, i) {
-            var btn = r.querySelector(".zhuanlv-target-remove");
-            if (btn) btn.style.visibility = (rows.length > 1) ? "visible" : "hidden";
-        });
-    }
-
-    function updateAddTargetBtnVisibility() {
-        var btn = document.getElementById("zhuanlv-add-target-btn");
-        if (!btn) return;
-        var count = document.querySelectorAll("#zhuanlv-targets-container .zhuanlv-target-row").length;
-        btn.style.display = count < 3 ? "inline-block" : "none";
+        sel.innerHTML = options.join("");
+        if (options.length && Array.prototype.some.call(sel.options, function(option) { return option.value === previous; })) {
+            sel.value = previous;
+        }
+        sel.disabled = 0 === options.length;
+        return options.length;
     }
 
     // 向 modal 注入转律状态 section（幂等）
@@ -1778,9 +1758,8 @@
             '  <div class="form-group" style="min-width:160px;">',
             '    <label>状态</label>',
             '    <select id="zhuanlv-state-select" class="stat-select">',
-            '      <option value="default">锁死 / 默认</option>',
             '      <option value="none">未转律</option>',
-            '      <option value="active">已转律（可继续转）</option>',
+            '      <option value="active">已转律</option>',
             '    </select>',
             '  </div>',
             '</div>',
@@ -1789,17 +1768,8 @@
             '    <div class="form-group" style="min-width:200px;">',
             '      <label>选定副词条</label>',
             '      <select id="zhuanlv-substat-index" class="stat-select">',
-            '        <option value="0">第1条</option>',
-            '        <option value="1">第2条</option>',
-            '        <option value="2">第3条</option>',
-            '        <option value="3">第4条</option>',
             '      </select>',
             '    </div>',
-            '  </div>',
-            '  <div>',
-            '    <label style="display:block;margin-bottom:6px;font-size:0.85rem;color:var(--text-sub);">可转目标（1-3个）</label>',
-            '    <div id="zhuanlv-targets-container"></div>',
-            '    <button type="button" id="zhuanlv-add-target-btn" class="secondary-btn" style="margin-top:4px;font-size:0.8rem;padding:3px 10px;">+ 添加目标</button>',
             '  </div>',
             '</div>'
         ].join("");
@@ -1814,29 +1784,28 @@
             var activeFields = document.getElementById("zhuanlv-active-fields");
             activeFields.style.display = this.value === "active" ? "block" : "none";
             if (this.value === "active") {
-                var container = document.getElementById("zhuanlv-targets-container");
-                if (!container.querySelector(".zhuanlv-target-row")) {
-                    container.appendChild(buildTargetRow("", false));
+                if (!updateSubStatIndexLabels()) {
+                    this.value = "none";
+                    activeFields.style.display = "none";
+                    alert("请先填写至少一条副词条");
                 }
-                updateSubStatIndexLabels();
-                updateAddTargetBtnVisibility();
             }
-            autoSaveZhuanlv();
-        });
-
-        // 添加目标按钮
-        document.getElementById("zhuanlv-add-target-btn").addEventListener("click", function() {
-            var container = document.getElementById("zhuanlv-targets-container");
-            container.appendChild(buildTargetRow("", true));
-            refreshTargetDeleteButtons();
-            updateAddTargetBtnVisibility();
             autoSaveZhuanlv();
         });
 
         // 副词条 select 变化时更新选定副词条标签
         document.getElementById("sub-stats-container").addEventListener("change", function(e) {
             if (e.target.classList.contains("sub-stat-select")) {
+                var selectedIndex = Number(document.getElementById("zhuanlv-substat-index").value);
+                var stateSelect = document.getElementById("zhuanlv-state-select");
+                var selectedSlotWasRemoved = stateSelect.value === "active"
+                    && Number.isInteger(selectedIndex) && !getSubStatLabelAt(selectedIndex);
                 updateSubStatIndexLabels();
+                if (selectedSlotWasRemoved) {
+                    stateSelect.value = "none";
+                    document.getElementById("zhuanlv-active-fields").style.display = "none";
+                }
+                autoSaveZhuanlv();
             }
         });
 
@@ -1853,16 +1822,12 @@
         var stateSel = document.getElementById("zhuanlv-state-select");
         if (!stateSel) return null;
         var state = stateSel.value;
-        if (state === "default") return null; // 不存储
-        if (state === "none") return { state: "none" };
+        if (state === "none") return null;
 
         // active
-        var subStatIndex = parseInt(document.getElementById("zhuanlv-substat-index").value) || 0;
-        var targetSels = document.querySelectorAll("#zhuanlv-targets-container .zhuanlv-target-select");
-        var targets = [];
-        targetSels.forEach(function(s) { if (s.value) targets.push(s.value); });
-        if (targets.length === 0) return null;
-        return { state: "active", subStatIndex: subStatIndex, targets: targets };
+        var subStatIndex = Number(document.getElementById("zhuanlv-substat-index").value);
+        if (!Number.isInteger(subStatIndex) || !getSubStatLabelAt(subStatIndex)) return null;
+        return { state: "active", subStatIndex: subStatIndex, modelVersion: TRANSMUTATION_STATUS_MODEL_VERSION };
     }
 
     // 即时保存：用户改动时调用
@@ -1885,29 +1850,27 @@
         var stateSel = document.getElementById("zhuanlv-state-select");
         if (!stateSel) return;
 
-        var status = equipId ? getZhuanlvForEquip(equipId) : null;
-        var container = document.getElementById("zhuanlv-targets-container");
-        container.innerHTML = "";
+        var equip = null;
+        if (equipId && "function" === typeof getDB) {
+            equip = getDB().find(function(item) { return String(item.id) === String(equipId); }) || null;
+        }
+        var rawStatus = equipId ? getZhuanlvForEquip(equipId) : null;
+        var status = normalizeZhuanlvStatus(rawStatus, equip);
+        if (rawStatus && !status) setZhuanlvForEquip(equipId, null);
         document.getElementById("zhuanlv-active-fields").style.display = "none";
 
-        if (!status || status.state === "default") {
-            stateSel.value = "default";
-        } else if (status.state === "none") {
+        if (!status || status.state === "none") {
             stateSel.value = "none";
         } else if (status.state === "active") {
             stateSel.value = "active";
             document.getElementById("zhuanlv-active-fields").style.display = "block";
+            updateSubStatIndexLabels();
             var idxSel = document.getElementById("zhuanlv-substat-index");
             idxSel.value = String(status.subStatIndex || 0);
-            var targets = status.targets || [];
-            if (targets.length === 0) targets = [""];
-            targets.forEach(function(t, i) {
-                container.appendChild(buildTargetRow(t, i > 0));
-            });
-            refreshTargetDeleteButtons();
-            updateAddTargetBtnVisibility();
-            // 延迟更新 label，等副词条 select 渲染完
-            setTimeout(updateSubStatIndexLabels, 50);
+            setTimeout(function() {
+                updateSubStatIndexLabels();
+                idxSel.value = String(status.subStatIndex || 0);
+            }, 50);
         }
     }
 
@@ -1941,34 +1904,39 @@
             + text + '</span>';
     }
 
-    function renderZhuanlvBadgeOnCard(cardEl, status) {
+    function renderZhuanlvBadgeOnCard(cardEl, status, isEligible) {
         // 移除旧的注入元素
-        cardEl.querySelectorAll(".zhuanlv-badge,.zhuanlv-targets-line,.zhuanlv-substat-marker")
+        cardEl.querySelectorAll(".zhuanlv-badge,.zhuanlv-substat-marker")
             .forEach(function(el) { el.parentNode && el.parentNode.removeChild(el); });
 
-        if (!status) return; // 锁死/默认，无标记
+        if (!isEligible) return;
 
-        // 找卡片 header 中的 flex 行（含 [105] 等标签的那行）
+        // 找卡片 header 中的 flex 行（含等级标签的那行）
         var flexRow = cardEl.querySelector(".card-header .card-title div[style]");
 
-        if (status.state === "none") {
+        if (!status || status.state === "none") {
             if (flexRow) flexRow.insertAdjacentHTML("beforeend", buildZhuanlvTag("未转律", "#888"));
             return;
         }
 
         if (status.state === "active") {
             var idx = status.subStatIndex || 0;
-            if (flexRow) {
-                flexRow.insertAdjacentHTML("beforeend",
-                    buildZhuanlvTag("转律:第" + (idx + 1) + "条", "#f0a500"));
-            }
-
-            // 标记选定副词条行（只选含 .sub-stat 的行）
             var subStatRows = Array.prototype.filter.call(
                 cardEl.querySelectorAll(".card-body .stat-line"),
                 function(r) { return r.querySelector(".sub-stat"); }
             );
             var targetRow = subStatRows[idx];
+            var targetName = "";
+            if (targetRow) {
+                var targetText = targetRow.querySelector(".sub-stat");
+                targetName = targetText ? targetText.textContent.replace(/^\s*[·►]\s*/, "").trim() : "";
+            }
+            if (flexRow) {
+                flexRow.insertAdjacentHTML("beforeend",
+                    buildZhuanlvTag("已转律：第" + (idx + 1) + "条" + (targetName ? "（" + targetName + "）" : ""), "#f0a500"));
+            }
+
+            // 标记选定副词条行（只选含 .sub-stat 的行）
             if (targetRow) {
                 var subStatSpan = targetRow.querySelector(".sub-stat");
                 if (subStatSpan) {
@@ -1989,18 +1957,6 @@
                 }
             }
 
-            // 在卡片底部追加「可转目标」行
-            if (status.targets && status.targets.length > 0) {
-                var cardBody = cardEl.querySelector(".card-body");
-                if (cardBody) {
-                    var line = document.createElement("div");
-                    line.className = "zhuanlv-targets-line";
-                    line.style.cssText = "font-size:0.75rem;color:#f0a500;margin-top:5px;"
-                        + "padding-top:4px;border-top:1px dashed rgba(240,165,0,0.3);";
-                    line.textContent = "可转 → " + status.targets.join(" / ");
-                    cardBody.appendChild(line);
-                }
-            }
         }
     }
 
@@ -2052,8 +2008,10 @@
         cards.forEach(function(card) {
             var id = card.getAttribute("data-equip-id");
             if (!id) return;
-            var status = isTransmutableEquip(equipById.get(String(id))) ? cleanMap[String(id)] || null : null;
-            renderZhuanlvBadgeOnCard(card, status);
+            var equip = equipById.get(String(id));
+            var eligible = isTransmutableEquip(equip);
+            var status = eligible ? cleanMap[String(id)] || null : null;
+            renderZhuanlvBadgeOnCard(card, status, eligible);
         });
     }
 
@@ -2191,6 +2149,7 @@
 
     purgeRemovedTransmutationCooldownData();
     migrateTransmutationStatusesToLevel110();
+    migrateTransmutationStatusesToTwoState();
     ensureLevelSelect();
     ensureJsonControls();
     bindJsonControls();
