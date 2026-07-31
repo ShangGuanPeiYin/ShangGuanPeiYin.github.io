@@ -1126,7 +1126,6 @@
                 '    <span id="grad-manual-stat-count-message" style="color:#ff8a80;"></span>',
                 '    <span style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--text-sub);"><button id="grad-manual-stat-clear-btn" type="button" class="secondary-btn" style="padding:4px 9px;font-size:.8rem;">清空词条</button><span>首词条：<strong id="grad-manual-main-count-total" style="color:var(--gold);">0</strong>/8</span><span>副词条：<strong id="grad-manual-sub-count-total" style="color:var(--gold);">0</strong>/32</span><span>普通词条：<strong id="grad-manual-stat-count-total" style="color:var(--gold);">0</strong>/40</span></span>',
                 '  </div>',
-                '  <div style="margin-top:8px;color:var(--text-sub);font-size:.82rem;line-height:1.5;">系统按 8 件装备自动分配首、副词条，并遵守天然部位词条池；数值按理论金装换算。定音沿用当前装备，开启“贷款定音”时沿用该设置。</div>',
                 '</div>'
             ].join("");
             container.insertBefore(controls, container.firstChild);
