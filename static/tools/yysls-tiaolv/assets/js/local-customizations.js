@@ -3,6 +3,42 @@
 
     const api = window.TiaolvLocalCustomizations = window.TiaolvLocalCustomizations || {};
     const REMOVED_TRANSMUTATION_CD_MARKER = "tiaolv_transmutation_cd_removed_v1";
+    const TRANSMUTATION_LEVEL_MIGRATION_MARKER = "tiaolv_transmutation_level_110_v1";
+
+    function isTransmutableEquip(equip) {
+        return !!equip && 110 === Number(equip.level) && !equip.isChengyin;
+    }
+
+    function filterZhuanlvMapForEquips(map, equips) {
+        var eligibleIds = new Set((equips || []).filter(isTransmutableEquip).map(function(equip) {
+            return String(equip.id);
+        }));
+        var result = {};
+        Object.keys(map || {}).forEach(function(equipId) {
+            if (eligibleIds.has(String(equipId))) result[equipId] = map[equipId];
+        });
+        return result;
+    }
+
+    function migrateTransmutationStatusesToLevel110() {
+        try {
+            if ("1" === localStorage.getItem(TRANSMUTATION_LEVEL_MIGRATION_MARKER)) return;
+            var statusKeys = [];
+            for (var index = 0; index < localStorage.length; index++) {
+                var key = localStorage.key(index);
+                if (key && 0 === key.indexOf("zhuanlv_status_")) statusKeys.push(key);
+            }
+            statusKeys.forEach(function(statusKey) {
+                var accountName = statusKey.slice("zhuanlv_status_".length);
+                var equips = parseStoredArray("game_equip_data_" + accountName);
+                var cleanMap = filterZhuanlvMapForEquips(parseStoredObject(statusKey), equips);
+                localStorage.setItem(statusKey, JSON.stringify(cleanMap));
+            });
+            localStorage.setItem(TRANSMUTATION_LEVEL_MIGRATION_MARKER, "1");
+        } catch (error) {
+            console.warn("迁移110级转律状态失败：", error);
+        }
+    }
 
     function purgeRemovedTransmutationCooldownData() {
         try {
@@ -90,7 +126,7 @@
                     value: equip.dingyinStat.value
                 };
             }
-            var zhuanlv = getZhuanlvForEquip(equip.id);
+            var zhuanlv = isTransmutableEquip(equip) ? getZhuanlvForEquip(equip.id) : null;
             if (zhuanlv) item.zhuanlv = zhuanlv;
             return item;
         });
@@ -235,11 +271,12 @@
             exportedAt: (new Date()).toISOString(),
             lastSelectedAccount: localStorage.getItem("last_selected_account") || accountNames[0],
             accounts: accountNames.map(function(accountName) {
+                var equipData = buildFullExportEquipData(accountName);
                 return {
                     name: accountName,
-                    equipData: buildFullExportEquipData(accountName),
+                    equipData: equipData,
                     simulatorData: parseStoredObject("game_sim_data_" + accountName),
-                    zhuanlvData: parseStoredObject("zhuanlv_status_" + accountName),
+                    zhuanlvData: filterZhuanlvMapForEquips(parseStoredObject("zhuanlv_status_" + accountName), equipData),
                     manualGradData: collectManualGradData(accountName, accountNames)
                 };
             })
@@ -362,16 +399,18 @@
             if (!Array.isArray(account.equipData)) throw new Error("角色“" + name + "”的装备数据无效");
             var equipData = account.equipData.map(function(equip) { return sanitizeEquip(equip, true); });
             var validEquipIds = new Set();
+            var transmutableEquipIds = new Set();
             equipData.forEach(function(equip) {
                 var id = String(equip.id);
                 if (validEquipIds.has(id)) throw new Error("角色“" + name + "”存在重复装备 ID");
                 validEquipIds.add(id);
+                if (isTransmutableEquip(equip)) transmutableEquipIds.add(id);
             });
             return {
                 name: name,
                 equipData: equipData,
                 simulatorData: sanitizeSimulatorData(account.simulatorData || {}, validEquipIds, warningState),
-                zhuanlvData: sanitizeIdMap(account.zhuanlvData || {}, validEquipIds),
+                zhuanlvData: sanitizeIdMap(account.zhuanlvData || {}, transmutableEquipIds),
                 manualGradData: sanitizeManualGradData(account.manualGradData || {})
             };
         });
@@ -500,7 +539,7 @@
                 // 提取 zhuanlv 数据，按 "name|slotId" 暂存，等确认导入后按名称写回
                 _pendingZhuanlvFromJson = {};
                 (payload.equipData || []).forEach(function(item) {
-                    if (item.zhuanlv) {
+                    if (item.zhuanlv && isTransmutableEquip(item)) {
                         var key = (item.name || "") + "|" + (item.slotId || "");
                         _pendingZhuanlvFromJson[key] = item.zhuanlv;
                     }
@@ -1883,9 +1922,13 @@
         var levelSel = document.getElementById("level-select");
         var level = levelSel ? parseInt(levelSel.value) : 105;
         var isChengyin = isCurrentEquipChengyin();
-        var allow = level === 105 && !isChengyin;
+        var allow = level === 110 && !isChengyin;
 
         if (section) section.style.display = allow ? "block" : "none";
+        if (!allow) {
+            if (_currentEditEquipId) setZhuanlvForEquip(_currentEditEquipId, null);
+            else _pendingZhuanlv = null;
+        }
 
     }
 
@@ -1998,11 +2041,18 @@
     function refreshAllZhuanlvBadges() {
         injectEquipIdsOnCards();
         colorChengyinOnCards();
+        var equipById = new Map();
+        if ("function" === typeof getDB) {
+            getDB().forEach(function(equip) { equipById.set(String(equip.id), equip); });
+        }
+        var map = loadZhuanlvMap();
+        var cleanMap = filterZhuanlvMapForEquips(map, Array.from(equipById.values()));
+        if (JSON.stringify(map) !== JSON.stringify(cleanMap)) saveZhuanlvMap(cleanMap);
         var cards = document.querySelectorAll("#equipment-grid .equip-card[data-equip-id]");
         cards.forEach(function(card) {
             var id = card.getAttribute("data-equip-id");
             if (!id) return;
-            var status = getZhuanlvForEquip(parseInt(id));
+            var status = isTransmutableEquip(equipById.get(String(id))) ? cleanMap[String(id)] || null : null;
             renderZhuanlvBadgeOnCard(card, status);
         });
     }
@@ -2135,10 +2185,12 @@
     api.handleJsonFileImport = handleJsonFileImport;
     api.renderBuildStatsSummary = renderBuildStatsSummary;
     api.allocateManualStatCounts = allocateManualStatCounts;
+    api.isTransmutableEquip = isTransmutableEquip;
     api.loadZhuanlvMap = loadZhuanlvMap;
     api.refreshAllZhuanlvBadges = refreshAllZhuanlvBadges;
 
     purgeRemovedTransmutationCooldownData();
+    migrateTransmutationStatusesToLevel110();
     ensureLevelSelect();
     ensureJsonControls();
     bindJsonControls();
