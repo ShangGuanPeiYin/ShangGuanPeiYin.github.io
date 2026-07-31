@@ -344,6 +344,8 @@ body.ui-codex-command-classic .quality-gray {
 body.ui-codex-command-classic .stat-line,
 body.ui-codex-command-classic .stat-row {
     border-color: var(--cc-line);
+    font-family: var(--cc-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 /* 保持原版右侧面板位置，只换成寒铁仪表 */

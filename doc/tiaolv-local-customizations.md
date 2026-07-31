@@ -54,6 +54,11 @@
 
 同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
 
+### 寒铁主题字体
+
+- `assets/css/ui-codex-command-classic.css` 为装备主、副词条的 `.stat-line` / `.stat-row` 明确指定 `var(--cc-mono)` 等宽字体栈，并启用等宽数字。
+- 该显式规则用于防止上游样式或后续局部样式改变词条字体；字体栈依次为 IBM Plex Mono、Sarasa Mono SC、Noto Sans Mono CJK SC、Consolas 和系统等宽字体。
+
 ### 已移除的上游功能
 
 - **转律CD提醒**已完整移除：不保留装备编辑入口、提醒页签、7天计时、冷却列表或备份字段。
