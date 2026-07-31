@@ -23,6 +23,16 @@ check_contains() {
   echo "OK: $label"
 }
 
+check_not_contains() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+  if grep -Fq "$pattern" "$file"; then
+    fail "$label unexpectedly found in $file"
+  fi
+  echo "OK: $label absent"
+}
+
 INDEX="static/tools/yysls-tiaolv/index.html"
 APP="static/tools/yysls-tiaolv/assets/js/app.min.js"
 LOCAL_JS="static/tools/yysls-tiaolv/assets/js/local-customizations.js"
@@ -86,6 +96,13 @@ check_contains "$LOCAL_JS" "grad-manual-stat-count-final-panel" "manual stat-cou
 check_contains "$LOCAL_JS" "GradModal.renderPanelStats(panelData" "manual final-panel shared renderer"
 check_contains "$LOCAL_JS" "decoratePanelRateOverflow" "final-panel rate overflow display"
 check_contains "$LOCAL_JS" "manual-panel-overflow-hint" "final-panel white-value overflow hint"
+check_contains "$LOCAL_JS" "purgeRemovedTransmutationCooldownData" "removed transmutation-CD data migration"
+check_contains "$LOCAL_JS" "REMOVED_TRANSMUTATION_CD_MARKER" "removed transmutation-CD migration marker"
+check_not_contains "$INDEX" "enter-transmute-cd-btn" "removed transmutation-CD equipment control"
+check_not_contains "$INDEX" 'data-tab="transmutation-cd"' "removed transmutation-CD tab"
+check_not_contains "$APP" "TransmutationCd" "removed transmutation-CD runtime"
+check_not_contains "$APP" "game_transmutation_cd_" "removed transmutation-CD storage"
+check_not_contains "$LOCAL_JS" "transmutationCooldowns" "removed transmutation-CD backup field"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
 

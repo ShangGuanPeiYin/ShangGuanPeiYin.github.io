@@ -2,6 +2,22 @@
     "use strict";
 
     const api = window.TiaolvLocalCustomizations = window.TiaolvLocalCustomizations || {};
+    const REMOVED_TRANSMUTATION_CD_MARKER = "tiaolv_transmutation_cd_removed_v1";
+
+    function purgeRemovedTransmutationCooldownData() {
+        try {
+            if ("1" === localStorage.getItem(REMOVED_TRANSMUTATION_CD_MARKER)) return;
+            var keys = [];
+            for (var index = 0; index < localStorage.length; index++) {
+                var key = localStorage.key(index);
+                if (key && 0 === key.indexOf("game_transmutation_cd_")) keys.push(key);
+            }
+            keys.forEach(function(key) { localStorage.removeItem(key); });
+            localStorage.setItem(REMOVED_TRANSMUTATION_CD_MARKER, "1");
+        } catch (error) {
+            console.warn("清理已移除的转律提醒数据失败：", error);
+        }
+    }
 
     function insertAfter(referenceNode, newNode) {
         referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
@@ -224,7 +240,6 @@
                     equipData: buildFullExportEquipData(accountName),
                     simulatorData: parseStoredObject("game_sim_data_" + accountName),
                     zhuanlvData: parseStoredObject("zhuanlv_status_" + accountName),
-                    transmutationCooldowns: parseStoredObject("game_transmutation_cd_" + accountName),
                     manualGradData: collectManualGradData(accountName, accountNames)
                 };
             })
@@ -357,7 +372,6 @@
                 equipData: equipData,
                 simulatorData: sanitizeSimulatorData(account.simulatorData || {}, validEquipIds, warningState),
                 zhuanlvData: sanitizeIdMap(account.zhuanlvData || {}, validEquipIds),
-                transmutationCooldowns: sanitizeIdMap(account.transmutationCooldowns || {}, validEquipIds),
                 manualGradData: sanitizeManualGradData(account.manualGradData || {})
             };
         });
@@ -429,7 +443,6 @@
                 setValue("game_equip_data_" + account.name, JSON.stringify(account.equipData));
                 setValue("game_sim_data_" + account.name, JSON.stringify(account.simulatorData));
                 setValue("zhuanlv_status_" + account.name, JSON.stringify(account.zhuanlvData));
-                setValue("game_transmutation_cd_" + account.name, JSON.stringify(account.transmutationCooldowns));
                 removeManualGradKeys(account.name, mergedAccounts, setValue);
                 Object.keys(account.manualGradData).forEach(function(suffix) {
                     setValue("grad_manual_form_v2_" + account.name + "_" + suffix, JSON.stringify(account.manualGradData[suffix]));
@@ -1864,7 +1877,7 @@
         return !!(cb && cb.checked);
     }
 
-    // 根据 level 和承音状态决定是否显示转律 section，同时控制转律CD按钮
+    // 根据 level 和承音状态决定是否显示转律 section
     function syncZhuanlvSectionVisibility() {
         var section = document.getElementById("zhuanlv-section");
         var levelSel = document.getElementById("level-select");
@@ -1874,25 +1887,6 @@
 
         if (section) section.style.display = allow ? "block" : "none";
 
-        // 承音装备强制隐藏转律CD按钮
-        if (isChengyin) {
-            var wrap = document.getElementById("equip-transmute-cd-wrap");
-            if (wrap) wrap.classList.add("hidden");
-        }
-    }
-
-    // app.min.js 加载完后，包装 updateEquipModalTransmuteCdVisibility
-    // 使其在承音装备时始终隐藏 CD 按钮
-    function patchTransmuteCdVisibility() {
-        var orig = window.updateEquipModalTransmuteCdVisibility;
-        if (!orig) return;
-        window.updateEquipModalTransmuteCdVisibility = function() {
-            orig.apply(this, arguments);
-            if (isCurrentEquipChengyin()) {
-                var wrap = document.getElementById("equip-transmute-cd-wrap");
-                if (wrap) wrap.classList.add("hidden");
-            }
-        };
     }
 
     // ── 卡片徽标注入 ──────────────────────────────
@@ -2144,12 +2138,12 @@
     api.loadZhuanlvMap = loadZhuanlvMap;
     api.refreshAllZhuanlvBadges = refreshAllZhuanlvBadges;
 
+    purgeRemovedTransmutationCooldownData();
     ensureLevelSelect();
     ensureJsonControls();
     bindJsonControls();
     initZhuanlvObservers();
     window.addEventListener("load", function() {
-        patchTransmuteCdVisibility();
         initRegularImportClear();
         initManualStatCountMode();
     });
