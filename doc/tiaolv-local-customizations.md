@@ -21,6 +21,28 @@
 | 承音装备隐藏转律冷却按钮 | 承音装备的编辑弹窗中隐藏「进入转律冷却」按钮和转律状态 section。通过 `patchTransmuteCdVisibility()` 在 `window.load` 时 wrap `updateEquipModalTransmuteCdVisibility` 函数实现，防止 app 调用后重新显示。 |
 | 承音文字绿色显示 | 装备卡片上的「(承音)」文字颜色改为绿色（`#4caf50`），通过 `colorChengyinOnCards()` 在 MutationObserver 触发时逐卡处理，幂等（已处理的卡片加 `data-chengyin-colored` 标记跳过）。 |
 
+### 2026-07-31 新增定制
+
+以下功能均为本站本地定制，后续同步上游时必须完整保留：
+
+1. **单文件完整迁移**
+   - `下载完整备份` 导出全部角色、装备稳定 ID、全部流派配装方案、转律状态、转律冷却和毕业率手动数据。
+   - `恢复完整备份` 支持同名角色确认覆盖、非同名角色保留、装备引用校验、失败回滚和旧版 `1.2` 单角色 JSON 兼容。
+   - 格式标识固定为 `yysls-tiaolv-full-backup`，当前 `schemaVersion` 为 `2`。
+2. **按词条数量计算毕业率**
+   - 手动填写页支持“按词条数量 / 直接填写面板”双模式，以及“全部按满值 / 全部按承音值”两种取值方式。
+   - 普通词条最多 40 条、不区分主副词条；数量模式隐藏最终面板输入，切回手填模式恢复原值。
+   - 三率、五维、当前流派攻击、神力使用快捷专栏；无关武器增效不会显示或参与计算。
+   - PVE 隐藏对玩家单位增效，PVP 显示；单体/群体奇术增伤保留在“其他词条”中。
+   - 毕业率数值使用现有 `metric-gold` 金色样式；数量模式只走一次计算与渲染，避免结果闪动。
+3. **词条组合方案**
+   - 每个角色、流派和流派版本可保存最多 50 套命名组合。
+   - 支持保存为新组合、切换、更新、重命名、删除和未保存改动 `*` 提示。
+   - 保存词条数量与满值/承音值模式；毕业率按当前心法、套装、武库、定音等环境实时重算。
+   - 组合数据保存在手动面板记录的 `__statCountConfig.presets` 中，并随完整 JSON 备份迁移。
+
+主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`grad-manual-stat-category-panels`、`grad-manual-stat-preset-select`、`writeManualPanelInputs(container, panel, false)`。
+
 同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
 
 文件：`static/tools/yysls-tiaolv/assets/js/best-build-algorithms.js`
