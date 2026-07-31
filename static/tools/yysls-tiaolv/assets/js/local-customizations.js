@@ -511,6 +511,389 @@
         if (importInput) importInput.onchange = handleJsonFileImport;
     }
 
+    // ─────────────────────────────────────────
+    // 手动毕业率：按词条数量输入
+    // ─────────────────────────────────────────
+
+    var MANUAL_STAT_COUNT_CONFIG_KEY = "__statCountConfig";
+    var MANUAL_STAT_COUNT_MAX = 40;
+    var MANUAL_STAT_SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
+    var MANUAL_STAT_SLOT_IDS = {
+        weapon1: "1", weapon2: "1", head: "2", chest: "5",
+        ring: "3", pendant: "4", legs: "6", hands: "7"
+    };
+
+    function getManualStatCountOptions() {
+        var values = window.CommonData && CommonData.MAX_VALUES || {};
+        var stats = new Set();
+        (CommonData.BASE_SUB_STATS || []).forEach(function(stat) { stats.add(stat); });
+        Object.values(CommonData.MAIN_STAT_RULES || {}).forEach(function(list) {
+            (list || []).forEach(function(stat) { stats.add(stat); });
+        });
+        Object.values(CommonData.TRANSMUTATION_POOLS || {}).forEach(function(list) {
+            (list || []).forEach(function(stat) { stats.add(stat); });
+        });
+        (CommonData.WEAPON_TYPES || []).forEach(function(weapon) {
+            if (weapon && weapon.stat) stats.add(weapon.stat);
+        });
+        [
+            "最大无相攻击", "最小无相攻击", "全武学增效",
+            "单体类奇术增伤", "群体类奇术增伤",
+            "对首领单位增伤", "对玩家单位增效"
+        ].forEach(function(stat) { stats.add(stat); });
+        return Array.from(stats).filter(function(stat) {
+            return stat && "生存类词条" !== stat && "生存向" !== stat && Number(values[stat]) > 0;
+        });
+    }
+
+    function normalizeManualStatCountConfig(config) {
+        config = isPlainObject(config) ? config : {};
+        var counts = {};
+        var total = 0;
+        var allowed = new Set(getManualStatCountOptions());
+        if (isPlainObject(config.counts)) {
+            Object.keys(config.counts).forEach(function(stat) {
+                if (!allowed.has(stat) || total >= MANUAL_STAT_COUNT_MAX) return;
+                var count = Math.max(0, Math.floor(Number(config.counts[stat]) || 0));
+                count = Math.min(count, MANUAL_STAT_COUNT_MAX - total);
+                if (count > 0) {
+                    counts[stat] = count;
+                    total += count;
+                }
+            });
+        }
+        return {
+            mode: "count" === config.mode ? "count" : "panel",
+            valueMode: "chengyin" === config.valueMode ? "chengyin" : "max",
+            counts: counts,
+            manualPanel: isPlainObject(config.manualPanel) ? cloneSafeJson(config.manualPanel) : {}
+        };
+    }
+
+    function manualStatTargetValue(stat, valueMode) {
+        if ("chengyin" === valueMode) {
+            var chengyinValues = window.YYSLS_CALC_METADATA && window.YYSLS_CALC_METADATA.chengyinValues || {};
+            var chengyinValue = Number(chengyinValues[stat]);
+            if (Number.isFinite(chengyinValue) && chengyinValue > 0) return chengyinValue;
+            var maxFallback = Number(CommonData.MAX_VALUES[stat]) || 0;
+            return Math.round(maxFallback * .94 * 100) / 100;
+        }
+        return Number(CommonData.MAX_VALUES[stat]) || 0;
+    }
+
+    function readManualPanelInputs(container) {
+        var result = {};
+        container.querySelectorAll(".grad-manual-input").forEach(function(input) {
+            var key = String(input.dataset.key || "").replace(/（%）/g, "").trim();
+            var value = Number(input.value);
+            result[key] = Number.isFinite(value) ? value : 0;
+        });
+        return result;
+    }
+
+    function writeManualPanelInputs(container, values, triggerInput) {
+        container.querySelectorAll(".grad-manual-input").forEach(function(input) {
+            var key = String(input.dataset.key || "").replace(/（%）/g, "").trim();
+            var value = Number(values && values[key]);
+            input.value = Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
+            if (triggerInput) input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+    }
+
+    function buildManualStatCountEquips(config) {
+        var expanded = [];
+        Object.keys(config.counts).forEach(function(stat) {
+            for (var i = 0; i < config.counts[stat]; i++) expanded.push(stat);
+        });
+        var currentEquips = window.GradModal && GradModal.state && GradModal.state.currentEquips
+            || window.AppState && AppState.equippedItems || {};
+        var result = {};
+        MANUAL_STAT_SLOT_KEYS.forEach(function(slotKey, slotIndex) {
+            var stats = expanded.slice(slotIndex * 5, slotIndex * 5 + 5);
+            var currentEquip = currentEquips[slotKey];
+            var mainType = stats[0] || "生存类词条";
+            result[slotKey] = {
+                id: "manual-stat-count-" + slotKey,
+                slotId: MANUAL_STAT_SLOT_IDS[slotKey],
+                name: "词条数量模拟装备",
+                isChengyin: false,
+                isPurple: false,
+                mainStat: {
+                    type: mainType,
+                    value: stats.length ? manualStatTargetValue(mainType, config.valueMode) : 0,
+                    isPercent: CommonData.PERCENT_STATS.includes(mainType)
+                },
+                subStats: stats.slice(1).map(function(stat) {
+                    return {
+                        type: stat,
+                        value: manualStatTargetValue(stat, config.valueMode),
+                        isPercent: CommonData.PERCENT_STATS.includes(stat)
+                    };
+                }),
+                dingyinStat: currentEquip && currentEquip.dingyinStat
+                    ? cloneSafeJson(currentEquip.dingyinStat) : null
+            };
+        });
+        return result;
+    }
+
+    function calculateManualStatCountPanel(config) {
+        if (!window.Calculator || "function" != typeof Calculator.calculateTotal) {
+            throw new Error("毕业率计算器尚未初始化");
+        }
+        var className = GradModal.state.currentClass || UIManager.dom.classSelect.value;
+        var bow = UIManager.dom.bowSelect ? UIManager.dom.bowSelect.value : "";
+        var setName = UIManager.dom.setSelect ? UIManager.dom.setSelect.value : "";
+        return Calculator.calculateTotal(
+            buildManualStatCountEquips(config),
+            className,
+            bow,
+            AppState.currentXinfaLoadout || [],
+            setName,
+            false,
+            null,
+            !!AppState.earlySeasonBonus,
+            !!AppState.loanDingyin
+        ) || {};
+    }
+
+    function calculateManualStatCountRate(panel) {
+        var className = GradModal.state.currentClass || UIManager.dom.classSelect.value;
+        var xinfa = AppState.currentXinfaLoadout || [];
+        var setName = UIManager.dom.setSelect ? UIManager.dom.setSelect.value : "";
+        var rotationConfig = "function" == typeof getRotationConfig
+            ? getRotationConfig(className) : ClassConfig.ROTATIONS[className];
+        var calculationPanel = {
+            ...(panel || {}),
+            "套装": setName,
+            "心法": xinfa,
+            "当前流派": className
+        };
+        var skillAliases = {
+            "鸣金影": "积矩九剑·流血增伤",
+            "鸣金虹": "无名剑法·蓄力技增伤",
+            "破竹尘": "醉梦游春·武学技增伤",
+            "破竹风": "栗子游尘·鼠鼠增伤",
+            "裂石钧（纯唐）": "斩雪刀法·轻重击派生技增伤",
+            "裂石钧": "十方破阵·蓄力技增伤",
+            "牵丝玉": "九重春色·特殊技增伤",
+            "裂石威": "嗟夫刀法·蓄力技增伤",
+            "破竹鸢": "天志垂象·蓄力技增伤",
+            "牵丝翊": "鼓特殊技",
+            "牵丝霖": "明川药典·治疗技增疗"
+        };
+        var alias = skillAliases[className];
+        if (alias && Number.isFinite(Number(calculationPanel[alias]))) {
+            calculationPanel["指定武学技能增伤"] = Number(calculationPanel[alias]);
+        }
+        if (void 0 !== calculationPanel.会心率) calculationPanel.实际会心率 = calculationPanel.会心率;
+        if (void 0 !== calculationPanel.会意率) calculationPanel.实际会意率 = calculationPanel.会意率;
+        if (void 0 !== calculationPanel.精准率) calculationPanel.实际精准率 = calculationPanel.精准率;
+        var result = Calculator.calculateGraduationRate(
+            calculationPanel,
+            rotationConfig && rotationConfig.skillDatabase || {},
+            rotationConfig && rotationConfig.rotation || [],
+            getBaseLineByClass(className, xinfa),
+            true
+        );
+        return result && null != result.graduationRate ? result.graduationRate : "--";
+    }
+
+    function manualStatCountTotal(config) {
+        return Object.values(config.counts).reduce(function(total, count) {
+            return total + (Number(count) || 0);
+        }, 0);
+    }
+
+    function initManualStatCountMode() {
+        if (!window.GradModal || GradModal.__statCountModePatched) return;
+        GradModal.__statCountModePatched = true;
+
+        var originalSaveManualFormData = GradModal.saveManualFormData;
+        GradModal.saveManualFormData = function(data) {
+            var existing = this.loadManualFormData();
+            if (!Object.prototype.hasOwnProperty.call(data || {}, MANUAL_STAT_COUNT_CONFIG_KEY)
+                && existing && existing[MANUAL_STAT_COUNT_CONFIG_KEY]) {
+                data = { ...(data || {}), [MANUAL_STAT_COUNT_CONFIG_KEY]: existing[MANUAL_STAT_COUNT_CONFIG_KEY] };
+            }
+            return originalSaveManualFormData.call(this, data);
+        };
+
+        var originalRenderManualTab = GradModal.renderManualTab;
+        GradModal.renderManualTab = function() {
+            originalRenderManualTab.apply(this, arguments);
+            var container = this.dom.tabContentManual;
+            if (!container || container.querySelector("#grad-manual-stat-count-controls")) return;
+
+            var stored = this.loadManualFormData();
+            var config = normalizeManualStatCountConfig(stored[MANUAL_STAT_COUNT_CONFIG_KEY]);
+            var controls = document.createElement("div");
+            controls.id = "grad-manual-stat-count-controls";
+            controls.style.cssText = "margin:0 6px 14px;padding:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;";
+            controls.innerHTML = [
+                '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">',
+                '  <label style="display:flex;flex-direction:column;gap:6px;color:var(--text-main);font-size:.9rem;">输入方式',
+                '    <select id="grad-manual-input-mode" class="stat-select">',
+                '      <option value="count">按词条数量</option>',
+                '      <option value="panel">直接填写面板</option>',
+                '    </select>',
+                '  </label>',
+                '  <label id="grad-manual-value-mode-wrap" style="display:flex;flex-direction:column;gap:6px;color:var(--text-main);font-size:.9rem;">词条数值标准',
+                '    <select id="grad-manual-value-mode" class="stat-select">',
+                '      <option value="max">全部按满值</option>',
+                '      <option value="chengyin">全部按承音值</option>',
+                '    </select>',
+                '  </label>',
+                '</div>',
+                '<div id="grad-manual-stat-count-panel" style="margin-top:14px;">',
+                '  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">',
+                '    <select id="grad-manual-stat-select" class="stat-select" style="flex:1;min-width:180px;"></select>',
+                '    <input id="grad-manual-stat-add-count" type="number" min="1" max="40" step="1" value="1" style="width:76px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">',
+                '    <button id="grad-manual-stat-add-btn" type="button" class="secondary-btn">添加词条</button>',
+                '  </div>',
+                '  <div id="grad-manual-stat-count-list" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>',
+                '  <div style="display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:.9rem;">',
+                '    <span id="grad-manual-stat-count-message" style="color:#ff8a80;"></span>',
+                '    <span style="color:var(--text-sub);">普通词条：<strong id="grad-manual-stat-count-total" style="color:var(--gold);">0</strong>/40</span>',
+                '  </div>',
+                '  <div style="margin-top:8px;color:var(--text-sub);font-size:.82rem;line-height:1.5;">不区分主词条和副词条；按理论金装换算。定音沿用当前装备，开启“贷款定音”时沿用该设置。</div>',
+                '</div>'
+            ].join("");
+            container.insertBefore(controls, container.firstChild);
+
+            var modeSelect = controls.querySelector("#grad-manual-input-mode");
+            var valueModeSelect = controls.querySelector("#grad-manual-value-mode");
+            var valueModeWrap = controls.querySelector("#grad-manual-value-mode-wrap");
+            var countPanel = controls.querySelector("#grad-manual-stat-count-panel");
+            var statSelect = controls.querySelector("#grad-manual-stat-select");
+            var addCountInput = controls.querySelector("#grad-manual-stat-add-count");
+            var addButton = controls.querySelector("#grad-manual-stat-add-btn");
+            var list = controls.querySelector("#grad-manual-stat-count-list");
+            var totalElement = controls.querySelector("#grad-manual-stat-count-total");
+            var messageElement = controls.querySelector("#grad-manual-stat-count-message");
+            var panelInputs = container.querySelectorAll(".grad-manual-input");
+            var countResultTimer = null;
+
+            statSelect.innerHTML = getManualStatCountOptions().map(function(stat) {
+                return '<option value="' + stat.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;") + '">' + stat + '</option>';
+            }).join("");
+            modeSelect.value = config.mode;
+            valueModeSelect.value = config.valueMode;
+
+            function saveConfig() {
+                var data = GradModal.loadManualFormData();
+                data[MANUAL_STAT_COUNT_CONFIG_KEY] = cloneSafeJson(config);
+                originalSaveManualFormData.call(GradModal, data);
+            }
+
+            function showMessage(text) {
+                messageElement.textContent = text || "";
+                if (text) setTimeout(function() {
+                    if (messageElement.textContent === text) messageElement.textContent = "";
+                }, 2500);
+            }
+
+            function applyCountPanel() {
+                try {
+                    var panel = calculateManualStatCountPanel(config);
+                    writeManualPanelInputs(container, panel, true);
+                    var rate = calculateManualStatCountRate(panel);
+                    countResultTimer && clearTimeout(countResultTimer);
+                    countResultTimer = setTimeout(function() {
+                        if ("count" !== config.mode) return;
+                        var resultElement = document.getElementById("grad-manual-result");
+                        if (resultElement) {
+                            resultElement.textContent = "Excel表格显示毕业率：" + rate;
+                            GradModal.state.manualRate = rate;
+                        }
+                    }, 220);
+                } catch (error) {
+                    showMessage(error && error.message ? error.message : "词条换算失败");
+                }
+            }
+
+            function renderCountList() {
+                var stats = Object.keys(config.counts);
+                list.innerHTML = stats.length ? stats.map(function(stat) {
+                    var value = manualStatTargetValue(stat, config.valueMode);
+                    var count = config.counts[stat];
+                    var suffix = CommonData.PERCENT_STATS.includes(stat) ? "%" : "";
+                    return '<div class="grad-manual-stat-count-row" data-stat="' + stat.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;") + '" style="display:grid;grid-template-columns:minmax(130px,1fr) 80px minmax(120px,auto) 34px;gap:8px;align-items:center;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;">'
+                        + '<span style="color:var(--text-main);">' + stat + '</span>'
+                        + '<input class="grad-manual-stat-row-count" type="number" min="1" max="40" step="1" value="' + count + '" style="width:100%;box-sizing:border-box;padding:6px;border-radius:5px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">'
+                        + '<span style="color:var(--text-sub);font-size:.82rem;">' + value + suffix + ' × ' + count + ' = ' + (Math.round(value * count * 100) / 100) + suffix + '</span>'
+                        + '<button type="button" class="grad-manual-stat-remove remove-btn" title="删除">×</button>'
+                        + '</div>';
+                }).join("") : '<div style="padding:12px;text-align:center;color:var(--text-sub);">请添加需要模拟的普通词条</div>';
+                totalElement.textContent = manualStatCountTotal(config);
+                list.querySelectorAll(".grad-manual-stat-count-row").forEach(function(row) {
+                    var stat = row.dataset.stat;
+                    row.querySelector(".grad-manual-stat-row-count").addEventListener("change", function() {
+                        var oldCount = config.counts[stat] || 0;
+                        var otherTotal = manualStatCountTotal(config) - oldCount;
+                        var requested = Math.max(1, Math.floor(Number(this.value) || 1));
+                        var allowed = Math.max(0, MANUAL_STAT_COUNT_MAX - otherTotal);
+                        if (requested > allowed) showMessage("普通词条总数最多 40 条");
+                        config.counts[stat] = Math.min(requested, allowed);
+                        if (config.counts[stat] <= 0) delete config.counts[stat];
+                        saveConfig();
+                        renderCountList();
+                        applyCountPanel();
+                    });
+                    row.querySelector(".grad-manual-stat-remove").addEventListener("click", function() {
+                        delete config.counts[stat];
+                        saveConfig();
+                        renderCountList();
+                        applyCountPanel();
+                    });
+                });
+            }
+
+            function updateMode() {
+                var countMode = "count" === config.mode;
+                countPanel.style.display = countMode ? "block" : "none";
+                valueModeWrap.style.display = countMode ? "flex" : "none";
+                panelInputs.forEach(function(input) {
+                    input.disabled = countMode;
+                    input.style.opacity = countMode ? ".7" : "1";
+                });
+                if (countMode) applyCountPanel();
+            }
+
+            modeSelect.addEventListener("change", function() {
+                var nextMode = this.value;
+                if ("count" === nextMode && "count" !== config.mode) {
+                    config.manualPanel = readManualPanelInputs(container);
+                }
+                config.mode = nextMode;
+                if ("panel" === nextMode) writeManualPanelInputs(container, config.manualPanel, true);
+                saveConfig();
+                updateMode();
+            });
+            valueModeSelect.addEventListener("change", function() {
+                config.valueMode = this.value;
+                saveConfig();
+                renderCountList();
+                applyCountPanel();
+            });
+            addButton.addEventListener("click", function() {
+                var stat = statSelect.value;
+                var requested = Math.max(1, Math.floor(Number(addCountInput.value) || 1));
+                var remaining = MANUAL_STAT_COUNT_MAX - manualStatCountTotal(config);
+                if (!stat || remaining <= 0) return showMessage("普通词条总数已达到 40 条");
+                var added = Math.min(requested, remaining);
+                config.counts[stat] = (config.counts[stat] || 0) + added;
+                if (added < requested) showMessage("普通词条总数最多 40 条");
+                saveConfig();
+                renderCountList();
+                applyCountPanel();
+            });
+
+            renderCountList();
+            updateMode();
+        };
+    }
+
     function renderBuildStatsSummary(equippedItems, className) {
         var SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
         // className 由调用方（GradModal 模板）传入，回退到 AppState
@@ -1195,5 +1578,6 @@
     window.addEventListener("load", function() {
         patchTransmuteCdVisibility();
         initRegularImportClear();
+        initManualStatCountMode();
     });
 })();
