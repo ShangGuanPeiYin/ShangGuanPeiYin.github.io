@@ -79,6 +79,8 @@ check_contains "$LOCAL_JS" "当前词条组合有未更新的改动" "manual sta
 check_contains "$LOCAL_JS" "writeManualPanelInputs(container, panel, false)" "manual stat-count single calculation path"
 check_contains "$LOCAL_JS" "grad-manual-stat-count-result" "manual stat-count isolated result"
 check_contains "$LOCAL_JS" 'panelResultElement.style.display = countMode ? "none" : "block"' "manual dual-mode result isolation"
+check_contains "$LOCAL_JS" "grad-manual-stat-count-final-panel" "manual stat-count final panel"
+check_contains "$LOCAL_JS" "GradModal.renderPanelStats(panelData" "manual final-panel shared renderer"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
 

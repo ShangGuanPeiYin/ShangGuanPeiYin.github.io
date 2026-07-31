@@ -787,9 +787,72 @@
         return String(value || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    function removeManualStatCountPanel() {
+        var panel = document.getElementById("grad-manual-stat-count-final-panel");
+        if (panel) panel.remove();
+    }
+
+    function positionManualStatCountPanel() {
+        var panel = document.getElementById("grad-manual-stat-count-final-panel");
+        var modal = window.GradModal && GradModal.dom && GradModal.dom.modal;
+        if (!panel || !modal) return;
+        var modalContent = modal.querySelector(".modal-content");
+        if (!modalContent) {
+            panel.style.top = "50%";
+            panel.style.right = "20px";
+            panel.style.left = "auto";
+            panel.style.transform = "translateY(-50%)";
+            return;
+        }
+        var rect = modalContent.getBoundingClientRect();
+        var left = rect.right + 10;
+        if (left + 332 > window.innerWidth) {
+            panel.style.left = "auto";
+            panel.style.right = "10px";
+        } else {
+            panel.style.left = left + "px";
+            panel.style.right = "auto";
+        }
+        panel.style.top = rect.top + rect.height / 2 + "px";
+        panel.style.transform = "translateY(-50%)";
+    }
+
+    function renderManualStatCountPanel(panelData) {
+        if (!window.GradModal || "function" != typeof GradModal.renderPanelStats) return;
+        var panel = document.getElementById("grad-manual-stat-count-final-panel");
+        if (!panel) {
+            panel = document.createElement("div");
+            panel.id = "grad-manual-stat-count-final-panel";
+            panel.className = "best-build-panel";
+            panel.style.cssText = "position:fixed;width:300px;max-height:80vh;background:rgba(30,30,35,.98);border:1px solid var(--border);border-radius:8px;padding:15px;z-index:1500;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.5);";
+            panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;">'
+                + '<h3 style="margin:0;color:var(--accent);font-size:1rem;">词条数量最终面板</h3>'
+                + '<button type="button" id="grad-manual-stat-count-panel-close" style="background:none;border:none;color:var(--text-sub);font-size:1.5rem;cursor:pointer;padding:0;width:24px;height:24px;">&times;</button>'
+                + '</div><div id="grad-manual-stat-count-final-stats" style="color:var(--text-main);font-size:.9rem;"></div>';
+            document.body.appendChild(panel);
+            panel.querySelector("#grad-manual-stat-count-panel-close").addEventListener("click", removeManualStatCountPanel);
+        }
+        var stats = panel.querySelector("#grad-manual-stat-count-final-stats");
+        var className = GradModal.state.currentClass || UIManager.dom.classSelect.value;
+        var setName = UIManager.dom.setSelect ? UIManager.dom.setSelect.value : "";
+        stats.innerHTML = GradModal.renderPanelStats(panelData || {}, setName, className);
+        positionManualStatCountPanel();
+    }
+
     function initManualStatCountMode() {
         if (!window.GradModal || GradModal.__statCountModePatched) return;
         GradModal.__statCountModePatched = true;
+
+        var originalCloseBuildPanel = GradModal.closeBuildPanel;
+        GradModal.closeBuildPanel = function() {
+            removeManualStatCountPanel();
+            return originalCloseBuildPanel.apply(this, arguments);
+        };
+        GradModal.dom.modal.addEventListener("click", function(event) {
+            var tab = event.target.closest(".grad-tab");
+            if (tab && "manual" !== tab.dataset.tab) removeManualStatCountPanel();
+        });
+        window.addEventListener("resize", positionManualStatCountPanel);
 
         var originalSaveManualFormData = GradModal.saveManualFormData;
         GradModal.saveManualFormData = function(data) {
@@ -938,6 +1001,7 @@
                     var panel = calculateManualStatCountPanel(config);
                     // 数量模式只复用隐藏输入框展示换算值，不触发原手填模式的二次计算。
                     writeManualPanelInputs(container, panel, false);
+                    renderManualStatCountPanel(panel);
                     var rate = calculateManualStatCountRate(panel);
                     if ("count" !== config.mode || !countResultElement) return;
                     if ("function" == typeof renderLabeledMetric) {
@@ -1068,6 +1132,7 @@
                 if (panelResultElement) panelResultElement.style.display = countMode ? "none" : "block";
                 if (countResultElement) countResultElement.style.display = countMode ? "block" : "none";
                 if (countMode) applyCountPanel();
+                else removeManualStatCountPanel();
             }
 
             modeSelect.addEventListener("change", function() {
