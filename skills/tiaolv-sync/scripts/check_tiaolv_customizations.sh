@@ -67,6 +67,7 @@ check_contains "$LOCAL_JS" 'panelEditor.style.display = countMode ? "none" : "bl
 check_contains "$LOCAL_JS" "grad-manual-stat-category-panels" "manual stat category panels"
 check_contains "$LOCAL_JS" "weaponStatsByClass" "manual class weapon-stat filtering"
 check_contains "$LOCAL_JS" "grad-manual-stat-clear-btn" "manual stat-count clear control"
+check_contains "$LOCAL_JS" 'renderLabeledMetric(resultElement, "Excel表格显示毕业率：", rate)' "manual stat-count gold rate"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
 

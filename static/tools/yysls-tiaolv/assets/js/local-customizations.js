@@ -862,7 +862,11 @@
                         if ("count" !== config.mode) return;
                         var resultElement = document.getElementById("grad-manual-result");
                         if (resultElement) {
-                            resultElement.textContent = "Excel表格显示毕业率：" + rate;
+                            if ("function" == typeof renderLabeledMetric) {
+                                renderLabeledMetric(resultElement, "Excel表格显示毕业率：", rate);
+                            } else {
+                                resultElement.innerHTML = 'Excel表格显示毕业率：<strong class="metric-gold">' + escapeManualStatText(rate) + '</strong>';
+                            }
                             GradModal.state.manualRate = rate;
                         }
                     }, 220);
