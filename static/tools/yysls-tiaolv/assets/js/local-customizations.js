@@ -733,7 +733,6 @@
             "对首领单位增伤"
         ];
         if (AppState.PVPMode) godPowerStats.push("对玩家单位增效");
-        godPowerStats.push("单体类奇术增伤", "群体类奇术增伤");
         var maxValues = CommonData.MAX_VALUES || {};
         function available(stats) {
             return stats.filter(function(stat) { return Number(maxValues[stat]) > 0; });
