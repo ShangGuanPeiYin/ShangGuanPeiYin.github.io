@@ -81,6 +81,8 @@ check_contains "$LOCAL_JS" "grad-manual-stat-count-result" "manual stat-count is
 check_contains "$LOCAL_JS" 'panelResultElement.style.display = countMode ? "none" : "block"' "manual dual-mode result isolation"
 check_contains "$LOCAL_JS" "grad-manual-stat-count-final-panel" "manual stat-count final panel"
 check_contains "$LOCAL_JS" "GradModal.renderPanelStats(panelData" "manual final-panel shared renderer"
+check_contains "$LOCAL_JS" "decoratePanelRateOverflow" "final-panel rate overflow display"
+check_contains "$LOCAL_JS" "manual-panel-overflow-hint" "final-panel white-value overflow hint"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
 

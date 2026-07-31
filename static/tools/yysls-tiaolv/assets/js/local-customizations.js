@@ -839,10 +839,45 @@
         positionManualStatCountPanel();
     }
 
+    function decoratePanelRateOverflow(html, panelData, setName, className) {
+        var wrapper = document.createElement("div");
+        wrapper.innerHTML = html;
+        [
+            { label: "精准率", key: "精准率溢出", prefix: "" },
+            {
+                label: "会心率",
+                key: "会心率溢出",
+                prefix: ("裂石威" === className ? "陌刀" : "")
+                    + ("裂石钧" === className ? "钧钧" : "")
+                    + ("浣花" === setName ? "浣花" : "")
+            },
+            { label: "会意率", key: "会意率溢出", prefix: "" }
+        ].forEach(function(item) {
+            var overflow = Number(panelData && panelData[item.key]) || 0;
+            if (overflow <= 0) return;
+            Array.from(wrapper.children).some(function(row) {
+                var spans = row.querySelectorAll("span");
+                if (spans.length < 2 || spans[0].textContent.replace(/:$/, "") !== item.label) return false;
+                var hint = document.createElement("span");
+                hint.className = "manual-panel-overflow-hint";
+                hint.style.cssText = "color:var(--text-sub);font-size:.85em;margin-left:4px;white-space:nowrap;";
+                hint.textContent = "（" + item.prefix + "溢出" + overflow.toFixed(1) + "%白值）";
+                spans[1].appendChild(hint);
+                return true;
+            });
+        });
+        return wrapper.innerHTML;
+    }
+
     function initManualStatCountMode() {
         if (!window.GradModal || GradModal.__statCountModePatched) return;
         GradModal.__statCountModePatched = true;
 
+        var originalRenderPanelStats = GradModal.renderPanelStats;
+        GradModal.renderPanelStats = function(panelData, setName, className) {
+            var html = originalRenderPanelStats.apply(this, arguments);
+            return decoratePanelRateOverflow(html, panelData, setName, className);
+        };
         var originalCloseBuildPanel = GradModal.closeBuildPanel;
         GradModal.closeBuildPanel = function() {
             removeManualStatCountPanel();
