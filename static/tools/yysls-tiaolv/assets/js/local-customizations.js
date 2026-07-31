@@ -546,6 +546,14 @@
         });
     }
 
+    function getManualStatCountLimit(stat) {
+        if ("对首领单位增伤" === stat || "全武学增效" === stat) return 2;
+        var isWeaponEnhancement = (CommonData.WEAPON_TYPES || []).some(function(weapon) {
+            return weapon && weapon.stat === stat;
+        });
+        return isWeaponEnhancement ? 1 : MANUAL_STAT_COUNT_MAX;
+    }
+
     function normalizeManualStatCountConfig(config) {
         config = isPlainObject(config) ? config : {};
         var allowed = new Set(getManualStatCountOptions());
@@ -556,7 +564,7 @@
             Object.keys(source).forEach(function(stat) {
                 if (!allowed.has(stat) || total >= MANUAL_STAT_COUNT_MAX) return;
                 var count = Math.max(0, Math.floor(Number(source[stat]) || 0));
-                count = Math.min(count, MANUAL_STAT_COUNT_MAX - total);
+                count = Math.min(count, getManualStatCountLimit(stat), MANUAL_STAT_COUNT_MAX - total);
                 if (count > 0) {
                     counts[stat] = count;
                     total += count;
@@ -949,9 +957,11 @@
                 var oldCount = config.counts[stat] || 0;
                 var otherTotal = manualStatCountTotal(config) - oldCount;
                 requested = Math.max(0, Math.floor(Number(requested) || 0));
+                var statLimit = getManualStatCountLimit(stat);
                 var allowed = Math.max(0, MANUAL_STAT_COUNT_MAX - otherTotal);
-                if (requested > allowed) showMessage("普通词条总数最多 40 条");
-                var nextCount = Math.min(requested, allowed);
+                if (requested > statLimit) showMessage(stat + "最多 " + statLimit + " 条");
+                else if (requested > allowed) showMessage("普通词条总数最多 40 条");
+                var nextCount = Math.min(requested, statLimit, allowed);
                 if (nextCount > 0) config.counts[stat] = nextCount;
                 else delete config.counts[stat];
                 saveConfig();
@@ -962,14 +972,15 @@
             function statCountRowHtml(stat, fixed) {
                 var value = manualStatTargetValue(stat, config.valueMode);
                 var count = config.counts[stat] || 0;
+                var statLimit = getManualStatCountLimit(stat);
                 var suffix = CommonData.PERCENT_STATS.includes(stat) ? "%" : "";
                 return '<div class="grad-manual-stat-count-row" data-stat="' + escapeManualStatText(stat) + '" data-fixed="' + (fixed ? "true" : "false") + '" style="display:grid;grid-template-columns:minmax(95px,1fr) 28px 48px 28px' + (fixed ? "" : " 28px") + ';gap:5px;align-items:center;padding:7px;background:rgba(0,0,0,.2);border-radius:6px;">'
                     + '<span style="color:var(--text-main);font-size:.88rem;">' + escapeManualStatText(stat) + '</span>'
                     + '<button type="button" class="grad-manual-stat-minus secondary-btn" style="padding:3px 7px;min-width:0;"' + (count <= 0 ? " disabled" : "") + '>−</button>'
-                    + '<input class="grad-manual-stat-row-count" type="number" min="0" max="40" step="1" value="' + count + '" style="width:100%;box-sizing:border-box;padding:5px;text-align:center;border-radius:5px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">'
-                    + '<button type="button" class="grad-manual-stat-plus secondary-btn" style="padding:3px 7px;min-width:0;"' + (manualStatCountTotal(config) >= MANUAL_STAT_COUNT_MAX ? " disabled" : "") + '>+</button>'
+                    + '<input class="grad-manual-stat-row-count" type="number" min="0" max="' + statLimit + '" step="1" value="' + count + '" style="width:100%;box-sizing:border-box;padding:5px;text-align:center;border-radius:5px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;">'
+                    + '<button type="button" class="grad-manual-stat-plus secondary-btn" style="padding:3px 7px;min-width:0;"' + (count >= statLimit || manualStatCountTotal(config) >= MANUAL_STAT_COUNT_MAX ? " disabled" : "") + '>+</button>'
                     + (fixed ? "" : '<button type="button" class="grad-manual-stat-remove remove-btn" title="删除">×</button>')
-                    + '<span style="grid-column:1/-1;text-align:right;color:var(--text-sub);font-size:.76rem;">' + value + suffix + ' × ' + count + ' = ' + (Math.round(value * count * 100) / 100) + suffix + '</span>'
+                    + '<span style="grid-column:1/-1;text-align:right;color:var(--text-sub);font-size:.76rem;">' + value + suffix + ' × ' + count + ' = ' + (Math.round(value * count * 100) / 100) + suffix + (statLimit < MANUAL_STAT_COUNT_MAX ? ' · 上限 ' + statLimit : '') + '</span>'
                     + '</div>';
             }
 
@@ -1119,14 +1130,8 @@
             addButton.addEventListener("click", function() {
                 var stat = statSelect.value;
                 var requested = Math.max(1, Math.floor(Number(addCountInput.value) || 1));
-                var remaining = MANUAL_STAT_COUNT_MAX - manualStatCountTotal(config);
-                if (!stat || remaining <= 0) return showMessage("普通词条总数已达到 40 条");
-                var added = Math.min(requested, remaining);
-                config.counts[stat] = (config.counts[stat] || 0) + added;
-                if (added < requested) showMessage("普通词条总数最多 40 条");
-                saveConfig();
-                renderCountList();
-                applyCountPanel();
+                if (!stat) return;
+                updateStatCount(stat, (config.counts[stat] || 0) + requested);
             });
             clearButton.addEventListener("click", function() {
                 config.counts = {};
