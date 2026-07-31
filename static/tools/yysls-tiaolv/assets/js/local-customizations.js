@@ -5,10 +5,11 @@
     const REMOVED_TRANSMUTATION_CD_MARKER = "tiaolv_transmutation_cd_removed_v1";
     const TRANSMUTATION_LEVEL_MIGRATION_MARKER = "tiaolv_transmutation_level_110_v1";
     const TRANSMUTATION_TWO_STATE_MIGRATION_MARKER = "tiaolv_transmutation_two_state_v2";
+    const TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER = "tiaolv_transmutation_explicit_eligibility_v3";
     const TRANSMUTATION_STATUS_MODEL_VERSION = 2;
 
     function isTransmutableEquip(equip) {
-        return !!equip && 110 === Number(equip.level) && !equip.isChengyin;
+        return !!equip && 110 === Number(equip.level) && true === equip.isTransmutable;
     }
 
     function normalizeZhuanlvStatus(status, equip) {
@@ -36,6 +37,10 @@
     function migrateTransmutationStatusesToTwoState() {
         try {
             if ("1" === localStorage.getItem(TRANSMUTATION_TWO_STATE_MIGRATION_MARKER)) return;
+            if ("1" === localStorage.getItem(TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER)) {
+                localStorage.setItem(TRANSMUTATION_TWO_STATE_MIGRATION_MARKER, "1");
+                return;
+            }
             var statusKeys = [];
             for (var index = 0; index < localStorage.length; index++) {
                 var key = localStorage.key(index);
@@ -45,6 +50,48 @@
             localStorage.setItem(TRANSMUTATION_TWO_STATE_MIGRATION_MARKER, "1");
         } catch (error) {
             console.warn("迁移两状态转律数据失败：", error);
+        }
+    }
+
+    function migrateTransmutationToExplicitEligibility() {
+        try {
+            if ("1" === localStorage.getItem(TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER)) return;
+            var equipKeys = [];
+            for (var index = 0; index < localStorage.length; index++) {
+                var key = localStorage.key(index);
+                if (key && 0 === key.indexOf("game_equip_data_")) equipKeys.push(key);
+            }
+            equipKeys.forEach(function(equipKey) {
+                var accountName = equipKey.slice("game_equip_data_".length);
+                var statusKey = "zhuanlv_status_" + accountName;
+                var statusMap = parseStoredObject(statusKey);
+                var cleanStatusMap = {};
+                var equips = parseStoredArray(equipKey).map(function(equip) {
+                    var rawStatus = statusMap[String(equip.id)];
+                    var subStatIndex = rawStatus ? Number(rawStatus.subStatIndex) : -1;
+                    var validActive = 110 === Number(equip.level)
+                        && rawStatus && "active" === rawStatus.state
+                        && TRANSMUTATION_STATUS_MODEL_VERSION === Number(rawStatus.modelVersion)
+                        && Number.isInteger(subStatIndex) && subStatIndex >= 0
+                        && Array.isArray(equip.subStats) && equip.subStats[subStatIndex]
+                        && !!equip.subStats[subStatIndex].type;
+                    equip.isTransmutable = 110 === Number(equip.level)
+                        && (true === equip.isTransmutable || validActive);
+                    if (validActive) {
+                        cleanStatusMap[String(equip.id)] = {
+                            state: "active",
+                            subStatIndex: subStatIndex,
+                            modelVersion: TRANSMUTATION_STATUS_MODEL_VERSION
+                        };
+                    }
+                    return equip;
+                });
+                localStorage.setItem(equipKey, JSON.stringify(equips));
+                localStorage.setItem(statusKey, JSON.stringify(cleanStatusMap));
+            });
+            localStorage.setItem(TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER, "1");
+        } catch (error) {
+            console.warn("迁移显式可转律资格失败：", error);
         }
     }
 
@@ -135,6 +182,7 @@
                 name: equip.name,
                 isChengyin: equip.isChengyin || false,
                 isPurple: equip.isPurple || false,
+                isTransmutable: 110 === Number(equip.level) && true === equip.isTransmutable,
                 level: equip.level || 105,
                 availableClasses: "function" == typeof normalizeAvailableClassesForEquip ? normalizeAvailableClassesForEquip(equip) : equip.availableClasses || [],
                 mainStat: {
@@ -242,6 +290,7 @@
             name: equip.name,
             isChengyin: !!equip.isChengyin,
             isPurple: !!equip.isPurple,
+            isTransmutable: 110 === Number(equip.level) && true === equip.isTransmutable,
             level: Number(equip.level) || 105,
             availableClasses: Array.isArray(equip.availableClasses) ? equip.availableClasses.map(String) : [],
             mainStat: sanitizeStat(equip.mainStat),
@@ -422,6 +471,16 @@
             seenNames.add(name);
             if (!Array.isArray(account.equipData)) throw new Error("角色“" + name + "”的装备数据无效");
             var equipData = account.equipData.map(function(equip) { return sanitizeEquip(equip, true); });
+            var rawZhuanlvData = isPlainObject(account.zhuanlvData) ? account.zhuanlvData : {};
+            equipData.forEach(function(equip, index) {
+                var sourceEquip = account.equipData[index];
+                var rawStatus = rawZhuanlvData[String(equip.id)];
+                if (!Object.prototype.hasOwnProperty.call(sourceEquip, "isTransmutable")
+                    && 110 === Number(equip.level) && rawStatus && "active" === rawStatus.state
+                    && TRANSMUTATION_STATUS_MODEL_VERSION === Number(rawStatus.modelVersion)) {
+                    equip.isTransmutable = true;
+                }
+            });
             var validEquipIds = new Set();
             equipData.forEach(function(equip) {
                 var id = String(equip.id);
@@ -432,7 +491,7 @@
                 name: name,
                 equipData: equipData,
                 simulatorData: sanitizeSimulatorData(account.simulatorData || {}, validEquipIds, warningState),
-                zhuanlvData: sanitizeZhuanlvMap(account.zhuanlvData || {}, equipData),
+                zhuanlvData: sanitizeZhuanlvMap(rawZhuanlvData, equipData),
                 manualGradData: sanitizeManualGradData(account.manualGradData || {})
             };
         });
@@ -549,6 +608,14 @@
                     alert("JSON 数据格式错误：既不是完整备份，也不是包含 accountName 和 equipData 的旧版装备备份");
                     return;
                 }
+                (payload.equipData || []).forEach(function(item) {
+                    if (!Object.prototype.hasOwnProperty.call(item, "isTransmutable")
+                        && 110 === Number(item.level) && item.zhuanlv && "active" === item.zhuanlv.state
+                        && TRANSMUTATION_STATUS_MODEL_VERSION === Number(item.zhuanlv.modelVersion)) {
+                        item.isTransmutable = true;
+                    }
+                    item.isTransmutable = 110 === Number(item.level) && true === item.isTransmutable;
+                });
                 if ("function" != typeof encryptData || "function" != typeof showImportWarning) {
                     alert("页面尚未初始化完成，请稍后再试");
                     return;
@@ -1730,7 +1797,7 @@
         if (!sel) return;
         var previous = sel.value;
         var rows = document.querySelectorAll("#sub-stats-container .stat-row");
-        var options = [];
+        var options = ['<option value="">暂未指定（待转律）</option>'];
         for (var i = 0; i < rows.length; i++) {
             var label = getSubStatLabelAt(i);
             if (label) options.push('<option value="' + i + '">第' + (i + 1) + '条（' + label + '）</option>');
@@ -1739,8 +1806,8 @@
         if (options.length && Array.prototype.some.call(sel.options, function(option) { return option.value === previous; })) {
             sel.value = previous;
         }
-        sel.disabled = 0 === options.length;
-        return options.length;
+        sel.disabled = 1 === options.length;
+        return options.length - 1;
     }
 
     // 向 modal 注入转律状态 section（幂等）
@@ -1753,17 +1820,8 @@
 
         section.innerHTML = [
             '<hr>',
-            '<h3 style="margin-bottom:8px;">转律状态</h3>',
-            '<div class="form-row" style="align-items:flex-start;flex-wrap:wrap;gap:10px;">',
-            '  <div class="form-group" style="min-width:160px;">',
-            '    <label>状态</label>',
-            '    <select id="zhuanlv-state-select" class="stat-select">',
-            '      <option value="none">未转律</option>',
-            '      <option value="active">已转律</option>',
-            '    </select>',
-            '  </div>',
-            '</div>',
-            '<div id="zhuanlv-active-fields" style="display:none;margin-top:8px;">',
+            '<h3 style="margin-bottom:8px;">转律词条</h3>',
+            '<div id="zhuanlv-active-fields">',
             '  <div class="form-row" style="margin-bottom:8px;">',
             '    <div class="form-group" style="min-width:200px;">',
             '      <label>选定副词条</label>',
@@ -1779,53 +1837,33 @@
         if (!footer) return;
         footer.parentNode.insertBefore(section, footer);
 
-        // 状态切换：显隐 active fields + 立即保存
-        document.getElementById("zhuanlv-state-select").addEventListener("change", function() {
-            var activeFields = document.getElementById("zhuanlv-active-fields");
-            activeFields.style.display = this.value === "active" ? "block" : "none";
-            if (this.value === "active") {
-                if (!updateSubStatIndexLabels()) {
-                    this.value = "none";
-                    activeFields.style.display = "none";
-                    alert("请先填写至少一条副词条");
-                }
-            }
-            autoSaveZhuanlv();
-        });
-
         // 副词条 select 变化时更新选定副词条标签
         document.getElementById("sub-stats-container").addEventListener("change", function(e) {
             if (e.target.classList.contains("sub-stat-select")) {
-                var selectedIndex = Number(document.getElementById("zhuanlv-substat-index").value);
-                var stateSelect = document.getElementById("zhuanlv-state-select");
-                var selectedSlotWasRemoved = stateSelect.value === "active"
-                    && Number.isInteger(selectedIndex) && !getSubStatLabelAt(selectedIndex);
+                var indexSelect = document.getElementById("zhuanlv-substat-index");
+                var selectedValue = indexSelect.value;
+                var selectedIndex = "" === selectedValue ? -1 : Number(selectedValue);
+                var selectedSlotWasRemoved = Number.isInteger(selectedIndex) && selectedIndex >= 0
+                    && !getSubStatLabelAt(selectedIndex);
                 updateSubStatIndexLabels();
                 if (selectedSlotWasRemoved) {
-                    stateSelect.value = "none";
-                    document.getElementById("zhuanlv-active-fields").style.display = "none";
+                    indexSelect.value = "";
                 }
                 autoSaveZhuanlv();
             }
         });
 
-        // zhuanlv-section 内任意 select 变化时立即保存
-        section.addEventListener("change", function(e) {
-            if (e.target.id !== "zhuanlv-state-select") { // 状态 select 已单独处理
-                autoSaveZhuanlv();
-            }
-        });
+        section.addEventListener("change", autoSaveZhuanlv);
     }
 
     // 读取表单中的转律状态数据
     function readZhuanlvFromForm() {
-        var stateSel = document.getElementById("zhuanlv-state-select");
-        if (!stateSel) return null;
-        var state = stateSel.value;
-        if (state === "none") return null;
+        var transmutableCheck = document.getElementById("is-transmutable");
+        var indexSelect = document.getElementById("zhuanlv-substat-index");
+        if (!transmutableCheck || !transmutableCheck.checked || !indexSelect || "" === indexSelect.value) return null;
 
         // active
-        var subStatIndex = Number(document.getElementById("zhuanlv-substat-index").value);
+        var subStatIndex = Number(indexSelect.value);
         if (!Number.isInteger(subStatIndex) || !getSubStatLabelAt(subStatIndex)) return null;
         return { state: "active", subStatIndex: subStatIndex, modelVersion: TRANSMUTATION_STATUS_MODEL_VERSION };
     }
@@ -1847,8 +1885,9 @@
 
     // 从存储数据回填表单
     function populateZhuanlvSection(equipId) {
-        var stateSel = document.getElementById("zhuanlv-state-select");
-        if (!stateSel) return;
+        var transmutableCheck = document.getElementById("is-transmutable");
+        var idxSel = document.getElementById("zhuanlv-substat-index");
+        if (!transmutableCheck || !idxSel) return;
 
         var equip = null;
         if (equipId && "function" === typeof getDB) {
@@ -1857,15 +1896,11 @@
         var rawStatus = equipId ? getZhuanlvForEquip(equipId) : null;
         var status = normalizeZhuanlvStatus(rawStatus, equip);
         if (rawStatus && !status) setZhuanlvForEquip(equipId, null);
-        document.getElementById("zhuanlv-active-fields").style.display = "none";
+        transmutableCheck.checked = !!(equip && isTransmutableEquip(equip));
+        updateSubStatIndexLabels();
+        idxSel.value = "";
 
-        if (!status || status.state === "none") {
-            stateSel.value = "none";
-        } else if (status.state === "active") {
-            stateSel.value = "active";
-            document.getElementById("zhuanlv-active-fields").style.display = "block";
-            updateSubStatIndexLabels();
-            var idxSel = document.getElementById("zhuanlv-substat-index");
+        if (status && status.state === "active") {
             idxSel.value = String(status.subStatIndex || 0);
             setTimeout(function() {
                 updateSubStatIndexLabels();
@@ -1874,21 +1909,20 @@
         }
     }
 
-    function isCurrentEquipChengyin() {
-        var cb = document.getElementById("is-chengyin");
-        return !!(cb && cb.checked);
-    }
-
-    // 根据 level 和承音状态决定是否显示转律 section
+    // 非110级不显示“可转律”，并清除资格与指定槽位。
     function syncZhuanlvSectionVisibility() {
         var section = document.getElementById("zhuanlv-section");
         var levelSel = document.getElementById("level-select");
         var level = levelSel ? parseInt(levelSel.value) : 105;
-        var isChengyin = isCurrentEquipChengyin();
-        var allow = level === 110 && !isChengyin;
+        var wrapper = document.getElementById("transmutable-checkbox-wrapper");
+        var transmutableCheck = document.getElementById("is-transmutable");
+        var allowLevel = level === 110;
+        var enabled = allowLevel && !!(transmutableCheck && transmutableCheck.checked);
 
-        if (section) section.style.display = allow ? "block" : "none";
-        if (!allow) {
+        if (wrapper) wrapper.style.display = allowLevel ? "" : "none";
+        if (section) section.style.display = enabled ? "block" : "none";
+        if (!allowLevel && transmutableCheck) transmutableCheck.checked = false;
+        if (!enabled) {
             if (_currentEditEquipId) setZhuanlvForEquip(_currentEditEquipId, null);
             else _pendingZhuanlv = null;
         }
@@ -1915,7 +1949,7 @@
         var flexRow = cardEl.querySelector(".card-header .card-title div[style]");
 
         if (!status || status.state === "none") {
-            if (flexRow) flexRow.insertAdjacentHTML("beforeend", buildZhuanlvTag("未转律", "#888"));
+            if (flexRow) flexRow.insertAdjacentHTML("beforeend", buildZhuanlvTag("待转律", "#888"));
             return;
         }
 
@@ -2040,10 +2074,11 @@
             }).observe(modal, { attributes: true });
         }
 
-        // 监听 level-select 和 is-chengyin 变化（用事件委托，两者都可能影响 section 显隐）
+        // 监听等级和显式“可转律”资格变化。
         document.addEventListener("change", function(e) {
-            if (e.target && (e.target.id === "level-select" || e.target.id === "is-chengyin")) {
+            if (e.target && (e.target.id === "level-select" || e.target.id === "is-transmutable")) {
                 syncZhuanlvSectionVisibility();
+                autoSaveZhuanlv();
             }
         });
 
@@ -2162,8 +2197,8 @@
                 return;
             }
             if (!isTransmutableEquip(equip)) {
-                container.innerHTML = '<p style="color:#ff9800;text-align:center;margin-top:30px;">只有110级非承音装备可以使用转律功能</p>'
-                    + '<div style="text-align:center;margin-top:16px;"><button class="primary-btn" id="transmute-pick-btn">选择110级装备</button></div>'
+                container.innerHTML = '<p style="color:#ff9800;text-align:center;margin-top:30px;">该装备不可转律，请选择已勾选“可转律”的110级装备</p>'
+                    + '<div style="text-align:center;margin-top:16px;"><button class="primary-btn" id="transmute-pick-btn">选择可转律装备</button></div>'
                     + '<div id="transmute-result-area" style="margin-top:14px;"></div>';
                 document.getElementById("transmute-pick-btn").addEventListener("click", function() {
                     GradModal.handlePickTransmutationEquip(slotKey, null);
@@ -2183,7 +2218,7 @@
             }).join("");
             var explanation = isActive
                 ? '该装备已转律，只分析指定的第' + (activeIndex + 1) + '条副词条；结果包含转律库全部合法词条和切回原词条。'
-                : '该装备未转律，将分别分析所有副词条，比较最值得指定的槽位；每个槽位均包含保留原词条的结果。';
+                : '该装备待转律，将分别分析所有副词条，比较最值得指定的槽位；每个槽位均包含保留原词条的结果。';
             container.innerHTML = '<div class="transmute-target-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
                 + '<div style="display:flex;align-items:center;gap:10px;"><img src="' + getEquipIcon(equip) + '" style="width:44px;height:44px;border-radius:4px;border:1px solid #555;">'
                 + '<div><div style="color:#fff;font-weight:700;">' + equip.name + '</div><div style="color:#9aa0a6;font-size:.85rem;">分析部位：' + this.getSlotName(slotKey) + '</div></div></div>'
@@ -2213,7 +2248,7 @@
                 return;
             }
             if (!isTransmutableEquip(equip)) {
-                resultElement.innerHTML = '<p class="error-text">只有110级非承音装备可以计算转律建议</p>';
+                resultElement.innerHTML = '<p class="error-text">只有已勾选“可转律”的110级装备可以计算转律建议</p>';
                 return;
             }
             var className = UIManager.dom.classSelect.value;
@@ -2341,6 +2376,7 @@
     api.installTwoStateTransmutationAdvice = installTwoStateTransmutationAdvice;
 
     purgeRemovedTransmutationCooldownData();
+    migrateTransmutationToExplicitEligibility();
     migrateTransmutationStatusesToLevel110();
     migrateTransmutationStatusesToTwoState();
     ensureLevelSelect();
