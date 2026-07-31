@@ -638,7 +638,7 @@
     }
 
     function calculateManualStatCountPanel(config) {
-        if (!window.Calculator || "function" != typeof Calculator.calculateTotal) {
+        if ("undefined" == typeof Calculator || "function" != typeof Calculator.calculateTotal) {
             throw new Error("毕业率计算器尚未初始化");
         }
         var className = GradModal.state.currentClass || UIManager.dom.classSelect.value;
@@ -761,6 +761,10 @@
             ].join("");
             container.insertBefore(controls, container.firstChild);
 
+            var panelEditor = controls.nextElementSibling;
+            var resultElement = panelEditor && panelEditor.querySelector("#grad-manual-result");
+            var resultRow = resultElement && resultElement.parentElement;
+            if (resultRow) controls.appendChild(resultRow);
             var modeSelect = controls.querySelector("#grad-manual-input-mode");
             var valueModeSelect = controls.querySelector("#grad-manual-value-mode");
             var valueModeWrap = controls.querySelector("#grad-manual-value-mode-wrap");
@@ -857,6 +861,7 @@
                     input.disabled = countMode;
                     input.style.opacity = countMode ? ".7" : "1";
                 });
+                if (panelEditor) panelEditor.style.display = countMode ? "none" : "block";
                 if (countMode) applyCountPanel();
             }
 

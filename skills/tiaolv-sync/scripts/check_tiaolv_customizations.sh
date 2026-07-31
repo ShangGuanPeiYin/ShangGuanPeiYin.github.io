@@ -62,6 +62,8 @@ check_contains "$LOCAL_JS" "isValidJsonPayload(payload)" "legacy JSON import com
 check_contains "$LOCAL_JS" "grad-manual-stat-count-controls" "manual stat-count input mode"
 check_contains "$LOCAL_JS" "MANUAL_STAT_COUNT_MAX = 40" "manual stat-count limit"
 check_contains "$LOCAL_JS" "全部按承音值" "manual Chengyin-value mode"
+check_contains "$LOCAL_JS" '"undefined" == typeof Calculator' "manual calculator readiness check"
+check_contains "$LOCAL_JS" 'panelEditor.style.display = countMode ? "none" : "block"' "manual panel visibility toggle"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
 
