@@ -856,8 +856,13 @@
             container.insertBefore(controls, container.firstChild);
 
             var panelEditor = controls.nextElementSibling;
-            var resultElement = panelEditor && panelEditor.querySelector("#grad-manual-result");
-            var resultRow = resultElement && resultElement.parentElement;
+            var panelResultElement = panelEditor && panelEditor.querySelector("#grad-manual-result");
+            var resultRow = panelResultElement && panelResultElement.parentElement;
+            var countResultElement = panelResultElement && panelResultElement.cloneNode(false);
+            if (countResultElement) {
+                countResultElement.id = "grad-manual-stat-count-result";
+                resultRow.appendChild(countResultElement);
+            }
             if (resultRow) controls.appendChild(resultRow);
             var modeSelect = controls.querySelector("#grad-manual-input-mode");
             var valueModeSelect = controls.querySelector("#grad-manual-value-mode");
@@ -877,7 +882,6 @@
             var totalElement = controls.querySelector("#grad-manual-stat-count-total");
             var messageElement = controls.querySelector("#grad-manual-stat-count-message");
             var panelInputs = container.querySelectorAll(".grad-manual-input");
-            var countResultTimer = null;
 
             modeSelect.value = config.mode;
             valueModeSelect.value = config.valueMode;
@@ -935,19 +939,13 @@
                     // 数量模式只复用隐藏输入框展示换算值，不触发原手填模式的二次计算。
                     writeManualPanelInputs(container, panel, false);
                     var rate = calculateManualStatCountRate(panel);
-                    countResultTimer && clearTimeout(countResultTimer);
-                    countResultTimer = setTimeout(function() {
-                        if ("count" !== config.mode) return;
-                        var resultElement = document.getElementById("grad-manual-result");
-                        if (resultElement) {
-                            if ("function" == typeof renderLabeledMetric) {
-                                renderLabeledMetric(resultElement, "Excel表格显示毕业率：", rate);
-                            } else {
-                                resultElement.innerHTML = 'Excel表格显示毕业率：<strong class="metric-gold">' + escapeManualStatText(rate) + '</strong>';
-                            }
-                            GradModal.state.manualRate = rate;
-                        }
-                    }, 220);
+                    if ("count" !== config.mode || !countResultElement) return;
+                    if ("function" == typeof renderLabeledMetric) {
+                        renderLabeledMetric(countResultElement, "Excel表格显示毕业率：", rate);
+                    } else {
+                        countResultElement.innerHTML = 'Excel表格显示毕业率：<strong class="metric-gold">' + escapeManualStatText(rate) + '</strong>';
+                    }
+                    GradModal.state.manualRate = rate;
                 } catch (error) {
                     showMessage(error && error.message ? error.message : "词条换算失败");
                 }
@@ -1046,6 +1044,8 @@
                     input.style.opacity = countMode ? ".7" : "1";
                 });
                 if (panelEditor) panelEditor.style.display = countMode ? "none" : "block";
+                if (panelResultElement) panelResultElement.style.display = countMode ? "none" : "block";
+                if (countResultElement) countResultElement.style.display = countMode ? "block" : "none";
                 if (countMode) applyCountPanel();
             }
 
