@@ -71,6 +71,7 @@ check_contains "$LOCAL_JS" 'renderLabeledMetric(resultElement, "Excel表格显�
 check_contains "$LOCAL_JS" "grad-manual-stat-preset-select" "manual stat-count preset selector"
 check_contains "$LOCAL_JS" "保存为新组合" "manual stat-count preset save"
 check_contains "$LOCAL_JS" "当前词条组合有未更新的改动" "manual stat-count dirty preset warning"
+check_contains "$LOCAL_JS" "writeManualPanelInputs(container, panel, false)" "manual stat-count single calculation path"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
 

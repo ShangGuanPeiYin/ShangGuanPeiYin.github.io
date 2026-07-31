@@ -924,7 +924,8 @@
             function applyCountPanel() {
                 try {
                     var panel = calculateManualStatCountPanel(config);
-                    writeManualPanelInputs(container, panel, true);
+                    // 数量模式只复用隐藏输入框展示换算值，不触发原手填模式的二次计算。
+                    writeManualPanelInputs(container, panel, false);
                     var rate = calculateManualStatCountRate(panel);
                     countResultTimer && clearTimeout(countResultTimer);
                     countResultTimer = setTimeout(function() {
