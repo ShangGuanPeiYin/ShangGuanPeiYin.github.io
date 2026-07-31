@@ -133,6 +133,13 @@ check_not_contains "$APP" "game_transmutation_cd_" "removed transmutation-CD sto
 check_not_contains "$LOCAL_JS" "transmutationCooldowns" "removed transmutation-CD backup field"
 check_contains "$LOCAL_JS" "renderBuildStatsSummary" "build stats summary function"
 check_contains "$APP" "renderBuildStatsSummary" "build stats summary template call"
+check_contains "$APP" "bestBuildTransmutationMode" "best build transmutation mode state"
+check_contains "$APP" "best-build-transmutation-mode" "best build transmutation mode selector"
+check_contains "$APP" "applySchemeTransmutationSelections" "scheme transmutation overlay"
+check_contains "$APP" "getTransmutationStateDigest" "transmutation-aware best build cache"
+check_contains "$APP" "sourceEquipId" "physical equipment transmutation identity"
+check_contains "$APP" "待转律规划" "planned transmutation result marker"
+check_contains "$LOCAL_JS" "transmutationSelections" "backup scheme transmutation whitelist"
 
 check_contains "$APP" "levelSelect" "equipment level DOM binding"
 check_contains "$APP" "level: parseInt" "equipment level save"
@@ -142,7 +149,7 @@ check_contains "$APP" "max-need-chengyin-select" "max-needed-Chengyin selector"
 check_contains "$APP" "needChengyinCount" "needed-Chengyin count"
 check_contains "$APP" "(需承音)" "needed-Chengyin label"
 check_contains "$APP" "(承音)" "real-Chengyin label"
-check_contains "$APP" "top10Builds: o.slice(0, 20)" "Top20 best-build retention"
+check_contains "$APP" "top10Builds: t.slice(0, 20)" "Top20 deduplicated best-build retention"
 
 node --check "$APP" >/dev/null
 echo "OK: app.min.js syntax"

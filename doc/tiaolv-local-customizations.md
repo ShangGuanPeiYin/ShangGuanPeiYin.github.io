@@ -57,14 +57,22 @@
    - 未勾选“可转律”即不可转律；勾选但下拉保持“暂未指定”即待转律；选择一个当前存在的副词条后即已转律，不登记目标词条。
    - `TRANSMUTATION_STATUS_MODEL_VERSION = 2` 标识已转律槽位记录；待转律不额外写状态对象，只由装备上的 `isTransmutable:true` 表达。
    - 完整备份保持 `schemaVersion: 2`，只导出和恢复合法的新模型 active 记录；旧 `targets` 数据及无模型版本的 active 记录会被忽略。
-   - 普通最佳配装会清空缓存的指定转律目标并始终按非转律模式运行；最佳配装自动转律与方案级转律选择留待后续开发。
+   - 最佳配装提供“不考虑转律 / 自动优化已转律装备 / 同时规划待转律装备”三种模式；模式按角色记住，方案只保存最终转律选择。
 7. **两状态转律建议**
    - 恢复“毕业率分析 → 转律建议”；待转律装备一次比较所有副词条，给出最值得指定的槽位及其最佳转律词条。
    - 已转律装备只分析状态中指定的副词条，不允许算法改换槽位；原词条始终作为合法候选，最优时明确建议切回或保持原词条。
    - 建议只替换当前分析部位并保持其他七件装备不变，按当前流派、弓箭、套装、心法、赛季与贷款定音环境实时计算，不再混入全库换装收益。
-   - 每个副词条显示最佳目标、最终毕业率和相对原词条差值；最佳配装“指定转律目标”入口仍保持隐藏。
+   - 每个副词条显示最佳目标、最终毕业率和相对原词条差值；旧的单件“指定转律目标”入口仍保持隐藏。
+8. **最佳配装自动转律与方案覆盖层**
+   - 搜索为每件物理装备建立“原装 + 合法转律变体”互斥候选组；已转律装备只变化指定槽位，规划模式可为待转律装备同时选择槽位和目标。
+   - 转换后禁止同件装备出现两个相同副词条，主词条与副词条允许重复；真实承音和系统“需承音”形态均继承110级显式转律资格。
+   - Top20按八件原始装备 ID 与承音实现状态去重；高级设置、最终面板和词条汇总均使用转换后的词条。
+   - 方案字段 `transmutationSelections` 保存非破坏性覆盖层。使用规划结果不会修改装备库原词条或真实转律状态；切换方案后按覆盖层计算并显示模拟操作清单。
+   - 完整备份版本保持 `schemaVersion: 2`，方案白名单校验并恢复转律选择；旧方案无此字段时按无覆盖处理。
 
 主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`isTransmutableEquip`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
+
+最佳配装转律保护标记：`bestBuildTransmutationMode`、`best-build-transmutation-mode`、`transmutationSelections`、`applySchemeTransmutationSelections`、`getTransmutationStateDigest`、`sourceEquipId`、`待转律规划`。
 
 同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
 
@@ -101,9 +109,10 @@
 | 最佳配装算法选择 | `bestBuildAlgorithmId`、`best-build-algorithm-select`、`runBestBuildAlgorithm` | 最佳配装页根据算法注册中心动态生成下拉框；普通搜索和指定转律搜索通过统一算法入口分派，缓存键包含算法 ID。 |
 | 默认遍历性能优化 | `compileBestBuildEquip`、`calculateBestBuildCompiled`、`needChengyinCount`、最小堆 | 默认遍历预编译装备稀疏属性向量，搜索栈只传递装备索引并提前剪掉超过承音上限的分支；Top 200 使用固定容量最小堆维护，完整装备对象仅在候选入榜时生成。 |
 | 词条数量限制与剪枝 | `statCountLimits`、`candidateStatCounts`、`suffixCountMin`、`suffixCountMax` | 高级设置可按主副词条条数设置最少、最多或固定数量；搜索前检查理论可达范围，DFS 中按剩余最少/最多条数提前剪枝，定音不计数，转律按最终副词条计数。 |
+| 最佳配装转律三模式 | `bestBuildTransmutationMode`、`best-build-transmutation-mode`、`transmutationSelections` | 搜索可关闭转律、优化已转律或同时规划待转律；结果按物理装备与承音状态去重，方案用非破坏性覆盖层恢复计算。 |
 | 需承音数量展示 | `needChengyinCount`、`需承音` | 每套最佳方案显示 `需承音：N 件`。 |
 | `(承音)` / `(需承音)` 区分 | `id.toString().includes("_chengyin")` | 原本已有承音显示 `(承音)`，系统模拟的承音版显示 `(需承音)`。 |
-| 最佳配装 Top20 | `top10Builds: o.slice(0, 20)` | 上游通常保留前 10 套，本站保留前 20 套并支持切换。 |
+| 最佳配装 Top20 | `top10Builds: t.slice(0, 20)` | 上游通常保留前 10 套，本站按基础装备去重后保留前 20 套并支持切换。 |
 | 最佳配装词条汇总调用 | `renderBuildStatsSummary`、`window.TiaolvLocalCustomizations` | 在最佳配装方案模板末尾（`.best-build-equips` 关闭后）插入词条汇总区块，调用 `local-customizations.js` 中的同名函数。 |
 | 统计文字位置调整 | `共检查了`、`border-bottom` | 将"共检查了 N 种装备组合，找到 N 套最佳方案"从横线下方移至横线上方（`border-top` 改为 `border-bottom`），并缩小下方空白（`margin-top: 15px; padding-bottom: 8px`）。 |
 | 装备库排序功能 | `sortDB`、`currentSort`、`sortSelect`、`filterDB` | 新增 `sortDB` 函数和 `AppState.currentSort` 状态，在 `filterDB` 的四个非 equipped 返回点包裹 `sortDB`，绑定 `#sort-select` 下拉框事件。排序规则：等级降序 → 同等级金先紫后 → 同等级同色非承音先承音后 → 按首词条种类（大外/小外/精准率/会心率/会意率/劲/敏/势/神力）。`index.html` 中需保留 `<select id="sort-select">` 元素。 |

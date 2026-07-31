@@ -214,7 +214,7 @@
     var SCHEME_FIELDS = [
         "name", "bowType", "setType", "flowVersion", "xinfa", "earlySeasonBonus",
         "PVPMode", "loanDingyin", "loanDingyinValue", "classInputOverrides",
-        "armory", "advancedSettings"
+        "armory", "advancedSettings", "transmutationSelections"
     ];
 
     function isPlainObject(value) {
@@ -402,7 +402,25 @@
         });
         SCHEME_FIELDS.forEach(function(field) {
             if (Object.prototype.hasOwnProperty.call(scheme, field)) {
-                result[field] = cloneSafeJson(scheme[field]);
+                if ("transmutationSelections" === field) {
+                    if (!isPlainObject(scheme[field])) throw new Error("方案转律选择格式错误");
+                    var selections = {};
+                    Object.keys(scheme[field]).forEach(function(equipId) {
+                        if (!isSafeObjectKey(equipId) || !validEquipIds.has(String(equipId))) return;
+                        var selection = scheme[field][equipId];
+                        if (!isPlainObject(selection)
+                            || !Number.isInteger(selection.subStatIndex)
+                            || selection.subStatIndex < 0
+                            || "string" != typeof selection.targetStat
+                            || !selection.targetStat) return;
+                        selections[equipId] = {
+                            subStatIndex: selection.subStatIndex,
+                            targetStat: selection.targetStat,
+                            planned: true === selection.planned
+                        };
+                    });
+                    result[field] = selections;
+                } else result[field] = cloneSafeJson(scheme[field]);
             }
         });
         return result;
