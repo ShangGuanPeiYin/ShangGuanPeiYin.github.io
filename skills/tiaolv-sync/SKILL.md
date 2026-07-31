@@ -19,7 +19,7 @@ That file is the source of truth for local features that must survive upstream s
 
 ## Workflow
 
-1. Treat `study/new/new/yysls.leoq7.com/` as the latest upstream snapshot, and `study/new/old/yysls.leoq7.com/` as the previous snapshot.
+1. Treat `study/new/yysls.leoq7.com/` as the latest upstream snapshot, and `study/old/yysls.leoq7.com/` as the previous snapshot.
 2. Treat `static/tools/yysls-tiaolv/` as the live customized site.
 3. Never directly overwrite `static/tools/yysls-tiaolv/` with the `study` directory.
 4. Prefer syncing upstream-generated/runtime files only after comparing changes.
@@ -42,6 +42,12 @@ That file is the source of truth for local features that must survive upstream s
    - `renderBuildStatsSummary` call in best-build solution template;
    - cancel-search support (`bestBuildCancelled`);
    - stats text above border line (`border-bottom`).
+   - full-backup scheme field `transmutationSelections` and its whitelist validation;
+   - three best-build transmutation modes (`bestBuildTransmutationMode` / `best-build-transmutation-mode`);
+   - physical equipment identity and deduplication (`getOriginalEquipId` / `sourceEquipId`);
+   - non-destructive scheme overlay (`applySchemeTransmutationSelections` / `scheme-transmutation-summary`);
+   - transmutation-aware cache digest (`getTransmutationStateDigest`);
+   - removed transmutation-CD reverse guards.
 7. **Always update the WASM binary** when the upstream JS files change. Check the `ASSET_VERSION` constant in `excel-runtime.js` — if it differs from the previous snapshot, the WASM must also be updated:
    ```bash
    curl -L "https://yysls.leoq7.com/assets/wasm/yysls_calc.wasm?v=<ASSET_VERSION>" \
@@ -65,5 +71,9 @@ At minimum, the checker should pass. For larger syncs, also inspect the page in 
 - best-build results show `需承音：N 件`;
 - best-build results still distinguish `(承音)` from `(需承音)`;
 - best-build result navigation can show up to 20 retained builds.
+- all three transmutation search modes render and retain their selection per account;
+- a scheme transmutation selection changes the calculated panel without mutating the equipment database;
+- Top20 does not contain entries that differ only by transmutation target;
+- old backups without `transmutationSelections` still import, while new backups round-trip that field.
 
 If code or content changed and validation passes, publish using the project publishing rule in `AGENTS.md`.

@@ -1,6 +1,6 @@
 # 调率站本地定制清单
 
-本文记录本站相对 `study/new/new/yysls.leoq7.com/` 上游快照保留的本地定制功能。同步上游更新时，不要直接覆盖 `static/tools/yysls-tiaolv/`；应先对照本清单，保留或重新应用这些改动。
+本文记录本站相对 `study/new/yysls.leoq7.com/` 上游快照保留的本地定制功能。同步上游更新时，不要直接覆盖 `static/tools/yysls-tiaolv/`；应先对照本清单，保留或重新应用这些改动。
 
 ## 外置扩展脚本
 
@@ -33,7 +33,9 @@
    - 三率、五维、当前流派攻击、神力使用快捷专栏；无关武器增效不会显示或参与计算。
    - 神力专栏底部提供弓箭选择，支持精准弓、会心弓和会意弓；选择结果与当前装备方案同步并立即重算。
    - PVE 隐藏对玩家单位增效，PVP 显示；单体/群体奇术增伤保留在“其他词条”中。
+   - 神力数量遵守装备来源上限：对首领单位增伤最多2条、全武学增效最多2条、同一种具体武器增效最多1条；双武器流派可分别选择两种不同武器增效。
    - 毕业率数值使用现有 `metric-gold` 金色样式；数量模式与直接填写模式使用独立结果节点，完整计算后同步渲染，避免旧防抖任务造成数字闪动。
+   - 数量模式沿用当前方案的赛季、PVP、心法、套装、武库、高级参数和“贷款定音”；勾选贷款定音后，其外穿与增伤数值必须进入最终面板和毕业率。
 3. **真实装备可实现性校验（按词条数量模式）**
    - 统一分配器 `allocateManualStatCounts` / `runManualStatMinCostFlow` 将用户填写的总数量映射到 8 件装备，容量固定为首词条 `8`、副词条 `32`、普通词条合计 `40`，并优先寻找占用首词条最少的合法方案。
    - 每件装备最多 1 个首词条、4 个副词条；同一种属性在同一件装备上最多占一个副词条，但允许同件装备的首词条和副词条为同一种属性。
@@ -43,6 +45,7 @@
    - 每行上限随当前组合动态变化，达到上限时禁用加号；非法增加只降低本次修改的词条，并提示争用属性、所需首词条数和可用部位数。
    - 页脚实时显示 `首词条 N/8`、`副词条 N/32`、`普通词条 N/40`；不足 40 条的空位视为无输出收益或生存词条。
    - 理论装备、毕业率和右侧最终面板统一使用合法分配结果；三率白值溢出直接使用最终面板结果。增减词条、切换组合、弓箭、满值/承音值和流派时同步重算。
+   - 三率溢出提示沿用主页口径，直接读取最终面板结果；当前换算为 `溢出白值 = 超限黄值 × 2.15`，不得从已格式化DOM反推。
    - 旧组合保持原存储字段和备份格式，载入时按原字段顺序迁移；后出现的冲突词条降至合法数量并显示调整提示。
 4. **词条组合方案**
    - 每个角色、流派和流派版本可保存最多 50 套命名组合。
@@ -69,6 +72,40 @@
    - Top20按八件原始装备 ID 与承音实现状态去重；高级设置、最终面板和词条汇总均使用转换后的词条。
    - 方案字段 `transmutationSelections` 保存非破坏性覆盖层。使用规划结果不会修改装备库原词条或真实转律状态；切换方案后按覆盖层计算并显示模拟操作清单。
    - 完整备份版本保持 `schemaVersion: 2`，方案白名单校验并恢复转律选择；旧方案无此字段时按无覆盖处理。
+
+### 2026-08-01 新增定制
+
+1. **最佳配装转律三模式**
+   - 页面必须同时保留三个选项：`不考虑转律`、`自动优化已转律装备`、`同时规划待转律装备`；默认关闭转律，并使用 `best_build_transmutation_mode_<account>` 按角色记住上次选择，不写入装备方案。
+   - 已转律模式只为 `zhuanlv_status_<account>` 中指定的副词条槽位生成变体；规划模式还会遍历待转律装备的所有有效副词条槽位。原词条始终保留为候选。
+   - 转律目标只取当前流派武库的合法词条；替换后同一装备的副词条不得重复，首词条与副词条允许相同。非110级或未勾选 `isTransmutable` 的装备不得生成变体，110级承音装备不受排除。
+2. **物理装备互斥、承音继承与Top20去重**
+   - `getOriginalEquipId` 将原装、`_chengyin` 和 `_trans_...` 变体归并到同一个物理装备 ID；DFS 必须阻止同一物理装备同时占据两个槽位。
+   - 系统“需承音”形态继承原装备的可转律资格和槽位状态，并继续受 `maxNeedChengyin` 限制。
+   - Excel复核后以“八件原装备 ID + 各自是否需承音”为键去重，转律目标不进入去重键；同一基础配装只保留毕业率最高的转律组合，再取Top20。
+3. **转律搜索结果与方案保存**
+   - 每条结果元数据保留 `sourceEquipId / slotKey / subStatIndex / fromStat / toStat / planned`，结果页显示已转律或待转律规划、逐件变化、使用数量和需承音数量。
+   - 点击“使用该方案”只把最终选择写入当前方案的 `transmutationSelections`，不能修改装备库原词条、`isTransmutable` 或真实 `zhuanlv_status`。
+   - `applySchemeTransmutationSelections` 在计算前生成临时装备覆盖层；主页最终面板、Excel毕业率和方案提示必须读取覆盖后的装备。失效资格、槽位、目标或装备引用回退原词条，并在 `#scheme-transmutation-summary` 提示。
+   - 待转律规划后来完成且指定槽位一致时，展示为已完成切换；槽位不一致时不得擅自迁移规划。
+4. **完整备份与缓存联动**
+   - `SCHEME_FIELDS` 必须包含 `transmutationSelections`；导入时只接受现有装备 ID、非负整数 `subStatIndex`、非空 `targetStat` 和布尔语义的 `planned`，旧方案缺失字段时兼容为空。
+   - `getTransmutationStateDigest` 必须进入最佳配装缓存键；装备等级、资格、承音状态、指定槽位或副词条类型变化后，旧搜索结果不得复用。
+   - 完整备份仍不得恢复已删除的转律CD字段，也不得导出最佳40、搜索结果等可重建缓存。
+
+### 跨文件依赖与同步顺序
+
+以下功能不能只保留单个关键词，必须作为一组同步：
+
+| 功能链 | 必须同时保留 |
+| --- | --- |
+| 完整迁移 | `local-customizations.js` 的备份白名单、方案校验与恢复事务；`app.min.js` 的方案字段读写；`index.html` 的备份按钮和脚本版本号 |
+| 词条数量模式 | 数量输入UI、真实分配器、词条组合存储、独立结果节点、最终面板、弓箭同步、贷款定音环境和完整备份中的手动数据 |
+| 转律资格 | `index.html` 的“可转律”控件、装备字段 `isTransmutable`、`zhuanlv_status_<account>` 槽位记录、迁移函数、卡片徽标和110级显示规则 |
+| 最佳配装自动转律 | 三模式选择器、候选生成、物理ID互斥、转律元数据、Top20去重、方案覆盖层、主页计算、备份白名单和方案提示节点 |
+| 已删除转律CD | 页面入口、运行时、存储、备份字段均保持不存在，同时保留一次性历史数据清理迁移 |
+
+同步完成后必须运行 `check_tiaolv_customizations.sh`；若任何一组只恢复了一部分，即使JavaScript语法和Hugo构建成功，也视为同步失败。
 
 主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`isTransmutableEquip`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
 

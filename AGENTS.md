@@ -63,6 +63,8 @@ Pay special attention to preserving:
 - `static/tools/yysls-tiaolv/assets/js/local-customizations.js`;
 - the `index.html` script tag that loads `local-customizations.js`;
 - local customizations embedded in `app.min.js`: equipment levels, JSON import/export, max-needed-Chengyin filtering, `(承音)` / `(需承音)` distinction, needed-Chengyin count display, Top20 best-build results, `renderBuildStatsSummary` call, cancel-search support, stats text above border line.
+- best-build transmutation integration: three search modes, `getOriginalEquipId` physical-equipment mutual exclusion, transmutation-aware cache digest, Chengyin-state Top20 deduplication, result metadata, and non-destructive `transmutationSelections` scheme overlays.
+- the cross-file transmutation chain: `index.html` mode/summary controls, `app.min.js` search and scheme calculation, `local-customizations.js` backup validation, and reverse guards that keep the removed transmutation-CD feature absent.
 
 **For `app.min.js`, always use the new upstream file as the base and re-apply local customizations on top** — never patch the old live file in-place. See `skills/tiaolv-sync/SKILL.md` for the recommended method (diff → patch → apply).
 
