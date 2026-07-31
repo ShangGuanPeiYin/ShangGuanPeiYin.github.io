@@ -1001,12 +1001,33 @@
                 });
                 if (prunedIrrelevantWeaponStat) saveConfig();
                 categoryPanels.innerHTML = categories.map(function(category) {
+                    var bowSelector = "神力" === category.title
+                        ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);">'
+                            + '<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--text-main);font-size:.88rem;">'
+                            + '<span>弓箭选择</span>'
+                            + '<select id="grad-manual-bow-select" class="stat-select" style="flex:1;max-width:150px;">'
+                            + '<option value="precision">精准弓</option>'
+                            + '<option value="crit">会心弓</option>'
+                            + '<option value="intent">会意弓</option>'
+                            + '</select></label></div>'
+                        : "";
                     return '<section style="padding:10px;background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.07);border-radius:7px;">'
                         + '<h4 style="margin:0 0 8px;color:var(--gold);font-size:.95rem;">' + category.title + '</h4>'
                         + '<div style="display:flex;flex-direction:column;gap:6px;">'
                         + category.stats.map(function(stat) { return statCountRowHtml(stat, true); }).join("")
-                        + '</div></section>';
+                        + '</div>' + bowSelector + '</section>';
                 }).join("");
+                var manualBowSelect = categoryPanels.querySelector("#grad-manual-bow-select");
+                if (manualBowSelect) {
+                    manualBowSelect.value = UIManager.dom.bowSelect ? UIManager.dom.bowSelect.value : "precision";
+                    manualBowSelect.addEventListener("change", function() {
+                        if (UIManager.dom.bowSelect) {
+                            UIManager.dom.bowSelect.value = this.value;
+                            UIManager.dom.bowSelect.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                        applyCountPanel();
+                    });
+                }
                 var otherOptions = getManualStatCountOptions().filter(function(stat) {
                     return !fixedStats.has(stat) && (!allWeaponStats.has(stat) || relevantWeaponStats.has(stat));
                 });
