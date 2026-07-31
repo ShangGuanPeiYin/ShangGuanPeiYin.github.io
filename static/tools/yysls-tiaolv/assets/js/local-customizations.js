@@ -546,27 +546,202 @@
         });
     }
 
-    function getManualStatCountLimit(stat) {
-        if ("对首领单位增伤" === stat || "全武学增效" === stat) return 2;
-        var isWeaponEnhancement = (CommonData.WEAPON_TYPES || []).some(function(weapon) {
-            return weapon && weapon.stat === stat;
+    function getManualStatSlotModel() {
+        var className = window.GradModal && GradModal.state && GradModal.state.currentClass
+            || window.UIManager && UIManager.dom && UIManager.dom.classSelect && UIManager.dom.classSelect.value || "";
+        var ruleClass = "裂石钧（纯唐）" === className ? "裂石钧" : className;
+        var weaponRules = window.ClassConfig && ClassConfig.WEAPON_RULES && ClassConfig.WEAPON_RULES[ruleClass] || [];
+        var baseSubStats = new Set(CommonData.BASE_SUB_STATS || []);
+        return MANUAL_STAT_SLOT_KEYS.map(function(slotKey, index) {
+            var slotId = MANUAL_STAT_SLOT_IDS[slotKey];
+            var weaponTypeId = "1" === slotId ? String(weaponRules[index] || "") : "";
+            var subStats = new Set(baseSubStats);
+            if ("1" === slotId) {
+                Array.from(subStats).forEach(function(stat) {
+                    if (/^(最小|最大)(鸣金|裂石|牵丝|破竹)攻击$/.test(stat)) subStats.delete(stat);
+                });
+                var weapon = (CommonData.WEAPON_TYPES || []).find(function(item) {
+                    return item && String(item.id) === weaponTypeId;
+                });
+                if (weapon && weapon.stat) subStats.add(weapon.stat);
+                subStats.add("最大无相攻击");
+                subStats.add("最小无相攻击");
+            }
+            if (["3", "4"].includes(slotId)) subStats.add("全武学增效");
+            if (["5", "6"].includes(slotId)) {
+                subStats.add("单体类奇术增伤");
+                subStats.add("群体类奇术增伤");
+            }
+            if (["7", "8"].includes(slotId)) {
+                subStats.add("对首领单位增伤");
+                subStats.add("对玩家单位增效");
+            }
+            return {
+                key: slotKey,
+                slotId: slotId,
+                weaponTypeId: weaponTypeId,
+                mainStats: new Set(CommonData.MAIN_STAT_RULES[slotId] || []),
+                subStats: subStats
+            };
         });
-        return isWeaponEnhancement ? 1 : MANUAL_STAT_COUNT_MAX;
+    }
+
+    function runManualStatMinCostFlow(counts, slotModel) {
+        var stats = Object.keys(counts || {}).filter(function(stat) {
+            return Number(counts[stat]) > 0;
+        });
+        var source = 0;
+        var statOffset = 1;
+        var mainOffset = statOffset + stats.length;
+        var subOffset = mainOffset + slotModel.length;
+        var sink = subOffset + slotModel.length;
+        var graph = Array.from({ length: sink + 1 }, function() { return []; });
+        function addEdge(from, to, capacity, cost, kind, stat, slotIndex) {
+            var forward = { to: to, rev: graph[to].length, cap: capacity, original: capacity, cost: cost, kind: kind, stat: stat, slotIndex: slotIndex };
+            var reverse = { to: from, rev: graph[from].length, cap: 0, original: 0, cost: -cost };
+            graph[from].push(forward);
+            graph[to].push(reverse);
+        }
+        stats.forEach(function(stat, statIndex) {
+            addEdge(source, statOffset + statIndex, Number(counts[stat]) || 0, 0);
+            slotModel.forEach(function(slot, slotIndex) {
+                if (slot.mainStats.has(stat)) addEdge(statOffset + statIndex, mainOffset + slotIndex, 1, 1, "main", stat, slotIndex);
+                if (slot.subStats.has(stat)) addEdge(statOffset + statIndex, subOffset + slotIndex, 1, 0, "sub", stat, slotIndex);
+            });
+        });
+        slotModel.forEach(function(slot, slotIndex) {
+            addEdge(mainOffset + slotIndex, sink, 1, 0);
+            addEdge(subOffset + slotIndex, sink, 4, 0);
+        });
+        var target = stats.reduce(function(total, stat) { return total + (Number(counts[stat]) || 0); }, 0);
+        var flow = 0;
+        var cost = 0;
+        while (flow < target) {
+            var distance = Array(graph.length).fill(Infinity);
+            var previousNode = Array(graph.length).fill(-1);
+            var previousEdge = Array(graph.length).fill(-1);
+            var inQueue = Array(graph.length).fill(false);
+            var queue = [source];
+            distance[source] = 0;
+            inQueue[source] = true;
+            while (queue.length) {
+                var node = queue.shift();
+                inQueue[node] = false;
+                graph[node].forEach(function(edge, edgeIndex) {
+                    if (edge.cap <= 0 || distance[edge.to] <= distance[node] + edge.cost) return;
+                    distance[edge.to] = distance[node] + edge.cost;
+                    previousNode[edge.to] = node;
+                    previousEdge[edge.to] = edgeIndex;
+                    if (!inQueue[edge.to]) {
+                        queue.push(edge.to);
+                        inQueue[edge.to] = true;
+                    }
+                });
+            }
+            if (!Number.isFinite(distance[sink])) break;
+            var add = target - flow;
+            for (var walk = sink; walk !== source; walk = previousNode[walk]) {
+                add = Math.min(add, graph[previousNode[walk]][previousEdge[walk]].cap);
+            }
+            for (var cursor = sink; cursor !== source; cursor = previousNode[cursor]) {
+                var edge = graph[previousNode[cursor]][previousEdge[cursor]];
+                edge.cap -= add;
+                graph[cursor][edge.rev].cap += add;
+            }
+            flow += add;
+            cost += add * distance[sink];
+        }
+        var assignments = slotModel.map(function() { return { main: null, subs: [] }; });
+        stats.forEach(function(stat, statIndex) {
+            graph[statOffset + statIndex].forEach(function(edge) {
+                if (!edge.kind || edge.original <= 0 || edge.cap !== 0) return;
+                if ("main" === edge.kind) assignments[edge.slotIndex].main = stat;
+                else assignments[edge.slotIndex].subs.push(stat);
+            });
+        });
+        return { flow: flow, target: target, mainCount: cost, subCount: flow - cost, assignments: assignments };
+    }
+
+    function explainManualStatAllocationFailure(counts, slotModel) {
+        var total = Object.values(counts || {}).reduce(function(sum, count) { return sum + (Number(count) || 0); }, 0);
+        if (total > MANUAL_STAT_COUNT_MAX) return "普通词条总数最多 40 条";
+        for (var stat of Object.keys(counts || {})) {
+            var mainCapacity = slotModel.filter(function(slot) { return slot.mainStats.has(stat); }).length;
+            var subCapacity = slotModel.filter(function(slot) { return slot.subStats.has(stat); }).length;
+            if (Number(counts[stat]) > mainCapacity + subCapacity) {
+                return stat + "最多 " + (mainCapacity + subCapacity) + " 条（首词条 " + mainCapacity + "、副词条 " + subCapacity + "）";
+            }
+        }
+        var forcedMainStats = Object.keys(counts || {}).map(function(stat) {
+            var subCapacity = slotModel.filter(function(slot) { return slot.subStats.has(stat); }).length;
+            return {
+                stat: stat,
+                required: Math.max(0, Number(counts[stat]) - subCapacity),
+                slots: slotModel.map(function(slot, index) {
+                    return slot.mainStats.has(stat) ? index : -1;
+                }).filter(function(index) { return index >= 0; })
+            };
+        }).filter(function(item) { return item.required > 0; });
+        for (var mask = 1; mask < (1 << forcedMainStats.length); mask++) {
+            var required = 0;
+            var slots = new Set();
+            var names = [];
+            forcedMainStats.forEach(function(item, index) {
+                if (!(mask & (1 << index))) return;
+                required += item.required;
+                names.push(item.stat);
+                item.slots.forEach(function(slotIndex) { slots.add(slotIndex); });
+            });
+            if (required > slots.size) {
+                return names.join("、") + "至少需要 " + required
+                    + " 个首词条，但共同可用部位只有 " + slots.size + " 个";
+            }
+        }
+        return "当前词条会争用相同的首词条或副词条部位，无法同时实现";
+    }
+
+    function allocateManualStatCounts(counts) {
+        var slotModel = getManualStatSlotModel();
+        var result = runManualStatMinCostFlow(counts || {}, slotModel);
+        result.valid = result.flow === result.target && result.target <= MANUAL_STAT_COUNT_MAX;
+        result.slotModel = slotModel;
+        result.reason = result.valid ? "" : explainManualStatAllocationFailure(counts || {}, slotModel);
+        return result;
+    }
+
+    function getManualStatCountLimit(stat, counts) {
+        var base = { ...(counts || {}) };
+        var oldCount = Number(base[stat]) || 0;
+        var otherTotal = Object.values(base).reduce(function(total, count) { return total + (Number(count) || 0); }, 0) - oldCount;
+        var max = Math.max(0, MANUAL_STAT_COUNT_MAX - otherTotal);
+        for (var count = max; count >= 0; count--) {
+            if (count > 0) base[stat] = count;
+            else delete base[stat];
+            if (allocateManualStatCounts(base).valid) return count;
+        }
+        return 0;
     }
 
     function normalizeManualStatCountConfig(config) {
         config = isPlainObject(config) ? config : {};
         var allowed = new Set(getManualStatCountOptions());
-        function normalizeCounts(source) {
+        var migrationAdjustments = [];
+        function normalizeCounts(source, label) {
             var counts = {};
             var total = 0;
             if (!isPlainObject(source)) return counts;
             Object.keys(source).forEach(function(stat) {
                 if (!allowed.has(stat) || total >= MANUAL_STAT_COUNT_MAX) return;
-                var count = Math.max(0, Math.floor(Number(source[stat]) || 0));
-                count = Math.min(count, getManualStatCountLimit(stat), MANUAL_STAT_COUNT_MAX - total);
-                if (count > 0) {
+                var requested = Math.max(0, Math.floor(Number(source[stat]) || 0));
+                var count = Math.min(requested, MANUAL_STAT_COUNT_MAX - total);
+                while (count > 0) {
                     counts[stat] = count;
+                    if (allocateManualStatCounts(counts).valid) break;
+                    count--;
+                }
+                if (count <= 0) delete counts[stat];
+                if (count < requested) migrationAdjustments.push((label ? label + "：" : "") + stat + " " + requested + "→" + count);
+                if (count > 0) {
                     total += count;
                 }
             });
@@ -584,7 +759,7 @@
                     id: id,
                     name: preset.name.trim().slice(0, 40),
                     valueMode: "chengyin" === preset.valueMode ? "chengyin" : "max",
-                    counts: normalizeCounts(preset.counts)
+                    counts: normalizeCounts(preset.counts, preset.name.trim().slice(0, 40))
                 });
             });
         }
@@ -593,10 +768,11 @@
         return {
             mode: "count" === config.mode ? "count" : "panel",
             valueMode: "chengyin" === config.valueMode ? "chengyin" : "max",
-            counts: normalizeCounts(config.counts),
+            counts: normalizeCounts(config.counts, "当前组合"),
             manualPanel: isPlainObject(config.manualPanel) ? cloneSafeJson(config.manualPanel) : {},
             presets: presets,
-            currentPresetId: currentPresetId
+            currentPresetId: currentPresetId,
+            migrationAdjustments: migrationAdjustments
         };
     }
 
@@ -630,30 +806,30 @@
         });
     }
 
-    function buildManualStatCountEquips(config) {
-        var expanded = [];
-        Object.keys(config.counts).forEach(function(stat) {
-            for (var i = 0; i < config.counts[stat]; i++) expanded.push(stat);
-        });
+    function buildManualStatCountEquips(config, allocation) {
+        allocation = allocation || allocateManualStatCounts(config.counts);
+        if (!allocation.valid) throw new Error(allocation.reason || "当前词条组合无法由 8 件装备实现");
         var currentEquips = window.GradModal && GradModal.state && GradModal.state.currentEquips
             || window.AppState && AppState.equippedItems || {};
         var result = {};
         MANUAL_STAT_SLOT_KEYS.forEach(function(slotKey, slotIndex) {
-            var stats = expanded.slice(slotIndex * 5, slotIndex * 5 + 5);
+            var assignment = allocation.assignments[slotIndex] || { main: null, subs: [] };
+            var slot = allocation.slotModel[slotIndex];
             var currentEquip = currentEquips[slotKey];
-            var mainType = stats[0] || "生存类词条";
+            var mainType = assignment.main || "生存类词条";
             result[slotKey] = {
                 id: "manual-stat-count-" + slotKey,
                 slotId: MANUAL_STAT_SLOT_IDS[slotKey],
+                weaponTypeId: slot && slot.weaponTypeId || "",
                 name: "词条数量模拟装备",
                 isChengyin: false,
                 isPurple: false,
                 mainStat: {
                     type: mainType,
-                    value: stats.length ? manualStatTargetValue(mainType, config.valueMode) : 0,
+                    value: assignment.main ? manualStatTargetValue(mainType, config.valueMode) : 0,
                     isPercent: CommonData.PERCENT_STATS.includes(mainType)
                 },
-                subStats: stats.slice(1).map(function(stat) {
+                subStats: assignment.subs.map(function(stat) {
                     return {
                         type: stat,
                         value: manualStatTargetValue(stat, config.valueMode),
@@ -667,7 +843,7 @@
         return result;
     }
 
-    function calculateManualStatCountPanel(config) {
+    function calculateManualStatCountPanel(config, allocation) {
         if ("undefined" == typeof Calculator || "function" != typeof Calculator.calculateTotal) {
             throw new Error("毕业率计算器尚未初始化");
         }
@@ -675,7 +851,7 @@
         var bow = UIManager.dom.bowSelect ? UIManager.dom.bowSelect.value : "";
         var setName = UIManager.dom.setSelect ? UIManager.dom.setSelect.value : "";
         return Calculator.calculateTotal(
-            buildManualStatCountEquips(config),
+            buildManualStatCountEquips(config, allocation),
             className,
             bow,
             AppState.currentXinfaLoadout || [],
@@ -907,6 +1083,8 @@
 
             var stored = this.loadManualFormData();
             var config = normalizeManualStatCountConfig(stored[MANUAL_STAT_COUNT_CONFIG_KEY]);
+            var migrationAdjustments = config.migrationAdjustments || [];
+            delete config.migrationAdjustments;
             var controls = document.createElement("div");
             controls.id = "grad-manual-stat-count-controls";
             controls.style.cssText = "margin:0 6px 14px;padding:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;";
@@ -944,11 +1122,11 @@
                 '    </div>',
                 '    <div id="grad-manual-stat-count-list" style="display:flex;flex-direction:column;gap:8px;margin-top:10px;"></div>',
                 '  </details>',
-                '  <div style="display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:.9rem;">',
+                '  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-top:10px;font-size:.9rem;">',
                 '    <span id="grad-manual-stat-count-message" style="color:#ff8a80;"></span>',
-                '    <span style="display:flex;align-items:center;gap:10px;color:var(--text-sub);"><button id="grad-manual-stat-clear-btn" type="button" class="secondary-btn" style="padding:4px 9px;font-size:.8rem;">清空词条</button>普通词条：<strong id="grad-manual-stat-count-total" style="color:var(--gold);">0</strong>/40</span>',
+                '    <span style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--text-sub);"><button id="grad-manual-stat-clear-btn" type="button" class="secondary-btn" style="padding:4px 9px;font-size:.8rem;">清空词条</button><span>首词条：<strong id="grad-manual-main-count-total" style="color:var(--gold);">0</strong>/8</span><span>副词条：<strong id="grad-manual-sub-count-total" style="color:var(--gold);">0</strong>/32</span><span>普通词条：<strong id="grad-manual-stat-count-total" style="color:var(--gold);">0</strong>/40</span></span>',
                 '  </div>',
-                '  <div style="margin-top:8px;color:var(--text-sub);font-size:.82rem;line-height:1.5;">不区分主词条和副词条；按理论金装换算。定音沿用当前装备，开启“贷款定音”时沿用该设置。</div>',
+                '  <div style="margin-top:8px;color:var(--text-sub);font-size:.82rem;line-height:1.5;">系统按 8 件装备自动分配首、副词条，并遵守天然部位词条池；数值按理论金装换算。定音沿用当前装备，开启“贷款定音”时沿用该设置。</div>',
                 '</div>'
             ].join("");
             container.insertBefore(controls, container.firstChild);
@@ -977,6 +1155,8 @@
             var categoryPanels = controls.querySelector("#grad-manual-stat-category-panels");
             var list = controls.querySelector("#grad-manual-stat-count-list");
             var clearButton = controls.querySelector("#grad-manual-stat-clear-btn");
+            var mainTotalElement = controls.querySelector("#grad-manual-main-count-total");
+            var subTotalElement = controls.querySelector("#grad-manual-sub-count-total");
             var totalElement = controls.querySelector("#grad-manual-stat-count-total");
             var messageElement = controls.querySelector("#grad-manual-stat-count-message");
             var panelInputs = container.querySelectorAll(".grad-manual-input");
@@ -1033,7 +1213,9 @@
 
             function applyCountPanel() {
                 try {
-                    var panel = calculateManualStatCountPanel(config);
+                    var allocation = allocateManualStatCounts(config.counts);
+                    if (!allocation.valid) throw new Error(allocation.reason);
+                    var panel = calculateManualStatCountPanel(config, allocation);
                     // 数量模式只复用隐藏输入框展示换算值，不触发原手填模式的二次计算。
                     writeManualPanelInputs(container, panel, false);
                     renderManualStatCountPanel(panel);
@@ -1054,11 +1236,22 @@
                 var oldCount = config.counts[stat] || 0;
                 var otherTotal = manualStatCountTotal(config) - oldCount;
                 requested = Math.max(0, Math.floor(Number(requested) || 0));
-                var statLimit = getManualStatCountLimit(stat);
                 var allowed = Math.max(0, MANUAL_STAT_COUNT_MAX - otherTotal);
-                if (requested > statLimit) showMessage(stat + "最多 " + statLimit + " 条");
-                else if (requested > allowed) showMessage("普通词条总数最多 40 条");
-                var nextCount = Math.min(requested, statLimit, allowed);
+                var nextCount = Math.min(requested, allowed);
+                var candidate = { ...config.counts };
+                var rejectedReason = requested > allowed ? "普通词条总数最多 40 条" : "";
+                while (nextCount >= 0) {
+                    if (nextCount > 0) candidate[stat] = nextCount;
+                    else delete candidate[stat];
+                    var allocation = allocateManualStatCounts(candidate);
+                    if (allocation.valid) break;
+                    if (!rejectedReason) rejectedReason = allocation.reason;
+                    nextCount--;
+                }
+                nextCount = Math.max(0, nextCount);
+                if (nextCount < requested) {
+                    showMessage((rejectedReason || stat + "受装备部位限制") + "，已调整为 " + nextCount + " 条");
+                }
                 if (nextCount > 0) config.counts[stat] = nextCount;
                 else delete config.counts[stat];
                 saveConfig();
@@ -1069,7 +1262,7 @@
             function statCountRowHtml(stat, fixed) {
                 var value = manualStatTargetValue(stat, config.valueMode);
                 var count = config.counts[stat] || 0;
-                var statLimit = getManualStatCountLimit(stat);
+                var statLimit = getManualStatCountLimit(stat, config.counts);
                 var suffix = CommonData.PERCENT_STATS.includes(stat) ? "%" : "";
                 return '<div class="grad-manual-stat-count-row" data-stat="' + escapeManualStatText(stat) + '" data-fixed="' + (fixed ? "true" : "false") + '" style="display:grid;grid-template-columns:minmax(95px,1fr) 28px 48px 28px' + (fixed ? "" : " 28px") + ';gap:5px;align-items:center;padding:7px;background:rgba(0,0,0,.2);border-radius:6px;">'
                     + '<span style="color:var(--text-main);font-size:.88rem;">' + escapeManualStatText(stat) + '</span>'
@@ -1137,7 +1330,10 @@
                 list.innerHTML = otherStats.length
                     ? otherStats.map(function(stat) { return statCountRowHtml(stat, false); }).join("")
                     : '<div style="padding:8px;text-align:center;color:var(--text-sub);font-size:.84rem;">暂无其他词条</div>';
-                totalElement.textContent = manualStatCountTotal(config);
+                var allocation = allocateManualStatCounts(config.counts);
+                mainTotalElement.textContent = allocation.mainCount;
+                subTotalElement.textContent = allocation.subCount;
+                totalElement.textContent = allocation.target;
                 renderPresetSelect();
                 controls.querySelectorAll(".grad-manual-stat-count-row").forEach(function(row) {
                     var stat = row.dataset.stat;
@@ -1261,6 +1457,11 @@
                 applyCountPanel();
             });
 
+            if (migrationAdjustments.length) {
+                saveConfig();
+                showMessage("旧组合已按装备限制调整：" + migrationAdjustments.slice(0, 3).join("；")
+                    + (migrationAdjustments.length > 3 ? "；另有 " + (migrationAdjustments.length - 3) + " 项" : ""));
+            }
             renderCountList();
             updateMode();
         };
@@ -1940,6 +2141,7 @@
     api.downloadJsonDataAsFile = downloadJsonDataAsFile;
     api.handleJsonFileImport = handleJsonFileImport;
     api.renderBuildStatsSummary = renderBuildStatsSummary;
+    api.allocateManualStatCounts = allocateManualStatCounts;
     api.loadZhuanlvMap = loadZhuanlvMap;
     api.refreshAllZhuanlvBadges = refreshAllZhuanlvBadges;
 
