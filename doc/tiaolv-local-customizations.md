@@ -78,11 +78,11 @@
 1. **最佳配装转律三模式**
    - 页面必须同时保留三个选项：`不考虑转律`、`自动优化已转律装备`、`同时规划待转律装备`；默认关闭转律，并使用 `best_build_transmutation_mode_<account>` 按角色记住上次选择，不写入装备方案。
    - 已转律模式只为 `zhuanlv_status_<account>` 中指定的副词条槽位生成变体；规划模式还会遍历待转律装备的所有有效副词条槽位。原词条始终保留为候选。
-   - 转律目标只取当前流派武库的合法词条；替换后同一装备的副词条不得重复，首词条与副词条允许相同。非110级或未勾选 `isTransmutable` 的装备不得生成变体，110级承音装备不受排除。
+   - 转律目标允许从全部流派武库选择；其中流派属性攻击只保留当前流派对应种类。替换后同一装备的副词条不得重复，首词条与副词条允许相同。非110级或未勾选 `isTransmutable` 的装备不得生成变体，110级承音装备不受排除。
 2. **物理装备互斥、承音继承与Top20去重**
    - `getOriginalEquipId` 将原装、`_chengyin` 和 `_trans_...` 变体归并到同一个物理装备 ID；DFS 必须阻止同一物理装备同时占据两个槽位。
    - 系统“需承音”形态继承原装备的可转律资格和槽位状态，并继续受 `maxNeedChengyin` 限制。
-   - Excel复核后以“八件原装备 ID + 各自是否需承音”为键去重，转律目标不进入去重键；同一基础配装只保留毕业率最高的转律组合，再取Top20。
+   - 候选堆阶段即以“八件原装备 ID + 各自是否需承音”为键去重，转律目标不进入去重键；同一基础配装持续保留快速毕业率最高的转律组合，Excel复核后再安全去重并取真正的Top20，避免重复候选提前挤占名额。
 3. **转律搜索结果与方案保存**
    - 每条结果元数据保留 `sourceEquipId / slotKey / subStatIndex / fromStat / toStat / planned`，结果页显示已转律或待转律规划、逐件变化、使用数量和需承音数量。
    - 点击“使用该方案”只把最终选择写入当前方案的 `transmutationSelections`，不能修改装备库原词条、`isTransmutable` 或真实 `zhuanlv_status`。
@@ -110,6 +110,8 @@
 主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`isTransmutableEquip`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
 
 最佳配装转律保护标记：`bestBuildTransmutationMode`、`best-build-transmutation-mode`、`transmutationSelections`、`applySchemeTransmutationSelections`、`getTransmutationStateDigest`、`sourceEquipId`、`待转律规划`。
+
+转律交互与一致性保护：装备卡片必须由主渲染器写入稳定的 `data-equip-id`，不得按名称猜测 ID；编辑弹窗中的槽位仅作为草稿，只有装备保存成功才调用 `commitZhuanlvFromModal`，取消不得写入；切换转律搜索模式前必须保留弓箭套装、忽略可用流派和承音上限等尚未执行的搜索选项；毕业率分析弹窗必须先应用当前方案的 `transmutationSelections` 覆盖层。
 
 同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
 

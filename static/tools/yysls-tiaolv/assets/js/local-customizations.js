@@ -1886,18 +1886,15 @@
         return { state: "active", subStatIndex: subStatIndex, modelVersion: TRANSMUTATION_STATUS_MODEL_VERSION };
     }
 
-    // 即时保存：用户改动时调用
+    // 表单内只维护草稿；装备真正保存成功后再一次性提交，取消编辑不得污染存储。
     function autoSaveZhuanlv() {
-        if (_currentEditEquipId) {
-            setZhuanlvForEquip(_currentEditEquipId, readZhuanlvFromForm());
-        } else {
-            _pendingZhuanlv = readZhuanlvFromForm();
-        }
+        _pendingZhuanlv = readZhuanlvFromForm();
     }
 
-    function saveZhuanlvFromModal(equipId) {
+    function commitZhuanlvFromModal(equipId) {
         var status = readZhuanlvFromForm();
         setZhuanlvForEquip(equipId, status);
+        _pendingZhuanlv = null;
         setTimeout(refreshAllZhuanlvBadges, 100);
     }
 
@@ -1941,8 +1938,7 @@
         if (section) section.style.display = enabled ? "block" : "none";
         if (!allowLevel && transmutableCheck) transmutableCheck.checked = false;
         if (!enabled) {
-            if (_currentEditEquipId) setZhuanlvForEquip(_currentEditEquipId, null);
-            else _pendingZhuanlv = null;
+            _pendingZhuanlv = null;
         }
 
     }
@@ -2086,6 +2082,7 @@
                             populateZhuanlvSection(_currentEditEquipId);
                         } else {
                             _currentEditEquipId = null;
+                            _pendingZhuanlv = null;
                         }
                     }
                 });
@@ -2104,18 +2101,6 @@
         var grid = document.getElementById("equipment-grid");
         if (grid) {
             new MutationObserver(function() {
-                // 处理 _pendingZhuanlv（新装备保存后）
-                if (_pendingZhuanlv !== null) {
-                    var pending = _pendingZhuanlv;
-                    _pendingZhuanlv = null;
-                    if ("function" === typeof getDB) {
-                        var db = getDB();
-                        if (db.length > 0) {
-                            var latest = db[db.length - 1];
-                            setZhuanlvForEquip(latest.id, pending);
-                        }
-                    }
-                }
                 setTimeout(refreshAllZhuanlvBadges, 80);
             }).observe(grid, { childList: true, subtree: true });
         } else {
@@ -2125,16 +2110,6 @@
                 if (g) {
                     _gridObserver.disconnect();
                     new MutationObserver(function() {
-                        if (_pendingZhuanlv !== null) {
-                            var pending = _pendingZhuanlv;
-                            _pendingZhuanlv = null;
-                            if ("function" === typeof getDB) {
-                                var db = getDB();
-                                if (db.length > 0) {
-                                    setZhuanlvForEquip(db[db.length - 1].id, pending);
-                                }
-                            }
-                        }
                         setTimeout(refreshAllZhuanlvBadges, 80);
                     }).observe(g, { childList: true, subtree: true });
                 }
@@ -2193,7 +2168,8 @@
     // ─────────────────────────────────────────
 
     function getAdviceStatus(equip) {
-        return normalizeZhuanlvStatus(getZhuanlvForEquip(equip && equip.id), equip);
+        var equipId = equip && ("function" === typeof getOriginalEquipId ? getOriginalEquipId(equip) : equip.id);
+        return normalizeZhuanlvStatus(getZhuanlvForEquip(equipId), equip);
     }
 
     function installTwoStateTransmutationAdvice() {
@@ -2391,6 +2367,7 @@
     api.loadZhuanlvMap = loadZhuanlvMap;
     api.getZhuanlvForEquip = getZhuanlvForEquip;
     api.refreshAllZhuanlvBadges = refreshAllZhuanlvBadges;
+    api.commitZhuanlvFromModal = commitZhuanlvFromModal;
     api.installTwoStateTransmutationAdvice = installTwoStateTransmutationAdvice;
 
     purgeRemovedTransmutationCooldownData();
