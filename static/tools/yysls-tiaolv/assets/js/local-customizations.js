@@ -1626,8 +1626,29 @@
         };
     }
 
-    function renderBuildStatsSummary(equippedItems, className) {
+    function collectEquipStatSummary(equippedItems, includeSurvival) {
         var SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
+        var statsMap = {};
+        var totalCount = 0;
+        function addStat(stat) {
+            if (!stat || !stat.type) return;
+            if (!includeSurvival && (stat.type === "生存类词条" || stat.type === "生存向")) return;
+            if (!statsMap[stat.type]) statsMap[stat.type] = { count: 0, total: 0, isPercent: !!stat.isPercent };
+            statsMap[stat.type].count += 1;
+            statsMap[stat.type].total += Number(stat.value) || 0;
+            totalCount += 1;
+        }
+        SLOT_KEYS.forEach(function(slot) {
+            var equip = equippedItems && equippedItems[slot];
+            if (!equip) return;
+            addStat(equip.mainStat);
+            (equip.subStats || []).forEach(addStat);
+            // dingyinStat intentionally not counted
+        });
+        return { statsMap: statsMap, totalCount: totalCount };
+    }
+
+    function getEquipStatCategories(className) {
         // className 由调用方（GradModal 模板）传入，回退到 AppState
         var currentClass = className || (window.AppState && window.AppState.currentClass) || "";
         var flowAttr = "";
@@ -1649,7 +1670,7 @@
             }
         });
 
-        var CATEGORIES = [
+        return [
             {
                 label: "三率",
                 stats: ["精准率", "会心率", "会意率"]
@@ -1673,29 +1694,9 @@
                 ]
             }
         ];
+    }
 
-        var statsMap = {};
-        SLOT_KEYS.forEach(function (slot) {
-            var equip = equippedItems && equippedItems[slot];
-            if (!equip) return;
-
-            var ms = equip.mainStat;
-            if (ms && ms.type && ms.type !== "生存类词条") {
-                if (!statsMap[ms.type]) statsMap[ms.type] = { count: 0, total: 0, isPercent: !!ms.isPercent };
-                statsMap[ms.type].count += 1;
-                statsMap[ms.type].total += (ms.value || 0);
-            }
-
-            (equip.subStats || []).forEach(function (ss) {
-                if (!ss || !ss.type) return;
-                if (!statsMap[ss.type]) statsMap[ss.type] = { count: 0, total: 0, isPercent: !!ss.isPercent };
-                statsMap[ss.type].count += 1;
-                statsMap[ss.type].total += (ss.value || 0);
-            });
-            // dingyinStat intentionally not counted
-        });
-
-        var ATTACK_ABBR = {
+    var EQUIP_STAT_ABBR = {
             "最大外功攻击": "大外", "最小外功攻击": "小外",
             "最大鸣金攻击": "大鸣金", "最小鸣金攻击": "小鸣金",
             "最大裂石攻击": "大裂石", "最小裂石攻击": "小裂石",
@@ -1703,10 +1704,14 @@
             "最大破竹攻击": "大破竹", "最小破竹攻击": "小破竹"
         };
 
+    function renderBuildStatsSummary(equippedItems, className) {
+        var CATEGORIES = getEquipStatCategories(className);
+        var statsMap = collectEquipStatSummary(equippedItems, false).statsMap;
+
         function renderChip(type) {
             var s = statsMap[type];
             if (!s || s.count === 0) return "";
-            var label = ATTACK_ABBR[type] || type;
+            var label = EQUIP_STAT_ABBR[type] || type;
             var totalStr = s.isPercent
                 ? (Math.round(s.total * 10) / 10) + "%"
                 : (Math.round(s.total * 10) / 10) + "";
@@ -1730,6 +1735,51 @@
             + "<div style=\"font-size:0.8rem;color:var(--text-sub);margin-bottom:8px;\">词条汇总（主+副，不含定音）</div>"
             + rows
             + "</div>";
+    }
+
+    function renderHomeStatCountSummary(equippedItems, className) {
+        var container = document.getElementById("home-stat-count-summary");
+        if (!container) return;
+        var summary = collectEquipStatSummary(equippedItems, true);
+        var statsMap = summary.statsMap;
+        if (!summary.totalCount) {
+            container.innerHTML = "";
+            container.hidden = true;
+            return;
+        }
+        var used = {};
+        var categories = getEquipStatCategories(className).map(function(category) {
+            return { label: category.label, stats: category.stats.slice() };
+        });
+        categories.forEach(function(category) {
+            category.stats.forEach(function(type) { used[type] = true; });
+        });
+        var otherStats = Object.keys(statsMap).filter(function(type) { return !used[type]; })
+            .sort(function(left, right) { return left.localeCompare(right, "zh-CN"); });
+        if (otherStats.length) categories.push({ label: "其他", stats: otherStats });
+
+        function renderCountChip(type) {
+            var stat = statsMap[type];
+            if (!stat || !stat.count) return "";
+            var label = EQUIP_STAT_ABBR[type] || type;
+            return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:4px;font-size:0.78rem;white-space:nowrap;">'
+                + '<span style="color:var(--text-main);">' + escapeManualStatText(label) + '</span>'
+                + '<span style="color:var(--gold);font-weight:700;">×' + stat.count + '</span></span>';
+        }
+
+        var rows = categories.map(function(category) {
+            var chips = category.stats.map(renderCountChip).join("");
+            if (!chips) return "";
+            return '<div style="display:grid;grid-template-columns:38px minmax(0,1fr);gap:6px;align-items:start;margin-bottom:6px;">'
+                + '<span style="font-size:0.76rem;color:var(--text-sub);padding-top:3px;">' + escapeManualStatText(category.label) + '</span>'
+                + '<div style="display:flex;flex-wrap:wrap;gap:5px;">' + chips + '</div></div>';
+        }).join("");
+        container.hidden = false;
+        container.innerHTML = '<div style="padding:10px 12px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:6px;">'
+            + '<div style="font-size:0.8rem;color:var(--text-sub);margin-bottom:8px;">词条数量（主+副，不含定音）</div>'
+            + rows
+            + '<div style="border-top:1px solid var(--border);padding-top:7px;margin-top:3px;text-align:right;font-size:0.8rem;color:var(--text-sub);">普通词条：'
+            + '<span style="color:var(--gold);font-weight:700;">' + summary.totalCount + '</span>/40</div></div>';
     }
 
     window.cancelBestBuildSearch = function () {
@@ -2362,6 +2412,8 @@
     api.downloadJsonDataAsFile = downloadJsonDataAsFile;
     api.handleJsonFileImport = handleJsonFileImport;
     api.renderBuildStatsSummary = renderBuildStatsSummary;
+    api.collectEquipStatSummary = collectEquipStatSummary;
+    api.renderHomeStatCountSummary = renderHomeStatCountSummary;
     api.allocateManualStatCounts = allocateManualStatCounts;
     api.isTransmutableEquip = isTransmutableEquip;
     api.loadZhuanlvMap = loadZhuanlvMap;
