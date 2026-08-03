@@ -2438,11 +2438,15 @@
                         var isVisible = !modal.classList.contains("hidden");
                         if (isVisible) {
                             ensureZhuanlvSection();
-                            syncZhuanlvSectionVisibility();
+                            // 延迟到下一 tick：handleEditEquip 在 openModal() 之后才设置
+                            // checkbox 等表单字段，同步执行会读取到上一次编辑的残留状态
                             var editId = document.getElementById("edit-id");
                             var id = editId ? parseInt(editId.value) : 0;
                             _currentEditEquipId = id || null;
-                            populateZhuanlvSection(_currentEditEquipId);
+                            setTimeout(function() {
+                                syncZhuanlvSectionVisibility();
+                                populateZhuanlvSection(_currentEditEquipId);
+                            }, 0);
                         } else {
                             _currentEditEquipId = null;
                             _pendingZhuanlv = null;
