@@ -334,12 +334,13 @@
         return result;
     }
 
-    function buildFullBackupPayload() {
+    function buildFullBackupPayload(options) {
+        options = options || {};
         var accountNames = parseStoredArray("game_account_list").filter(function(name) {
             return "string" == typeof name && !!name.trim();
         });
         if (!accountNames.length) {
-            alert("当前没有可备份的角色");
+            if (!options.silent) alert("当前没有可备份的角色");
             return null;
         }
         return {
@@ -537,7 +538,8 @@
         keys.forEach(function(key) { setValue(key, null); });
     }
 
-    function restoreFullBackup(payload) {
+    function restoreFullBackup(payload, options) {
+        options = options || {};
         var validated = validateFullBackup(payload);
         var existingAccounts = parseStoredArray("game_account_list").filter(function(name) {
             return "string" == typeof name && !!name;
@@ -557,7 +559,7 @@
             message += "\n\n不会覆盖现有角色。";
         }
         message += "\n\n确定恢复此完整备份吗？";
-        if (!confirm(message)) return;
+        if (!options.skipConfirm && !confirm(message)) return false;
 
         var mergedAccounts = existingAccounts.slice();
         validated.accounts.forEach(function(account) {
@@ -605,6 +607,7 @@
             : "";
         alert("完整备份恢复成功！" + warning + "\n页面将刷新以加载全部数据。");
         window.location.reload();
+        return true;
     }
 
     // JSON 导入时从 payload 中提取的 zhuanlv 记录，按 "name|slotId" 索引
@@ -2411,6 +2414,11 @@
     api.ensureJsonControls = ensureJsonControls;
     api.downloadJsonDataAsFile = downloadJsonDataAsFile;
     api.handleJsonFileImport = handleJsonFileImport;
+    api.buildFullBackupPayload = buildFullBackupPayload;
+    api.validateFullBackup = validateFullBackup;
+    api.restoreFullBackup = restoreFullBackup;
+    api.FULL_BACKUP_KIND = FULL_BACKUP_KIND;
+    api.FULL_BACKUP_SCHEMA_VERSION = FULL_BACKUP_SCHEMA_VERSION;
     api.renderBuildStatsSummary = renderBuildStatsSummary;
     api.collectEquipStatSummary = collectEquipStatSummary;
     api.renderHomeStatCountSummary = renderHomeStatCountSummary;

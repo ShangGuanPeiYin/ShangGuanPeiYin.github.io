@@ -1,0 +1,537 @@
+(function() {
+    "use strict";
+
+    var SUPABASE_URL = "https://ffxrckbhryicvhnzvldd.supabase.co";
+    var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fTjJJCzH8AsaNEw5gSfyDQ_JPfQ4Fsg";
+    var AUTO_BACKUP_DELAY_MS = 30000;
+    var AUTO_SNAPSHOT_INTERVAL_MS = 30 * 60 * 1000;
+    var HISTORY_LIMIT = 20;
+    var META_PREFIX = "tiaolv_cloud_";
+    var api = window.TiaolvLocalCustomizations;
+    var client = null;
+    var state = {
+        session: null,
+        latest: null,
+        history: [],
+        busy: false,
+        dirty: false,
+        conflict: false,
+        retryDelay: 30000,
+        backupTimer: null,
+        retryTimer: null
+    };
+    var elements = {};
+
+    function metaKey(name, userId) {
+        return META_PREFIX + name + (userId ? "_" + userId : "");
+    }
+
+    function getUserId() {
+        return state.session && state.session.user && state.session.user.id || "";
+    }
+
+    function isAutoEnabled() {
+        var userId = getUserId();
+        if (!userId) return false;
+        return localStorage.getItem(metaKey("auto", userId)) !== "0";
+    }
+
+    function hasLocalAccounts() {
+        try {
+            var accounts = JSON.parse(localStorage.getItem("game_account_list") || "[]");
+            return Array.isArray(accounts) && accounts.some(function(name) {
+                return "string" === typeof name && !!name.trim();
+            });
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function isBackupDataKey(key) {
+        if (!key || 0 === key.indexOf(META_PREFIX)) return false;
+        return "game_account_list" === key
+            || "last_selected_account" === key
+            || 0 === key.indexOf("game_equip_data_")
+            || 0 === key.indexOf("game_sim_data_")
+            || 0 === key.indexOf("zhuanlv_status_")
+            || 0 === key.indexOf("grad_manual_form_v2_");
+    }
+
+    function formatTime(value) {
+        if (!value) return "尚未备份";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "时间未知";
+        return date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function sourceLabel(source) {
+        return {
+            auto: "自动备份",
+            manual: "手动备份",
+            before_restore: "恢复前保护",
+            device_override: "本机覆盖"
+        }[source] || "历史备份";
+    }
+
+    function setStatus(message, kind) {
+        if (!elements.status) return;
+        elements.status.textContent = message;
+        elements.status.dataset.kind = kind || "normal";
+    }
+
+    function setBusy(busy) {
+        state.busy = busy;
+        [elements.loginButton, elements.logoutButton, elements.backupButton,
+            elements.restoreButton, elements.overrideButton].forEach(function(button) {
+            if (button) button.disabled = busy;
+        });
+        renderHistory();
+    }
+
+    function render() {
+        var signedIn = !!state.session;
+        if (elements.loggedOut) elements.loggedOut.classList.toggle("hidden", signedIn);
+        if (elements.loggedIn) elements.loggedIn.classList.toggle("hidden", !signedIn);
+        if (elements.account) elements.account.textContent = signedIn ? state.session.user.email : "未登录";
+        if (elements.triggerState) {
+            elements.triggerState.textContent = signedIn ? "已连接" : "未连接";
+            elements.triggerState.dataset.online = signedIn ? "true" : "false";
+        }
+        if (elements.autoToggle) elements.autoToggle.checked = signedIn && isAutoEnabled();
+        if (elements.lastBackup) {
+            var latestTime = state.latest && (state.latest.server_updated_at || state.latest.client_updated_at);
+            elements.lastBackup.textContent = formatTime(latestTime);
+        }
+        if (elements.conflict) elements.conflict.classList.toggle("hidden", !state.conflict);
+        if (elements.regularActions) elements.regularActions.classList.toggle("hidden", state.conflict);
+        renderHistory();
+    }
+
+    function renderHistory() {
+        if (!elements.history) return;
+        elements.history.textContent = "";
+        if (!state.session) {
+            var signedOut = document.createElement("p");
+            signedOut.className = "cloud-empty";
+            signedOut.textContent = "登录后可查看历史备份";
+            elements.history.appendChild(signedOut);
+            return;
+        }
+        if (!state.history.length) {
+            var empty = document.createElement("p");
+            empty.className = "cloud-empty";
+            empty.textContent = "还没有历史备份";
+            elements.history.appendChild(empty);
+            return;
+        }
+        state.history.forEach(function(item) {
+            var row = document.createElement("div");
+            row.className = "cloud-history-row";
+            var copy = document.createElement("div");
+            copy.className = "cloud-history-copy";
+            var title = document.createElement("strong");
+            title.textContent = sourceLabel(item.source);
+            var time = document.createElement("span");
+            time.textContent = formatTime(item.created_at || item.client_updated_at);
+            copy.appendChild(title);
+            copy.appendChild(time);
+            var restore = document.createElement("button");
+            restore.type = "button";
+            restore.className = "secondary-btn cloud-history-restore";
+            restore.textContent = "恢复";
+            restore.disabled = state.busy;
+            restore.addEventListener("click", function() { restoreSnapshot(item.id); });
+            row.appendChild(copy);
+            row.appendChild(restore);
+            elements.history.appendChild(row);
+        });
+    }
+
+    function injectUi() {
+        var headerControls = document.querySelector("header .header-controls");
+        if (!headerControls || document.getElementById("cloud-backup-btn")) return;
+        var trigger = document.createElement("button");
+        trigger.id = "cloud-backup-btn";
+        trigger.type = "button";
+        trigger.className = "secondary-btn cloud-trigger";
+        trigger.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .7-7.94A6 6 0 0 0 6.26 8.3 4.5 4.5 0 0 0 7 18Z"/><path d="M12 11v5m0-5-2 2m2-2 2 2"/></svg><span>云备份</span><i id="cloud-trigger-state">未连接</i>';
+        headerControls.appendChild(trigger);
+
+        var modal = document.createElement("div");
+        modal.id = "cloud-backup-modal";
+        modal.className = "modal hidden cloud-backup-modal";
+        modal.innerHTML = '<div class="modal-content cloud-panel" role="dialog" aria-modal="true" aria-labelledby="cloud-panel-title">'
+            + '<div class="modal-header cloud-panel-header"><div><span class="cloud-kicker">ACCOUNT ARCHIVE</span><h2 id="cloud-panel-title">云端备份</h2></div><button type="button" id="cloud-close-btn" class="cloud-close" aria-label="关闭">&times;</button></div>'
+            + '<div class="cloud-panel-body">'
+            + '<div id="cloud-logged-out" class="cloud-auth"><p class="cloud-lead">使用管理员创建的邮箱和密码登录。数据仍先保存在本机。</p><label for="cloud-email">邮箱</label><input id="cloud-email" type="email" autocomplete="username" inputmode="email"><label for="cloud-password">密码</label><input id="cloud-password" type="password" autocomplete="current-password"><button type="button" id="cloud-login-btn" class="primary-btn">登录</button></div>'
+            + '<div id="cloud-logged-in" class="hidden"><div class="cloud-account-line"><div><span>当前账号</span><strong id="cloud-account"></strong></div><button type="button" id="cloud-logout-btn" class="secondary-btn">退出</button></div>'
+            + '<div id="cloud-conflict" class="cloud-conflict hidden"><strong>检测到已有云端备份</strong><p>这是此账号在当前浏览器首次连接。自动上传已暂停，请选择要保留的数据。</p><div class="cloud-conflict-actions"><button type="button" id="cloud-conflict-restore" class="primary-btn">恢复云端备份</button><button type="button" id="cloud-conflict-override" class="danger-btn">以本机数据覆盖</button></div></div>'
+            + '<div id="cloud-regular-actions"><label class="cloud-toggle"><input id="cloud-auto-toggle" type="checkbox"><span>自动云端备份</span><small>本地数据变化 30 秒后上传</small></label><div class="cloud-metrics"><div><span>最新云端备份</span><strong id="cloud-last-backup">尚未备份</strong></div><div><span>保存方式</span><strong>本地优先</strong></div></div><div class="cloud-actions"><button type="button" id="cloud-backup-now" class="primary-btn">立即备份</button><button type="button" id="cloud-restore-latest" class="secondary-btn">恢复最新备份</button></div></div>'
+            + '<div class="cloud-status" id="cloud-status" aria-live="polite">等待操作</div><div class="cloud-history"><div class="cloud-section-title"><span>历史备份</span><small>最多保留 20 份</small></div><div id="cloud-history-list"></div></div></div></div></div>';
+        document.body.appendChild(modal);
+
+        var style = document.createElement("style");
+        style.textContent = '.cloud-trigger{display:inline-flex!important;align-items:center;gap:7px;white-space:nowrap}.cloud-trigger svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.cloud-trigger i{font-style:normal;font-size:10px;color:#82969d;border-left:1px solid #34505a;padding-left:7px}.cloud-trigger i[data-online="true"]{color:#78ddd7}.cloud-backup-modal{z-index:3100}.cloud-panel{width:min(92vw,620px)!important;max-width:620px!important;max-height:90vh;overflow:hidden;border:1px solid #31505b!important;background:#08151b!important}.cloud-panel-header{background:#0b1c23;border-bottom:1px solid #31505b!important}.cloud-panel-header h2{margin:2px 0 0!important}.cloud-kicker{font:700 10px/1 monospace;color:#58d5d0;letter-spacing:.14em}.cloud-close{width:38px;height:38px;border:1px solid #31505b;background:transparent;color:#b8c8cc;font-size:26px;cursor:pointer}.cloud-close:hover{color:#58d5d0;border-color:#58d5d0}.cloud-panel-body{padding:20px;overflow-y:auto;max-height:calc(90vh - 74px)}.cloud-lead{margin:0 0 18px;color:#9eb0b5;line-height:1.6}.cloud-auth{display:grid;grid-template-columns:1fr;gap:8px}.cloud-auth label{font-size:12px;color:#9eb0b5;margin-top:5px}.cloud-auth input{box-sizing:border-box;width:100%;height:42px;padding:8px 10px;color:#e6f1f0;border:1px solid #31505b;border-radius:0;background:#071218}.cloud-auth .primary-btn{margin-top:8px;height:42px}.cloud-account-line{display:flex;align-items:center;justify-content:space-between;gap:15px;padding-bottom:16px;border-bottom:1px solid #263d46}.cloud-account-line div{display:flex;flex-direction:column;min-width:0}.cloud-account-line span,.cloud-metrics span{font-size:11px;color:#82969d}.cloud-account-line strong{margin-top:4px;color:#edf8f7;overflow-wrap:anywhere}.cloud-toggle{display:grid;grid-template-columns:22px 1fr;column-gap:8px;align-items:center;margin:18px 0;padding:12px;border:1px solid #31505b;background:#0b1c23;cursor:pointer}.cloud-toggle input{grid-row:1/3;width:18px;height:18px;accent-color:#58d5d0}.cloud-toggle span{font-weight:700;color:#edf8f7}.cloud-toggle small{color:#82969d}.cloud-metrics{display:grid;grid-template-columns:1fr 1fr;border:1px solid #263d46}.cloud-metrics div{display:flex;flex-direction:column;gap:5px;padding:12px}.cloud-metrics div+div{border-left:1px solid #263d46}.cloud-metrics strong{font-size:13px;color:#c9d8da}.cloud-actions,.cloud-conflict-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.cloud-actions button,.cloud-conflict-actions button{min-height:40px}.cloud-conflict{margin:18px 0;padding:14px;border:1px solid rgba(255,152,0,.55);background:rgba(255,152,0,.08)}.cloud-conflict strong{color:#ffbd66}.cloud-conflict p{margin:7px 0 0;color:#c9d0d1;line-height:1.55;font-size:13px}.cloud-status{margin-top:14px;padding:9px 10px;border-left:3px solid #31505b;background:#0b1c23;color:#9eb0b5;font-size:12px}.cloud-status[data-kind="success"]{border-color:#58d5d0;color:#9be7e2}.cloud-status[data-kind="error"]{border-color:#ee6262;color:#ff9b9b}.cloud-status[data-kind="warning"]{border-color:#ff9800;color:#ffbd66}.cloud-history{margin-top:20px}.cloud-section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#edf8f7;font-weight:700}.cloud-section-title small{font-weight:400;color:#82969d}.cloud-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #263d46}.cloud-history-copy{display:flex;flex-direction:column;gap:3px}.cloud-history-copy strong{font-size:13px;color:#c9d8da}.cloud-history-copy span,.cloud-empty{font-size:11px;color:#82969d}.cloud-history-restore{min-height:34px!important;padding:6px 12px!important}.cloud-empty{padding:15px 0;margin:0;text-align:center;border-top:1px solid #263d46}@media(max-width:620px){.cloud-panel-body{padding:15px}.cloud-actions,.cloud-conflict-actions{grid-template-columns:1fr}.cloud-metrics{grid-template-columns:1fr}.cloud-metrics div+div{border-left:0;border-top:1px solid #263d46}.cloud-trigger i{display:none}}';
+        document.head.appendChild(style);
+
+        elements.modal = modal;
+        elements.loggedOut = document.getElementById("cloud-logged-out");
+        elements.loggedIn = document.getElementById("cloud-logged-in");
+        elements.email = document.getElementById("cloud-email");
+        elements.password = document.getElementById("cloud-password");
+        elements.loginButton = document.getElementById("cloud-login-btn");
+        elements.logoutButton = document.getElementById("cloud-logout-btn");
+        elements.account = document.getElementById("cloud-account");
+        elements.autoToggle = document.getElementById("cloud-auto-toggle");
+        elements.backupButton = document.getElementById("cloud-backup-now");
+        elements.restoreButton = document.getElementById("cloud-restore-latest");
+        elements.lastBackup = document.getElementById("cloud-last-backup");
+        elements.status = document.getElementById("cloud-status");
+        elements.history = document.getElementById("cloud-history-list");
+        elements.conflict = document.getElementById("cloud-conflict");
+        elements.regularActions = document.getElementById("cloud-regular-actions");
+        elements.overrideButton = document.getElementById("cloud-conflict-override");
+        elements.triggerState = document.getElementById("cloud-trigger-state");
+
+        trigger.addEventListener("click", function() { modal.classList.remove("hidden"); });
+        document.getElementById("cloud-close-btn").addEventListener("click", closeModal);
+        modal.addEventListener("click", function(event) { if (event.target === modal) closeModal(); });
+        document.addEventListener("keydown", function(event) { if ("Escape" === event.key) closeModal(); });
+        elements.loginButton.addEventListener("click", login);
+        elements.password.addEventListener("keydown", function(event) { if ("Enter" === event.key) login(); });
+        elements.logoutButton.addEventListener("click", logout);
+        elements.autoToggle.addEventListener("change", toggleAutoBackup);
+        elements.backupButton.addEventListener("click", function() { uploadBackup("manual", true); });
+        elements.restoreButton.addEventListener("click", restoreLatest);
+        document.getElementById("cloud-conflict-restore").addEventListener("click", restoreLatest);
+        elements.overrideButton.addEventListener("click", overrideRemote);
+    }
+
+    function closeModal() {
+        if (elements.modal) elements.modal.classList.add("hidden");
+    }
+
+    async function digestPayload(payload) {
+        var canonical = JSON.parse(JSON.stringify(payload));
+        delete canonical.exportedAt;
+        var bytes = new TextEncoder().encode(JSON.stringify(canonical));
+        var hash = await crypto.subtle.digest("SHA-256", bytes);
+        return Array.from(new Uint8Array(hash)).map(function(byte) {
+            return byte.toString(16).padStart(2, "0");
+        }).join("");
+    }
+
+    function buildPayload() {
+        if (!api || "function" !== typeof api.buildFullBackupPayload) {
+            throw new Error("完整备份模块尚未加载");
+        }
+        return api.buildFullBackupPayload({ silent: true });
+    }
+
+    async function login() {
+        var email = elements.email.value.trim();
+        var password = elements.password.value;
+        if (!email || !password) {
+            setStatus("请输入邮箱和密码", "warning");
+            return;
+        }
+        setBusy(true);
+        setStatus("正在登录...", "normal");
+        try {
+            var result = await client.auth.signInWithPassword({ email: email, password: password });
+            if (result.error) throw result.error;
+            elements.password.value = "";
+            setStatus("登录成功，正在检查云端备份...", "success");
+        } catch (error) {
+            setStatus("登录失败：" + friendlyError(error), "error");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function logout() {
+        setBusy(true);
+        try {
+            var result = await client.auth.signOut();
+            if (result.error) throw result.error;
+            setStatus("已退出。当前本地数据仍保留在此浏览器中。", "success");
+        } catch (error) {
+            setStatus("退出失败：" + friendlyError(error), "error");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function friendlyError(error) {
+        var message = error && error.message || "未知错误";
+        if (/invalid login credentials/i.test(message)) return "邮箱或密码不正确";
+        if (/email not confirmed/i.test(message)) return "该邮箱尚未确认，请联系管理员";
+        if (/failed to fetch|network/i.test(message)) return "网络连接失败，请稍后重试";
+        return message;
+    }
+
+    async function loadRemoteState() {
+        if (!state.session) return;
+        setStatus("正在读取云端备份...", "normal");
+        try {
+            var latestResult = await client.from("backup_latest")
+                .select("data,data_hash,source,client_updated_at,server_updated_at")
+                .eq("user_id", getUserId()).maybeSingle();
+            if (latestResult.error) throw latestResult.error;
+            state.latest = latestResult.data || null;
+            await loadHistory();
+            var baseline = localStorage.getItem(metaKey("baseline", getUserId()));
+            state.conflict = !!state.latest && !baseline;
+            if (state.conflict) {
+                setStatus("自动上传已暂停，请选择保留云端或本机数据。", "warning");
+            } else if (state.latest) {
+                setStatus("云端备份已连接", "success");
+            } else {
+                setStatus("云端暂无备份，将在本地数据变化后自动创建。", "normal");
+                if (hasLocalAccounts() && isAutoEnabled()) scheduleBackup(1000);
+            }
+            if (localStorage.getItem(metaKey("pending", getUserId())) === "1") {
+                localStorage.removeItem(metaKey("pending", getUserId()));
+                markDirty("恢复后的合并数据");
+            }
+        } catch (error) {
+            setStatus("读取云端失败：" + friendlyError(error), "error");
+            scheduleRetry();
+        }
+        render();
+    }
+
+    async function loadHistory() {
+        var result = await client.from("backup_snapshots")
+            .select("id,data_hash,source,client_updated_at,created_at")
+            .eq("user_id", getUserId()).order("created_at", { ascending: false }).limit(HISTORY_LIMIT);
+        if (result.error) throw result.error;
+        state.history = result.data || [];
+    }
+
+    async function insertSnapshot(payload, hash, source) {
+        var result = await client.from("backup_snapshots").insert({
+            user_id: getUserId(),
+            data: payload,
+            data_hash: hash,
+            source: source,
+            client_updated_at: payload.exportedAt
+        });
+        if (result.error) throw result.error;
+        localStorage.setItem(metaKey("snapshot_at", getUserId()), String(Date.now()));
+        await pruneHistory();
+    }
+
+    async function pruneHistory() {
+        var result = await client.from("backup_snapshots").select("id")
+            .eq("user_id", getUserId()).order("created_at", { ascending: false }).range(HISTORY_LIMIT, HISTORY_LIMIT + 200);
+        if (result.error) throw result.error;
+        var ids = (result.data || []).map(function(row) { return row.id; });
+        if (!ids.length) return;
+        var deleteResult = await client.from("backup_snapshots").delete().in("id", ids);
+        if (deleteResult.error) throw deleteResult.error;
+    }
+
+    async function uploadBackup(source, forceSnapshot) {
+        if (!state.session || state.busy) return;
+        if (state.conflict && "device_override" !== source) {
+            setStatus("请先选择恢复云端备份或以本机数据覆盖", "warning");
+            return;
+        }
+        var payload = buildPayload();
+        if (!payload) {
+            setStatus("当前没有角色数据，已跳过上传，云端备份不会被清空。", "warning");
+            return;
+        }
+        setBusy(true);
+        setStatus("正在上传云端备份...", "normal");
+        try {
+            var hash = await digestPayload(payload);
+            if (!forceSnapshot && state.latest && state.latest.data_hash === hash) {
+                state.dirty = false;
+                setStatus("数据没有变化，无需重复上传。", "success");
+                return;
+            }
+            var now = (new Date()).toISOString();
+            var latestResult = await client.from("backup_latest").upsert({
+                user_id: getUserId(), data: payload, data_hash: hash, source: source,
+                client_updated_at: payload.exportedAt, server_updated_at: now
+            }, { onConflict: "user_id" });
+            if (latestResult.error) throw latestResult.error;
+            var lastSnapshot = Number(localStorage.getItem(metaKey("snapshot_at", getUserId())) || 0);
+            var needsSnapshot = forceSnapshot || !lastSnapshot || Date.now() - lastSnapshot >= AUTO_SNAPSHOT_INTERVAL_MS;
+            if (needsSnapshot) await insertSnapshot(payload, hash, source);
+            state.latest = {
+                data: payload, data_hash: hash, source: source,
+                client_updated_at: payload.exportedAt, server_updated_at: now
+            };
+            state.conflict = false;
+            state.dirty = false;
+            state.retryDelay = 30000;
+            localStorage.setItem(metaKey("baseline", getUserId()), hash);
+            localStorage.setItem(metaKey("last_success", getUserId()), now);
+            await loadHistory();
+            setStatus("云端备份成功：" + formatTime(now), "success");
+        } catch (error) {
+            state.dirty = true;
+            setStatus("云端备份失败，本地数据不受影响：" + friendlyError(error), "error");
+            scheduleRetry();
+        } finally {
+            setBusy(false);
+            render();
+        }
+    }
+
+    async function overrideRemote() {
+        if (!hasLocalAccounts()) {
+            setStatus("本机没有角色数据，不能覆盖已有云端备份。", "warning");
+            return;
+        }
+        if (!confirm("这会用当前浏览器中的本地数据覆盖最新云端备份，并保留一份历史快照。确定继续吗？")) return;
+        await uploadBackup("device_override", true);
+    }
+
+    function describePayload(payload) {
+        var validated = api.validateFullBackup(payload);
+        var equipCount = validated.accounts.reduce(function(total, account) { return total + account.equipData.length; }, 0);
+        return validated.accounts.length + " 个角色、" + equipCount + " 件装备";
+    }
+
+    async function protectLocalBeforeRestore() {
+        var payload = buildPayload();
+        if (!payload) return;
+        var hash = await digestPayload(payload);
+        await insertSnapshot(payload, hash, "before_restore");
+    }
+
+    async function restorePayload(payload, remoteHash) {
+        var description;
+        try {
+            description = describePayload(payload);
+        } catch (error) {
+            setStatus("云端备份校验失败：" + friendlyError(error), "error");
+            return;
+        }
+        if (!confirm("即将恢复包含 " + description + " 的云端备份。\n\n恢复会覆盖同名角色，并保留其他本地角色。确定继续吗？")) return;
+        setBusy(true);
+        setStatus("正在保存恢复前保护快照...", "normal");
+        try {
+            await protectLocalBeforeRestore();
+            localStorage.setItem(metaKey("baseline", getUserId()), remoteHash || "restored");
+            localStorage.setItem(metaKey("pending", getUserId()), "1");
+            api.restoreFullBackup(payload, { skipConfirm: true });
+        } catch (error) {
+            setStatus("恢复已取消：保护快照未能保存。" + friendlyError(error), "error");
+            setBusy(false);
+        }
+    }
+
+    async function restoreLatest() {
+        if (!state.latest || !state.latest.data) {
+            setStatus("云端还没有可恢复的备份", "warning");
+            return;
+        }
+        await restorePayload(state.latest.data, state.latest.data_hash);
+    }
+
+    async function restoreSnapshot(id) {
+        if (!state.session || state.busy) return;
+        setBusy(true);
+        setStatus("正在读取历史备份...", "normal");
+        try {
+            var result = await client.from("backup_snapshots").select("data,data_hash")
+                .eq("user_id", getUserId()).eq("id", id).single();
+            if (result.error) throw result.error;
+            setBusy(false);
+            await restorePayload(result.data.data, result.data.data_hash);
+        } catch (error) {
+            setBusy(false);
+            setStatus("读取历史备份失败：" + friendlyError(error), "error");
+        }
+        render();
+    }
+
+    function toggleAutoBackup() {
+        if (!state.session) return;
+        localStorage.setItem(metaKey("auto", getUserId()), elements.autoToggle.checked ? "1" : "0");
+        if (elements.autoToggle.checked) {
+            setStatus("自动云端备份已开启", "success");
+            if (state.dirty) scheduleBackup(1000);
+        } else {
+            clearTimeout(state.backupTimer);
+            setStatus("自动云端备份已关闭，本地保存不受影响。", "normal");
+        }
+    }
+
+    function markDirty(reason) {
+        state.dirty = true;
+        if (!state.session || !isAutoEnabled() || state.conflict) return;
+        setStatus((reason || "本地数据已变化") + "，将在 30 秒后备份。", "normal");
+        scheduleBackup(AUTO_BACKUP_DELAY_MS);
+    }
+
+    function scheduleBackup(delay) {
+        clearTimeout(state.backupTimer);
+        state.backupTimer = setTimeout(function() { uploadBackup("auto", false); }, delay);
+    }
+
+    function scheduleRetry() {
+        if (!state.session || !state.dirty || !isAutoEnabled() || state.conflict) return;
+        clearTimeout(state.retryTimer);
+        var delay = state.retryDelay;
+        state.retryDelay = Math.min(state.retryDelay * 2, 5 * 60 * 1000);
+        state.retryTimer = setTimeout(function() { uploadBackup("auto", false); }, delay);
+    }
+
+    function installStorageObserver() {
+        var originalSetItem = Storage.prototype.setItem;
+        var originalRemoveItem = Storage.prototype.removeItem;
+        Storage.prototype.setItem = function(key, value) {
+            originalSetItem.call(this, key, value);
+            if (this === localStorage && isBackupDataKey(String(key))) markDirty("本地数据已变化");
+        };
+        Storage.prototype.removeItem = function(key) {
+            originalRemoveItem.call(this, key);
+            if (this === localStorage && isBackupDataKey(String(key))) markDirty("本地数据已变化");
+        };
+    }
+
+    async function handleSession(session) {
+        clearTimeout(state.backupTimer);
+        clearTimeout(state.retryTimer);
+        state.session = session;
+        state.latest = null;
+        state.history = [];
+        state.conflict = false;
+        render();
+        if (session) await loadRemoteState();
+    }
+
+    async function init() {
+        injectUi();
+        installStorageObserver();
+        if (!window.supabase || "function" !== typeof window.supabase.createClient) {
+            setStatus("云备份组件加载失败，请刷新页面重试。", "error");
+            return;
+        }
+        client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+        });
+        client.auth.onAuthStateChange(function(event, session) {
+            if ("INITIAL_SESSION" === event) return;
+            setTimeout(function() { handleSession(session); }, 0);
+        });
+        var result = await client.auth.getSession();
+        if (result.error) setStatus("读取登录状态失败：" + friendlyError(result.error), "error");
+        else await handleSession(result.data.session);
+        window.addEventListener("online", function() {
+            if (state.dirty && state.session && isAutoEnabled() && !state.conflict) scheduleBackup(1000);
+        });
+        document.addEventListener("visibilitychange", function() {
+            if (!document.hidden && state.dirty && state.session && isAutoEnabled() && !state.conflict) scheduleBackup(1000);
+        });
+    }
+
+    if ("loading" === document.readyState) document.addEventListener("DOMContentLoaded", init);
+    else init();
+})();

@@ -21,6 +21,18 @@
 | 转律资格与状态追踪 | 110级装备通过与“承音”“紫装”并列的“可转律”复选框显式记录资格，承音装备同样可用；非110级直接隐藏并清除该资格。未勾选为不可转律，勾选但未指定副词条为待转律，勾选并指定一个真实副词条为已转律。资格保存在装备字段 `isTransmutable`，已转律槽位继续保存在 `zhuanlv_status_${accountName}`；卡片分别不显示标签、显示灰色待转律或琥珀色已转律标签。 |
 | 承音文字绿色显示 | 装备卡片上的「(承音)」文字颜色改为绿色（`#4caf50`），通过 `colorChengyinOnCards()` 在 MutationObserver 触发时逐卡处理，幂等（已处理的卡片加 `data-chengyin-colored` 标记跳过）。 |
 
+文件：`static/tools/yysls-tiaolv/assets/js/cloud-backup.js`
+
+加载位置：`static/tools/yysls-tiaolv/index.html` 中，位于固定版本的 Supabase UMD SDK 之后。
+
+| 功能 | 说明 |
+| --- | --- |
+| Supabase 邮箱密码登录 | 只提供管理员预建账号的登录、会话保持和退出，不包含公开注册、邮箱验证码或找回密码；前端仅保存可公开的 Publishable key，数据隔离依赖 Supabase RLS。 |
+| 本地优先自动备份 | 继续以 `localStorage` 为即时数据源，监听角色、装备、方案、转律和手动面板记录，停止变更 30 秒后单向上传；摘要忽略导出时间并使用 SHA-256 去重，断网失败不影响本地数据。 |
+| 最新备份与历史快照 | `backup_latest` 保存每个用户的最新完整备份，`backup_snapshots` 最多保留 20 份；自动快照间隔至少 30 分钟，手动备份和恢复前保护总是创建快照。 |
+| 新设备覆盖保护 | 当前浏览器没有该用户的备份基线而云端已有数据时暂停自动上传，必须明确选择恢复云端或以本机覆盖；没有本地角色时始终禁止覆盖云端。 |
+| 事务恢复 | 云端数据复用 `local-customizations.js` 的完整备份校验和恢复事务；恢复前先写 `before_restore` 快照，失败则不执行本地覆盖。 |
+
 ### 2026-07-31 新增定制
 
 以下功能均为本站本地定制，后续同步上游时必须完整保留：
@@ -101,6 +113,7 @@
 | 功能链 | 必须同时保留 |
 | --- | --- |
 | 完整迁移 | `local-customizations.js` 的备份白名单、方案校验与恢复事务；`app.min.js` 的方案字段读写；`index.html` 的备份按钮和脚本版本号 |
+| 云端备份 | `cloud-backup.js`、固定版本 Supabase SDK、`local-customizations.js` 导出的完整备份生成/校验/恢复接口、`index.html` 的加载引用和版本号 |
 | 词条数量模式 | 数量输入UI、真实分配器、词条组合存储、独立结果节点、最终面板、弓箭同步、贷款定音环境和完整备份中的手动数据 |
 | 转律资格 | `index.html` 的“可转律”控件、装备字段 `isTransmutable`、`zhuanlv_status_<account>` 槽位记录、迁移函数、卡片徽标和110级显示规则 |
 | 最佳配装自动转律 | 三模式选择器、候选生成、物理ID互斥、转律元数据、Top20去重、方案覆盖层、主页计算、备份白名单和方案提示节点 |
@@ -114,7 +127,7 @@
 
 转律交互与一致性保护：装备卡片必须由主渲染器写入稳定的 `data-equip-id`，不得按名称猜测 ID；编辑弹窗中的槽位仅作为草稿，只有装备保存成功才调用 `commitZhuanlvFromModal`，取消不得写入；切换转律搜索模式前必须保留弓箭套装、忽略可用流派和承音上限等尚未执行的搜索选项；毕业率分析弹窗必须先应用当前方案的 `transmutationSelections` 覆盖层。
 
-同步上游时，优先保留这个文件和 `index.html` 中对它的 `<script>` 引用。
+同步上游时，优先保留 `local-customizations.js`、`cloud-backup.js` 和 `index.html` 中对它们的 `<script>` 引用。
 
 ### 寒铁主题字体
 
