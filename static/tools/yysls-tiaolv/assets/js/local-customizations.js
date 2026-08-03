@@ -2139,9 +2139,6 @@
         if (!footer) return;
         footer.parentNode.insertBefore(section, footer);
 
-        // 确保 radio 已注入
-        injectZhuanlvSubStatRadios();
-
         // 监听副词条 select 和 radio 方框变化（都在 sub-stats-container 内）
         document.getElementById("sub-stats-container").addEventListener("change", function(e) {
             if (e.target.classList.contains("zhuanlv-slot-radio")) {
@@ -2214,34 +2211,35 @@
         if (rawStatus && !status) setZhuanlvForEquip(equipId, null);
         transmutableCheck.checked = !!(equip && isTransmutableEquip(equip));
 
-        // 确保 radio 存在并刷新状态
-        injectZhuanlvSubStatRadios();
-        syncZhuanlvSubStatRadios();
-        clearAllZhuanlvRadios();
+        // 只有已勾选可转律时才注入 radio 并回填状态
+        if (transmutableCheck.checked) {
+            injectZhuanlvSubStatRadios();
+            syncZhuanlvSubStatRadios();
+            clearAllZhuanlvRadios();
 
-        // 回填选中的 radio
-        if (status && status.state === "active") {
-            var targetRadio = document.querySelector('.zhuanlv-slot-radio[data-index="' + status.subStatIndex + '"]');
-            if (targetRadio && !targetRadio.disabled) {
-                targetRadio.checked = true;
-                // 保存 excludedTargets 以在 updateZhuanlvTargetList 中使用
-                _restoringZhuanlvExcluded = status.excludedTargets || [];
+            // 回填选中的 radio
+            if (status && status.state === "active") {
+                var targetRadio = document.querySelector('.zhuanlv-slot-radio[data-index="' + status.subStatIndex + '"]');
+                if (targetRadio && !targetRadio.disabled) {
+                    targetRadio.checked = true;
+                    _restoringZhuanlvExcluded = status.excludedTargets || [];
+                }
             }
+
+            // 延迟刷新 target 列表（等 DOM 稳定）
+            setTimeout(function() {
+                updateZhuanlvTargetList();
+                // 应用存储的排除项
+                if (_restoringZhuanlvExcluded && _restoringZhuanlvExcluded.length > 0) {
+                    var excludeSet = {};
+                    _restoringZhuanlvExcluded.forEach(function(t) { excludeSet[t] = true; });
+                    document.querySelectorAll(".zhuanlv-target-check").forEach(function(cb) {
+                        if (excludeSet[cb.value]) cb.checked = false;
+                    });
+                    _restoringZhuanlvExcluded = null;
+                }
+            }, 60);
         }
-
-        // 延迟刷新 target 列表（等 DOM 稳定）
-        setTimeout(function() {
-            updateZhuanlvTargetList();
-            // 应用存储的排除项
-            if (_restoringZhuanlvExcluded && _restoringZhuanlvExcluded.length > 0) {
-                var excludeSet = {};
-                _restoringZhuanlvExcluded.forEach(function(t) { excludeSet[t] = true; });
-                document.querySelectorAll(".zhuanlv-target-check").forEach(function(cb) {
-                    if (excludeSet[cb.value]) cb.checked = false;
-                });
-                _restoringZhuanlvExcluded = null;
-            }
-        }, 60);
     }
 
     // 非110级不显示"可转律"，并清除资格与指定槽位。
@@ -2258,16 +2256,22 @@
         if (section) section.style.display = enabled ? "block" : "none";
         if (!allowLevel && transmutableCheck) transmutableCheck.checked = false;
 
-        // 显示/隐藏 radio 方框
-        var radios = document.querySelectorAll(".zhuanlv-slot-radio");
-        radios.forEach(function(r) {
-            r.style.display = enabled ? "" : "none";
-        });
+        if (enabled) {
+            // 勾选可转律后才注入 radio 方框
+            injectZhuanlvSubStatRadios();
+            syncZhuanlvSubStatRadios();
+        } else {
+            // 取消勾选后移除所有 radio 方框
+            var radios = document.querySelectorAll(".zhuanlv-slot-radio");
+            radios.forEach(function(r) { r.parentNode && r.parentNode.removeChild(r); });
+            document.querySelectorAll(".stat-row.has-zhuanlv-radio").forEach(function(row) {
+                row.classList.remove("has-zhuanlv-radio");
+            });
+        }
 
         if (!enabled) {
             _pendingZhuanlv = null;
             _restoringZhuanlvExcluded = null;
-            clearAllZhuanlvRadios();
             var targetList = document.getElementById("zhuanlv-target-list");
             if (targetList) targetList.style.display = "none";
         }
