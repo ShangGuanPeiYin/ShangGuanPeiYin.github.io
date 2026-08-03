@@ -2018,6 +2018,20 @@
         // 移除旧的注入元素
         cardEl.querySelectorAll(".zhuanlv-badge,.zhuanlv-substat-marker")
             .forEach(function(el) { el.parentNode && el.parentNode.removeChild(el); });
+        cardEl.querySelectorAll(".zhuanlv-substat-highlight")
+            .forEach(function(el) {
+                el.querySelectorAll(".sub-stat").forEach(function(span) {
+                    span.style.fontWeight = "";
+                    span.style.color = "";
+                });
+                el.classList.remove("zhuanlv-substat-highlight");
+                el.style.background = "";
+                el.style.borderRadius = "";
+                el.style.paddingLeft = "";
+                el.style.paddingRight = "";
+                el.style.fontWeight = "";
+                el.style.color = "";
+            });
 
         if (!isEligible) return;
 
@@ -2044,25 +2058,30 @@
                 function(r) { return r.querySelector(".sub-stat"); }
             );
             var targetRow = subStatRows[idx];
-            var targetName = "";
-            if (targetRow) {
-                var targetText = targetRow.querySelector(".sub-stat");
-                targetName = targetText ? targetText.textContent.replace(/^\s*[·►]\s*/, "").trim() : "";
-            }
             if (flexRow) {
                 flexRow.insertAdjacentHTML("beforeend",
-                    buildZhuanlvTag("已转律：第" + (idx + 1) + "条" + (targetName ? "（" + targetName + "）" : ""), "#f0a500"));
+                    buildZhuanlvTag("已转律：第" + (idx + 1) + "条", "#f0a500"));
             }
 
             // 标记选定副词条行（只选含 .sub-stat 的行）
             if (targetRow) {
+                targetRow.classList.add("zhuanlv-substat-highlight");
+                targetRow.style.background = "rgba(240,165,0,0.12)";
+                targetRow.style.borderRadius = "4px";
+                targetRow.style.paddingLeft = "4px";
+                targetRow.style.paddingRight = "4px";
+                targetRow.style.fontWeight = "700";
+                targetRow.style.color = "#f0a500";
+
                 var subStatSpan = targetRow.querySelector(".sub-stat");
                 if (subStatSpan) {
+                    subStatSpan.style.fontWeight = "700";
+                    subStatSpan.style.color = "#f0a500";
                     // 找到文字节点（如 "· 精准率"），在 "· " 之后插入箭头
                     var textNode = subStatSpan.firstChild;
                     var marker = document.createElement("span");
                     marker.className = "zhuanlv-substat-marker";
-                    marker.style.cssText = "color:#f0a500;font-weight:700;margin-right:2px;";
+                    marker.style.cssText = "color:#f0a500;font-weight:900;margin-right:3px;text-shadow:0 0 6px rgba(240,165,0,0.45);";
                     marker.textContent = "►";
                     if (textNode && textNode.nodeType === Node.TEXT_NODE) {
                         // 把文字节点从 "· 精准率" 拆成 "· " 和 "精准率"，中间插箭头
