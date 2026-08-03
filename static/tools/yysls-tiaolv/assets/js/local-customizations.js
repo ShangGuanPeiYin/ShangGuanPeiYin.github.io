@@ -605,6 +605,13 @@
         var warning = validated.warnings.missingEquipRefs
             ? "\n有 " + validated.warnings.missingEquipRefs + " 个方案装备引用找不到对应装备，相关部位已留空。"
             : "";
+        if ("function" == typeof options.onRestored) {
+            try {
+                options.onRestored(validated);
+            } catch (callbackError) {
+                console.error("完整备份恢复后的状态更新失败：", callbackError);
+            }
+        }
         alert("完整备份恢复成功！" + warning + "\n页面将刷新以加载全部数据。");
         window.location.reload();
         return true;
