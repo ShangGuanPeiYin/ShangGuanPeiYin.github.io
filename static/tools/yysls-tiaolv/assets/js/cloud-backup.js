@@ -16,9 +16,12 @@
         busy: false,
         dirty: false,
         conflict: false,
-        retryDelay: 30000,
+        conflictReason: "",
+        remoteReady: false,
+        remoteLoading: false,
+        remoteRetryDelay: 30000,
         backupTimer: null,
-        retryTimer: null
+        remoteRetryTimer: null
     };
     var elements = {};
 
@@ -81,11 +84,21 @@
 
     function setBusy(busy) {
         state.busy = busy;
-        [elements.loginButton, elements.logoutButton, elements.backupButton,
-            elements.restoreButton, elements.overrideButton].forEach(function(button) {
-            if (button) button.disabled = busy;
-        });
+        updateActionAvailability();
         renderHistory();
+    }
+
+    function updateActionAvailability() {
+        var remoteUnavailable = !!state.session && !state.remoteReady;
+        [elements.loginButton, elements.logoutButton].forEach(function(button) {
+            if (button) button.disabled = state.busy;
+        });
+        [elements.backupButton, elements.restoreButton, elements.overrideButton,
+            elements.conflictRestoreButton].forEach(function(button) {
+            if (button) button.disabled = state.busy || remoteUnavailable;
+        });
+        if (elements.conflictRestoreButton && !state.latest) elements.conflictRestoreButton.disabled = true;
+        if (elements.autoToggle) elements.autoToggle.disabled = state.busy || remoteUnavailable;
     }
 
     function render() {
@@ -94,8 +107,8 @@
         if (elements.loggedIn) elements.loggedIn.classList.toggle("hidden", !signedIn);
         if (elements.account) elements.account.textContent = signedIn ? state.session.user.email : "未登录";
         if (elements.triggerState) {
-            elements.triggerState.textContent = signedIn ? "已连接" : "未连接";
-            elements.triggerState.dataset.online = signedIn ? "true" : "false";
+            elements.triggerState.textContent = signedIn ? state.remoteReady ? "已连接" : "检查中" : "未连接";
+            elements.triggerState.dataset.online = signedIn && state.remoteReady ? "true" : "false";
         }
         if (elements.autoToggle) elements.autoToggle.checked = signedIn && isAutoEnabled();
         if (elements.lastBackup) {
@@ -103,7 +116,20 @@
             elements.lastBackup.textContent = formatTime(latestTime);
         }
         if (elements.conflict) elements.conflict.classList.toggle("hidden", !state.conflict);
+        if (elements.conflictTitle && elements.conflictText) {
+            if ("owner_mismatch" === state.conflictReason) {
+                elements.conflictTitle.textContent = "本机数据属于另一个云账号";
+                elements.conflictText.textContent = "为防止账号之间误传数据，自动上传已暂停。请恢复当前账号的云端备份，或明确使用本机数据覆盖。";
+            } else if ("remote_changed" === state.conflictReason) {
+                elements.conflictTitle.textContent = "云端备份已被其他设备更新";
+                elements.conflictText.textContent = "当前本机版本与云端版本已经分叉，自动上传已暂停。请选择要保留的数据。";
+            } else {
+                elements.conflictTitle.textContent = "检测到已有云端备份";
+                elements.conflictText.textContent = "这是此账号在当前浏览器首次连接。自动上传已暂停，请选择要保留的数据。";
+            }
+        }
         if (elements.regularActions) elements.regularActions.classList.toggle("hidden", state.conflict);
+        updateActionAvailability();
         renderHistory();
     }
 
@@ -165,7 +191,7 @@
             + '<div class="cloud-panel-body">'
             + '<div id="cloud-logged-out" class="cloud-auth"><p class="cloud-lead">使用管理员创建的邮箱和密码登录。数据仍先保存在本机。</p><label for="cloud-email">邮箱</label><input id="cloud-email" type="email" autocomplete="username" inputmode="email"><label for="cloud-password">密码</label><input id="cloud-password" type="password" autocomplete="current-password"><button type="button" id="cloud-login-btn" class="primary-btn">登录</button></div>'
             + '<div id="cloud-logged-in" class="hidden"><div class="cloud-account-line"><div><span>当前账号</span><strong id="cloud-account"></strong></div><button type="button" id="cloud-logout-btn" class="secondary-btn">退出</button></div>'
-            + '<div id="cloud-conflict" class="cloud-conflict hidden"><strong>检测到已有云端备份</strong><p>这是此账号在当前浏览器首次连接。自动上传已暂停，请选择要保留的数据。</p><div class="cloud-conflict-actions"><button type="button" id="cloud-conflict-restore" class="primary-btn">恢复云端备份</button><button type="button" id="cloud-conflict-override" class="danger-btn">以本机数据覆盖</button></div></div>'
+            + '<div id="cloud-conflict" class="cloud-conflict hidden"><strong id="cloud-conflict-title">检测到已有云端备份</strong><p id="cloud-conflict-text">这是此账号在当前浏览器首次连接。自动上传已暂停，请选择要保留的数据。</p><div class="cloud-conflict-actions"><button type="button" id="cloud-conflict-restore" class="primary-btn">恢复云端备份</button><button type="button" id="cloud-conflict-override" class="danger-btn">以本机数据覆盖</button></div></div>'
             + '<div id="cloud-regular-actions"><label class="cloud-toggle"><input id="cloud-auto-toggle" type="checkbox"><span>自动云端备份</span><small>本地数据变化 30 秒后上传</small></label><div class="cloud-metrics"><div><span>最新云端备份</span><strong id="cloud-last-backup">尚未备份</strong></div><div><span>保存方式</span><strong>本地优先</strong></div></div><div class="cloud-actions"><button type="button" id="cloud-backup-now" class="primary-btn">立即备份</button><button type="button" id="cloud-restore-latest" class="secondary-btn">恢复最新备份</button></div></div>'
             + '<div class="cloud-status" id="cloud-status" aria-live="polite">等待操作</div><div class="cloud-history"><div class="cloud-section-title"><span>历史备份</span><small>最多保留 20 份</small></div><div id="cloud-history-list"></div></div></div></div></div>';
         document.body.appendChild(modal);
@@ -189,8 +215,11 @@
         elements.status = document.getElementById("cloud-status");
         elements.history = document.getElementById("cloud-history-list");
         elements.conflict = document.getElementById("cloud-conflict");
+        elements.conflictTitle = document.getElementById("cloud-conflict-title");
+        elements.conflictText = document.getElementById("cloud-conflict-text");
         elements.regularActions = document.getElementById("cloud-regular-actions");
         elements.overrideButton = document.getElementById("cloud-conflict-override");
+        elements.conflictRestoreButton = document.getElementById("cloud-conflict-restore");
         elements.triggerState = document.getElementById("cloud-trigger-state");
 
         trigger.addEventListener("click", function() { modal.classList.remove("hidden"); });
@@ -226,6 +255,26 @@
             throw new Error("完整备份模块尚未加载");
         }
         return api.buildFullBackupPayload({ silent: true });
+    }
+
+    function setDirtyFlag(dirty) {
+        state.dirty = dirty;
+        if (dirty) localStorage.setItem(metaKey("dirty"), "1");
+        else localStorage.removeItem(metaKey("dirty"));
+    }
+
+    async function getLocalBackupState() {
+        var payload = buildPayload();
+        if (!payload) return { payload: null, hash: null };
+        return { payload: payload, hash: await digestPayload(payload) };
+    }
+
+    async function fetchLatestBackup() {
+        var result = await client.from("backup_latest")
+            .select("data,data_hash,source,client_updated_at,server_updated_at")
+            .eq("user_id", getUserId()).maybeSingle();
+        if (result.error) throw result.error;
+        return result.data || null;
     }
 
     async function login() {
@@ -271,32 +320,56 @@
     }
 
     async function loadRemoteState() {
-        if (!state.session) return;
+        if (!state.session || state.remoteLoading) return;
+        state.remoteLoading = true;
+        state.remoteReady = false;
+        render();
         setStatus("正在读取云端备份...", "normal");
         try {
-            var latestResult = await client.from("backup_latest")
-                .select("data,data_hash,source,client_updated_at,server_updated_at")
-                .eq("user_id", getUserId()).maybeSingle();
-            if (latestResult.error) throw latestResult.error;
-            state.latest = latestResult.data || null;
+            state.latest = await fetchLatestBackup();
             await loadHistory();
             var baseline = localStorage.getItem(metaKey("baseline", getUserId()));
-            state.conflict = !!state.latest && !baseline;
+            var localState = await getLocalBackupState();
+            var remoteHash = state.latest && state.latest.data_hash || null;
+            var localOwner = localStorage.getItem(metaKey("owner"));
+            state.remoteReady = true;
+            state.remoteRetryDelay = 30000;
+            clearTimeout(state.remoteRetryTimer);
+            var ownerMismatch = !!localState.payload && !!localOwner && localOwner !== getUserId();
+            state.conflict = ownerMismatch || !!state.latest && (!baseline
+                || baseline !== remoteHash && localState.hash !== remoteHash);
+            state.conflictReason = ownerMismatch ? "owner_mismatch"
+                : state.latest && baseline ? "remote_changed" : "first_connect";
             if (state.conflict) {
                 setStatus("自动上传已暂停，请选择保留云端或本机数据。", "warning");
+            } else if (state.latest && localState.hash === remoteHash) {
+                localStorage.setItem(metaKey("baseline", getUserId()), remoteHash);
+                localStorage.setItem(metaKey("owner"), getUserId());
+                setDirtyFlag(false);
+                setStatus("本机数据与云端备份一致", "success");
             } else if (state.latest) {
-                setStatus("云端备份已连接", "success");
+                if (localState.hash && baseline === remoteHash) {
+                    setDirtyFlag(true);
+                    setStatus("检测到尚未上传的本地修改，将自动备份。", "normal");
+                    if (isAutoEnabled()) scheduleBackup(1000);
+                } else setStatus("云端备份已连接", "success");
             } else {
                 setStatus("云端暂无备份，将在本地数据变化后自动创建。", "normal");
-                if (hasLocalAccounts() && isAutoEnabled()) scheduleBackup(1000);
+                if (localState.payload) {
+                    setDirtyFlag(true);
+                    if (isAutoEnabled()) scheduleBackup(1000);
+                }
             }
             if (localStorage.getItem(metaKey("pending", getUserId())) === "1") {
                 localStorage.removeItem(metaKey("pending", getUserId()));
                 markDirty("恢复后的合并数据");
             }
         } catch (error) {
+            state.remoteReady = false;
             setStatus("读取云端失败：" + friendlyError(error), "error");
-            scheduleRetry();
+            scheduleRemoteRetry();
+        } finally {
+            state.remoteLoading = false;
         }
         render();
     }
@@ -334,21 +407,52 @@
 
     async function uploadBackup(source, forceSnapshot) {
         if (!state.session || state.busy) return;
+        if (!state.remoteReady) {
+            setStatus("尚未确认云端最新状态，已禁止上传并等待重试。", "warning");
+            scheduleRemoteRetry();
+            return;
+        }
         if (state.conflict && "device_override" !== source) {
             setStatus("请先选择恢复云端备份或以本机数据覆盖", "warning");
             return;
         }
-        var payload = buildPayload();
-        if (!payload) {
-            setStatus("当前没有角色数据，已跳过上传，云端备份不会被清空。", "warning");
-            return;
-        }
         setBusy(true);
         setStatus("正在上传云端备份...", "normal");
+        var latestSaved = false;
         try {
-            var hash = await digestPayload(payload);
-            if (!forceSnapshot && state.latest && state.latest.data_hash === hash) {
-                state.dirty = false;
+            var localState = await getLocalBackupState();
+            var payload = localState.payload;
+            var hash = localState.hash;
+            if (!payload) {
+                setStatus("当前没有角色数据，已跳过上传，云端备份不会被清空。", "warning");
+                return;
+            }
+            var remoteLatest = await fetchLatestBackup();
+            var baseline = localStorage.getItem(metaKey("baseline", getUserId()));
+            if (remoteLatest && "device_override" !== source
+                && (!baseline || remoteLatest.data_hash !== baseline)) {
+                state.latest = remoteLatest;
+                if (remoteLatest.data_hash === hash) {
+                    localStorage.setItem(metaKey("baseline", getUserId()), hash);
+                    localStorage.setItem(metaKey("owner"), getUserId());
+                    setDirtyFlag(false);
+                    state.conflict = false;
+                    if (!forceSnapshot) {
+                        setStatus("本机数据与云端备份一致，无需重复上传。", "success");
+                        return;
+                    }
+                } else {
+                    state.conflict = true;
+                    state.conflictReason = "remote_changed";
+                    setStatus("云端备份已被其他设备更新，自动上传已暂停。", "warning");
+                    return;
+                }
+            }
+            if (!forceSnapshot && remoteLatest && remoteLatest.data_hash === hash) {
+                state.latest = remoteLatest;
+                localStorage.setItem(metaKey("baseline", getUserId()), hash);
+                localStorage.setItem(metaKey("owner"), getUserId());
+                setDirtyFlag(false);
                 setStatus("数据没有变化，无需重复上传。", "success");
                 return;
             }
@@ -358,24 +462,31 @@
                 client_updated_at: payload.exportedAt, server_updated_at: now
             }, { onConflict: "user_id" });
             if (latestResult.error) throw latestResult.error;
-            var lastSnapshot = Number(localStorage.getItem(metaKey("snapshot_at", getUserId())) || 0);
-            var needsSnapshot = forceSnapshot || !lastSnapshot || Date.now() - lastSnapshot >= AUTO_SNAPSHOT_INTERVAL_MS;
-            if (needsSnapshot) await insertSnapshot(payload, hash, source);
+            latestSaved = true;
             state.latest = {
                 data: payload, data_hash: hash, source: source,
                 client_updated_at: payload.exportedAt, server_updated_at: now
             };
             state.conflict = false;
-            state.dirty = false;
-            state.retryDelay = 30000;
+            state.conflictReason = "";
+            setDirtyFlag(false);
             localStorage.setItem(metaKey("baseline", getUserId()), hash);
+            localStorage.setItem(metaKey("owner"), getUserId());
             localStorage.setItem(metaKey("last_success", getUserId()), now);
+            var lastSnapshot = Number(localStorage.getItem(metaKey("snapshot_at", getUserId())) || 0);
+            var needsSnapshot = forceSnapshot || !lastSnapshot || Date.now() - lastSnapshot >= AUTO_SNAPSHOT_INTERVAL_MS;
+            if (needsSnapshot) await insertSnapshot(payload, hash, source);
             await loadHistory();
             setStatus("云端备份成功：" + formatTime(now), "success");
         } catch (error) {
-            state.dirty = true;
-            setStatus("云端备份失败，本地数据不受影响：" + friendlyError(error), "error");
-            scheduleRetry();
+            if (latestSaved) {
+                setStatus("最新备份已保存，但历史快照更新失败：" + friendlyError(error), "warning");
+            } else {
+                setDirtyFlag(true);
+                state.remoteReady = false;
+                setStatus("云端备份失败，本地数据不受影响：" + friendlyError(error), "error");
+                scheduleRemoteRetry();
+            }
         } finally {
             setBusy(false);
             render();
@@ -418,6 +529,7 @@
         try {
             await protectLocalBeforeRestore();
             localStorage.setItem(metaKey("baseline", getUserId()), remoteHash || "restored");
+            localStorage.setItem(metaKey("owner"), getUserId());
             localStorage.setItem(metaKey("pending", getUserId()), "1");
             api.restoreFullBackup(payload, { skipConfirm: true });
         } catch (error) {
@@ -464,7 +576,7 @@
     }
 
     function markDirty(reason) {
-        state.dirty = true;
+        setDirtyFlag(true);
         if (!state.session || !isAutoEnabled() || state.conflict) return;
         setStatus((reason || "本地数据已变化") + "，将在 30 秒后备份。", "normal");
         scheduleBackup(AUTO_BACKUP_DELAY_MS);
@@ -475,19 +587,43 @@
         state.backupTimer = setTimeout(function() { uploadBackup("auto", false); }, delay);
     }
 
-    function scheduleRetry() {
-        if (!state.session || !state.dirty || !isAutoEnabled() || state.conflict) return;
-        clearTimeout(state.retryTimer);
-        var delay = state.retryDelay;
-        state.retryDelay = Math.min(state.retryDelay * 2, 5 * 60 * 1000);
-        state.retryTimer = setTimeout(function() { uploadBackup("auto", false); }, delay);
+    function scheduleRemoteRetry() {
+        if (!state.session) return;
+        clearTimeout(state.remoteRetryTimer);
+        var delay = state.remoteRetryDelay;
+        state.remoteRetryDelay = Math.min(state.remoteRetryDelay * 2, 5 * 60 * 1000);
+        state.remoteRetryTimer = setTimeout(loadRemoteState, delay);
+    }
+
+    function migrateRenamedAccountZhuanlv(previousValue, nextValue, originalSetItem) {
+        try {
+            var previous = JSON.parse(previousValue || "[]");
+            var next = JSON.parse(nextValue || "[]");
+            if (!Array.isArray(previous) || !Array.isArray(next) || previous.length !== next.length) return;
+            var removed = previous.filter(function(name) { return !next.includes(name); });
+            var added = next.filter(function(name) { return !previous.includes(name); });
+            if (1 !== removed.length || 1 !== added.length) return;
+            var oldKey = "zhuanlv_status_" + removed[0];
+            var newKey = "zhuanlv_status_" + added[0];
+            var value = localStorage.getItem(oldKey);
+            if (null !== value && null === localStorage.getItem(newKey)) {
+                originalSetItem.call(localStorage, newKey, value);
+                Storage.prototype.removeItem.call(localStorage, oldKey);
+            }
+        } catch (error) {
+            console.warn("迁移改名角色的转律状态失败：", error);
+        }
     }
 
     function installStorageObserver() {
         var originalSetItem = Storage.prototype.setItem;
         var originalRemoveItem = Storage.prototype.removeItem;
         Storage.prototype.setItem = function(key, value) {
+            var previousValue = this === localStorage ? this.getItem(key) : null;
             originalSetItem.call(this, key, value);
+            if (this === localStorage && "game_account_list" === String(key)) {
+                migrateRenamedAccountZhuanlv(previousValue, value, originalSetItem);
+            }
             if (this === localStorage && isBackupDataKey(String(key))) markDirty("本地数据已变化");
         };
         Storage.prototype.removeItem = function(key) {
@@ -497,12 +633,23 @@
     }
 
     async function handleSession(session) {
+        var previousUserId = getUserId();
+        var nextUserId = session && session.user && session.user.id || "";
+        if (previousUserId && previousUserId === nextUserId) {
+            state.session = session;
+            render();
+            return;
+        }
         clearTimeout(state.backupTimer);
-        clearTimeout(state.retryTimer);
+        clearTimeout(state.remoteRetryTimer);
         state.session = session;
         state.latest = null;
         state.history = [];
         state.conflict = false;
+        state.conflictReason = "";
+        state.remoteReady = false;
+        state.remoteLoading = false;
+        state.dirty = localStorage.getItem(metaKey("dirty")) === "1";
         render();
         if (session) await loadRemoteState();
     }
@@ -519,16 +666,24 @@
         });
         client.auth.onAuthStateChange(function(event, session) {
             if ("INITIAL_SESSION" === event) return;
+            if ("TOKEN_REFRESHED" === event && getUserId() === (session && session.user && session.user.id || "")) {
+                state.session = session;
+                render();
+                return;
+            }
             setTimeout(function() { handleSession(session); }, 0);
         });
         var result = await client.auth.getSession();
         if (result.error) setStatus("读取登录状态失败：" + friendlyError(result.error), "error");
         else await handleSession(result.data.session);
         window.addEventListener("online", function() {
-            if (state.dirty && state.session && isAutoEnabled() && !state.conflict) scheduleBackup(1000);
+            if (state.session && !state.remoteReady) loadRemoteState();
+            else if (state.dirty && state.session && isAutoEnabled() && !state.conflict) scheduleBackup(1000);
         });
         document.addEventListener("visibilitychange", function() {
-            if (!document.hidden && state.dirty && state.session && isAutoEnabled() && !state.conflict) scheduleBackup(1000);
+            if (document.hidden || !state.session) return;
+            if (!state.remoteReady) loadRemoteState();
+            else if (state.dirty && isAutoEnabled() && !state.conflict) scheduleBackup(1000);
         });
     }
 
