@@ -36,6 +36,7 @@ check_not_contains() {
 INDEX="static/tools/yysls-tiaolv/index.html"
 APP="static/tools/yysls-tiaolv/assets/js/app.min.js"
 LOCAL_JS="static/tools/yysls-tiaolv/assets/js/local-customizations.js"
+CLOUD_JS="static/tools/yysls-tiaolv/assets/js/cloud-backup.js"
 THEME_CSS="static/tools/yysls-tiaolv/assets/css/ui-codex-command-classic.css"
 ALGORITHMS_JS="static/tools/yysls-tiaolv/assets/js/best-build-algorithms.js"
 RUNTIME="static/tools/yysls-tiaolv/assets/js/excel-runtime.js"
@@ -45,6 +46,7 @@ DOC="doc/tiaolv-local-customizations.md"
 check_file "$INDEX"
 check_file "$APP"
 check_file "$LOCAL_JS"
+check_file "$CLOUD_JS"
 check_file "$THEME_CSS"
 check_file "$ALGORITHMS_JS"
 check_file "$RUNTIME"
@@ -61,6 +63,20 @@ fi
 echo "OK: WASM magic number valid (asset version expected: $expected_version)"
 
 check_contains "$INDEX" "assets/js/local-customizations.js" "local customizations script tag"
+check_contains "$INDEX" "@supabase/supabase-js@2.57.4" "fixed Supabase SDK version"
+check_contains "$INDEX" "assets/js/cloud-backup.js" "cloud backup script tag"
+check_contains "$CLOUD_JS" "signInWithPassword" "cloud email-password login"
+check_contains "$CLOUD_JS" "AUTO_BACKUP_DELAY_MS = 30000" "cloud delayed auto backup"
+check_contains "$CLOUD_JS" 'crypto.subtle.digest("SHA-256"' "cloud SHA-256 deduplication"
+check_contains "$CLOUD_JS" 'client.from("backup_latest")' "cloud latest backup table"
+check_contains "$CLOUD_JS" 'client.from("backup_snapshots")' "cloud snapshot history table"
+check_contains "$CLOUD_JS" '.eq("user_id", userId).eq("data_hash", remoteLatest.data_hash)' "cloud conditional concurrency update"
+check_contains "$CLOUD_JS" 'insertSnapshot(payload, hash, "before_restore"' "cloud pre-restore snapshot label"
+check_contains "$CLOUD_JS" "protectLocalBeforeRestore" "cloud pre-restore protection"
+check_contains "$CLOUD_JS" "owner_mismatch" "cloud account ownership guard"
+check_contains "$CLOUD_JS" "remote_changed" "cloud multi-device conflict guard"
+check_contains "$CLOUD_JS" "api.restoreFullBackup" "cloud shared transactional restore"
+check_contains "$LOCAL_JS" "onRestored" "cloud restore completion callback"
 check_contains "$INDEX" "assets/js/best-build-algorithms.js" "best-build algorithms script tag"
 check_contains "$ALGORITHMS_JS" "window.YYSLSBestBuildAlgorithms" "best-build algorithm registry"
 check_contains "$APP" "best-build-algorithm-select" "best-build algorithm selector"
@@ -186,6 +202,9 @@ echo "OK: app.min.js syntax"
 
 node --check "$LOCAL_JS" >/dev/null
 echo "OK: local-customizations.js syntax"
+
+node --check "$CLOUD_JS" >/dev/null
+echo "OK: cloud-backup.js syntax"
 
 node --check "$ALGORITHMS_JS" >/dev/null
 echo "OK: best-build-algorithms.js syntax"

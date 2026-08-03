@@ -34,6 +34,8 @@
 | 角色改名完整迁移 | 观察 `game_account_list` 的单角色等长替换，将 `zhuanlv_status_旧角色名` 原样迁移到新角色名，避免云端备份在角色改名后漏掉已转律槽位。 |
 | 事务恢复 | 云端数据复用 `local-customizations.js` 的完整备份校验和恢复事务；恢复前先写 `before_restore` 快照，失败则不执行本地覆盖。 |
 
+云备份是本站正式定制功能，不属于上游代码。同步上游时必须同时保留 `cloud-backup.js`、固定版本 Supabase SDK 引用、`local-customizations.js` 的完整备份公共接口、`index.html` 脚本引用及版本号。`check_tiaolv_customizations.sh` 必须检查登录、延迟备份、哈希去重、latest/快照表、条件更新、多设备冲突、账号归属和恢复前保护标记。
+
 ### 2026-07-31 新增定制
 
 以下功能均为本站本地定制，后续同步上游时必须完整保留：
