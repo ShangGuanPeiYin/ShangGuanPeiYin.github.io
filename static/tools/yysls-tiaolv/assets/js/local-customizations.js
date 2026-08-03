@@ -1974,13 +1974,18 @@
     }
 
     function onZhuanlvRadioChange(targetRadio) {
+        // 浏览器已切换 checked 状态：true=选中，false=取消选中
         if (targetRadio.checked) {
-            // 选中：取消其他方框
+            // 选中此方框 → 取消所有其他方框（radio 行为）
             document.querySelectorAll(".zhuanlv-slot-radio").forEach(function(r) {
                 if (r !== targetRadio) r.checked = false;
             });
+            // 确保当前方框保持选中（防御性）
+            targetRadio.checked = true;
+        } else {
+            // 取消选中 → 回到待转律状态，清空所有
+            clearAllZhuanlvRadios();
         }
-        // 取消选中（checked=false）→ 回到待转律状态，无需额外处理
         updateZhuanlvTargetList();
         autoSaveZhuanlv();
     }
