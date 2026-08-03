@@ -2008,7 +2008,9 @@
     function buildZhuanlvTag(text, color) {
         return '<span class="zhuanlv-badge" style="'
             + 'font-size:0.72rem;border:1px solid ' + color + ';color:' + color + ';'
-            + 'padding:0 5px;border-radius:3px;white-space:nowrap;">'
+            + 'display:inline-flex;align-items:center;max-width:100%;min-width:0;'
+            + 'padding:0 5px;border-radius:3px;white-space:normal;line-height:1.25;'
+            + 'overflow-wrap:anywhere;word-break:break-word;">'
             + text + '</span>';
     }
 
@@ -2021,6 +2023,14 @@
 
         // 找卡片 header 中的 flex 行（含等级标签的那行）
         var flexRow = cardEl.querySelector(".card-header .card-title div[style]");
+        var cardTitle = cardEl.querySelector(".card-header .card-title");
+        if (cardTitle) cardTitle.style.minWidth = "0";
+        if (flexRow) {
+            flexRow.style.flexWrap = "wrap";
+            flexRow.style.alignItems = "center";
+            flexRow.style.minWidth = "0";
+            flexRow.style.maxWidth = "100%";
+        }
 
         if (!status || status.state === "none") {
             if (flexRow) flexRow.insertAdjacentHTML("beforeend", buildZhuanlvTag("待转律", "#888"));
