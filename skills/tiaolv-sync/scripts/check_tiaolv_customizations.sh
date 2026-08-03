@@ -66,7 +66,7 @@ check_contains "$INDEX" "assets/js/local-customizations.js" "local customization
 check_contains "$INDEX" "@supabase/supabase-js@2.57.4" "fixed Supabase SDK version"
 check_contains "$INDEX" "assets/js/cloud-backup.js" "cloud backup script tag"
 check_contains "$CLOUD_JS" "signInWithPassword" "cloud email-password login"
-check_contains "$CLOUD_JS" "AUTO_BACKUP_DELAY_MS = 30000" "cloud delayed auto backup"
+check_contains "$CLOUD_JS" "AUTO_BACKUP_DELAY_MS = 60000" "cloud delayed auto backup"
 check_contains "$CLOUD_JS" 'crypto.subtle.digest("SHA-256"' "cloud SHA-256 deduplication"
 check_contains "$CLOUD_JS" 'client.from("backup_latest")' "cloud latest backup table"
 check_contains "$CLOUD_JS" 'client.from("backup_snapshots")' "cloud snapshot history table"

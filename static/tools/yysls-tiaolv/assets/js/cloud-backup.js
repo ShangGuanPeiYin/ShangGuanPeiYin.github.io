@@ -3,7 +3,7 @@
 
     var SUPABASE_URL = "https://ffxrckbhryicvhnzvldd.supabase.co";
     var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fTjJJCzH8AsaNEw5gSfyDQ_JPfQ4Fsg";
-    var AUTO_BACKUP_DELAY_MS = 30000;
+    var AUTO_BACKUP_DELAY_MS = 60000;
     var AUTO_SNAPSHOT_INTERVAL_MS = 30 * 60 * 1000;
     var HISTORY_LIMIT = 20;
     var META_PREFIX = "tiaolv_cloud_";
@@ -240,7 +240,7 @@
             + '<div id="cloud-logged-out" class="cloud-auth"><p class="cloud-lead">使用管理员创建的邮箱和密码登录。数据仍先保存在本机。</p><label for="cloud-email">邮箱</label><input id="cloud-email" type="email" autocomplete="username" inputmode="email"><label for="cloud-password">密码</label><input id="cloud-password" type="password" autocomplete="current-password"><button type="button" id="cloud-login-btn" class="primary-btn">登录</button></div>'
             + '<div id="cloud-logged-in" class="hidden"><div class="cloud-account-line"><div><span>当前账号</span><strong id="cloud-account"></strong></div><button type="button" id="cloud-logout-btn" class="secondary-btn">退出</button></div>'
             + '<div id="cloud-conflict" class="cloud-conflict hidden"><strong id="cloud-conflict-title">检测到已有云端备份</strong><p id="cloud-conflict-text">这是此账号在当前浏览器首次连接。自动上传已暂停，请选择要保留的数据。</p><div class="cloud-conflict-actions"><button type="button" id="cloud-conflict-restore" class="primary-btn">恢复云端备份</button><button type="button" id="cloud-conflict-override" class="danger-btn">以本机数据覆盖</button></div></div>'
-            + '<div id="cloud-regular-actions"><label class="cloud-toggle"><input id="cloud-auto-toggle" type="checkbox"><span>自动云端备份</span><small>本地数据变化 30 秒后上传</small></label><div class="cloud-metrics"><div><span>最新云端备份</span><strong id="cloud-last-backup">尚未备份</strong></div><div><span>保存方式</span><strong>本地优先</strong></div></div><div class="cloud-actions"><button type="button" id="cloud-backup-now" class="primary-btn">立即备份</button><button type="button" id="cloud-restore-latest" class="secondary-btn">恢复最新备份</button></div></div>'
+            + '<div id="cloud-regular-actions"><label class="cloud-toggle"><input id="cloud-auto-toggle" type="checkbox"><span>自动云端备份</span><small>本地数据变化 1 分钟后上传</small></label><div class="cloud-metrics"><div><span>最新云端备份</span><strong id="cloud-last-backup">尚未备份</strong></div><div><span>保存方式</span><strong>本地优先</strong></div></div><div class="cloud-actions"><button type="button" id="cloud-backup-now" class="primary-btn">立即备份</button><button type="button" id="cloud-restore-latest" class="secondary-btn">恢复最新备份</button></div></div>'
             + '<div class="cloud-status" id="cloud-status" aria-live="polite">等待操作</div><div class="cloud-history"><div class="cloud-section-title"><div><span>历史备份</span><small>最多保留 20 份</small></div><button type="button" id="cloud-history-toggle" class="cloud-history-toggle" aria-expanded="false" aria-controls="cloud-history-list">展开</button></div><div id="cloud-history-list" class="hidden"></div></div></div></div></div>';
         document.body.appendChild(modal);
 
@@ -867,7 +867,7 @@
         state.changeVersion++;
         setDirtyFlag(true);
         if (!state.session || !isAutoEnabled() || state.conflict) return;
-        setStatus((reason || "本地数据已变化") + "，将在 30 秒后备份。", "normal");
+        setStatus((reason || "本地数据已变化") + "，将在 1 分钟后备份。", "normal");
         scheduleBackup(AUTO_BACKUP_DELAY_MS);
     }
 
