@@ -160,7 +160,7 @@
             var title = document.createElement("strong");
             title.textContent = sourceLabel(item.source);
             var time = document.createElement("span");
-            time.textContent = formatTime(item.created_at || item.client_updated_at);
+            time.textContent = formatTime(item.client_updated_at);
             copy.appendChild(title);
             copy.appendChild(time);
             var restore = document.createElement("button");
@@ -449,8 +449,8 @@
     async function loadHistory(userId) {
         userId = userId || getUserId();
         var result = await client.from("backup_snapshots")
-            .select("id,data_hash,source,client_updated_at,created_at")
-            .eq("user_id", userId).order("created_at", { ascending: false }).limit(HISTORY_LIMIT);
+            .select("id,data_hash,source,client_updated_at")
+            .eq("user_id", userId).order("client_updated_at", { ascending: false }).limit(HISTORY_LIMIT);
         if (result.error) throw result.error;
         ensureSameSession(userId);
         state.history = result.data || [];
@@ -477,7 +477,7 @@
         for (var pass = 0; pass < 10; pass++) {
             ensureSameSession(userId, sessionVersion);
             var result = await client.from("backup_snapshots").select("id")
-                .eq("user_id", userId).order("created_at", { ascending: false }).range(HISTORY_LIMIT, HISTORY_LIMIT + 199);
+                .eq("user_id", userId).order("client_updated_at", { ascending: false }).range(HISTORY_LIMIT, HISTORY_LIMIT + 199);
             if (result.error) throw result.error;
             var ids = (result.data || []).map(function(row) { return row.id; });
             if (!ids.length) return;
