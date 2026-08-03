@@ -1974,10 +1974,13 @@
     }
 
     function onZhuanlvRadioChange(targetRadio) {
-        document.querySelectorAll(".zhuanlv-slot-radio").forEach(function(r) {
-            if (r !== targetRadio) r.checked = false;
-        });
-        targetRadio.checked = true;
+        if (targetRadio.checked) {
+            // 选中：取消其他方框
+            document.querySelectorAll(".zhuanlv-slot-radio").forEach(function(r) {
+                if (r !== targetRadio) r.checked = false;
+            });
+        }
+        // 取消选中（checked=false）→ 回到待转律状态，无需额外处理
         updateZhuanlvTargetList();
         autoSaveZhuanlv();
     }
