@@ -20,6 +20,7 @@
         remoteReady: false,
         remoteLoading: false,
         remoteRetryDelay: 30000,
+        latestHasServerUpdatedAt: true,
         changeVersion: 0,
         sessionVersion: 0,
         backupTimer: null,
@@ -69,6 +70,15 @@
         return date.toLocaleString("zh-CN", { hour12: false });
     }
 
+    function nowIso() {
+        return (new Date()).toISOString();
+    }
+
+    function safeBackupTime(payload) {
+        var exportedAt = payload && payload.exportedAt;
+        return Number.isNaN((new Date(exportedAt)).getTime()) ? nowIso() : exportedAt;
+    }
+
     function sourceLabel(source) {
         return {
             auto: "自动备份",
@@ -82,6 +92,35 @@
         if (!elements.status) return;
         elements.status.textContent = message;
         elements.status.dataset.kind = kind || "normal";
+    }
+
+    function disableCloudBackup(message) {
+        state.busy = true;
+        state.remoteReady = false;
+        [
+            elements.loginButton, elements.logoutButton, elements.backupButton,
+            elements.restoreButton, elements.overrideButton, elements.conflictRestoreButton,
+            elements.autoToggle
+        ].forEach(function(control) {
+            if (control) control.disabled = true;
+        });
+        setStatus(message, "error");
+    }
+
+    function getCloudRuntimeError() {
+        if (!window.isSecureContext) return "云备份需要 HTTPS 安全环境，请使用线上地址访问。";
+        if (!window.crypto || !window.crypto.subtle || "function" !== typeof window.crypto.subtle.digest) {
+            return "当前浏览器不支持云备份所需的安全哈希能力。";
+        }
+        if ("function" !== typeof window.TextEncoder) return "当前浏览器不支持云备份所需的文本编码能力。";
+        try {
+            var testKey = metaKey("runtime_test");
+            localStorage.setItem(testKey, "1");
+            localStorage.removeItem(testKey);
+        } catch (error) {
+            return "当前浏览器无法访问本地存储，云备份已停用。";
+        }
+        return "";
     }
 
     function setBusy(busy) {
@@ -289,12 +328,33 @@
         return result;
     }
 
+    async function digestRemoteData(row) {
+        if (!row || !row.data) return null;
+        try {
+            api.validateFullBackup(row.data);
+            return await digestPayload(row.data);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function hashMatches(hash, remoteHash, remoteStableHash) {
+        return !!hash && (hash === remoteHash || hash === remoteStableHash);
+    }
+
     async function fetchLatestBackup(userId) {
+        var targetUserId = userId || getUserId();
         var result = await client.from("backup_latest")
-            .select("data,data_hash,source,client_updated_at,server_updated_at")
-            .eq("user_id", userId || getUserId()).maybeSingle();
+            .select(latestSelectColumns())
+            .eq("user_id", targetUserId).maybeSingle();
+        if (result.error && state.latestHasServerUpdatedAt && isMissingColumnError(result.error, "server_updated_at")) {
+            state.latestHasServerUpdatedAt = false;
+            result = await client.from("backup_latest")
+                .select(latestSelectColumns())
+                .eq("user_id", targetUserId).maybeSingle();
+        }
         if (result.error) throw result.error;
-        return result.data || null;
+        return normalizeLatestRow(result.data || null);
     }
 
     function ensureSameSession(userId, sessionVersion) {
@@ -311,14 +371,17 @@
     async function writeLatestAtomically(row, remoteLatest, source, userId, sessionVersion) {
         ensureSameSession(userId, sessionVersion);
         if ("device_override" === source) {
-            var overrideResult = await client.from("backup_latest")
-                .upsert(row, { onConflict: "user_id" });
+            var overrideResult = await runLatestWrite(function() {
+                return client.from("backup_latest").upsert(latestWriteRow(row), { onConflict: "user_id" });
+            });
             if (overrideResult.error) throw overrideResult.error;
             ensureSameSession(userId, sessionVersion);
             return true;
         }
         if (!remoteLatest) {
-            var insertResult = await client.from("backup_latest").insert(row);
+            var insertResult = await runLatestWrite(function() {
+                return client.from("backup_latest").insert(latestWriteRow(row));
+            });
             if (insertResult.error) {
                 if ("23505" === String(insertResult.error.code)) return false;
                 throw insertResult.error;
@@ -326,9 +389,11 @@
             ensureSameSession(userId, sessionVersion);
             return true;
         }
-        var updateResult = await client.from("backup_latest").update(row)
-            .eq("user_id", userId).eq("data_hash", remoteLatest.data_hash)
-            .select("data_hash");
+        var updateResult = await runLatestWrite(function() {
+            return client.from("backup_latest").update(latestWriteRow(row))
+                .eq("user_id", userId).eq("data_hash", remoteLatest.data_hash)
+                .select("data_hash");
+        });
         if (updateResult.error) throw updateResult.error;
         ensureSameSession(userId, sessionVersion);
         return Array.isArray(updateResult.data) && 1 === updateResult.data.length;
@@ -384,7 +449,45 @@
         if (/invalid login credentials/i.test(message)) return "邮箱或密码不正确";
         if (/email not confirmed/i.test(message)) return "该邮箱尚未确认，请联系管理员";
         if (/failed to fetch|network/i.test(message)) return "网络连接失败，请稍后重试";
+        if (/row-level security|permission denied|not authorized|violates row-level security/i.test(message)) {
+            return "云端权限被拒绝，请检查 Supabase RLS 策略";
+        }
+        if (/column .* does not exist|schema cache|could not find .* column/i.test(message)) {
+            return "云端表字段与前端不一致，请刷新页面或检查 Supabase 表结构";
+        }
         return message;
+    }
+
+    function isMissingColumnError(error, columnName) {
+        var message = error && error.message || "";
+        return message.indexOf(columnName) >= 0
+            && /column .* does not exist|schema cache|could not find .* column/i.test(message);
+    }
+
+    function latestSelectColumns() {
+        return state.latestHasServerUpdatedAt
+            ? "data,data_hash,source,client_updated_at,server_updated_at"
+            : "data,data_hash,source,client_updated_at";
+    }
+
+    function latestWriteRow(row) {
+        var copy = Object.assign({}, row);
+        if (!state.latestHasServerUpdatedAt) delete copy.server_updated_at;
+        return copy;
+    }
+
+    function normalizeLatestRow(row) {
+        if (row && !Object.prototype.hasOwnProperty.call(row, "server_updated_at")) row.server_updated_at = null;
+        return row;
+    }
+
+    async function runLatestWrite(operation) {
+        var result = await operation();
+        if (result.error && state.latestHasServerUpdatedAt && isMissingColumnError(result.error, "server_updated_at")) {
+            state.latestHasServerUpdatedAt = false;
+            result = await operation();
+        }
+        return result;
     }
 
     async function loadRemoteState() {
@@ -414,26 +517,33 @@
                 return;
             }
             var remoteHash = state.latest && state.latest.data_hash || null;
+            var remoteStableHash = await digestRemoteData(state.latest);
             var localOwner = localStorage.getItem(metaKey("owner"));
+            var pendingRestore = localStorage.getItem(metaKey("pending", operationUserId)) === "1";
             state.remoteReady = true;
             state.remoteRetryDelay = 30000;
             clearTimeout(state.remoteRetryTimer);
             var ownerMismatch = !!localState.payload && !!localOwner && localOwner !== operationUserId;
-            state.conflict = ownerMismatch || !!state.latest && (!baseline
-                || baseline !== remoteHash && localState.hash !== remoteHash);
+            state.conflict = ownerMismatch || !!state.latest && !pendingRestore && (!baseline
+                || baseline !== remoteHash && baseline !== remoteStableHash
+                && !hashMatches(localState.hash, remoteHash, remoteStableHash));
             state.conflictReason = ownerMismatch ? "owner_mismatch"
                 : state.latest && baseline ? "remote_changed" : "first_connect";
             if (state.conflict) {
                 setStatus("自动上传已暂停，请选择保留云端或本机数据。", "warning");
-            } else if (state.latest && localState.hash === remoteHash) {
-                localStorage.setItem(metaKey("baseline", operationUserId), remoteHash);
+            } else if (state.latest && hashMatches(localState.hash, remoteHash, remoteStableHash)) {
+                localStorage.setItem(metaKey("baseline", operationUserId), localState.hash || remoteStableHash || remoteHash);
                 localStorage.setItem(metaKey("owner"), operationUserId);
                 setDirtyFlag(false);
-                setStatus("本机数据与云端备份一致", "success");
-            } else if (state.latest) {
-                if (localState.hash && baseline === remoteHash) {
+                if (remoteStableHash && remoteHash !== remoteStableHash) {
                     setDirtyFlag(true);
-                    setStatus("检测到尚未上传的本地修改，将自动备份。", "normal");
+                    setStatus("检测到旧版云端校验摘要，将自动修正。", "normal");
+                    if (isAutoEnabled()) scheduleBackup(1000);
+                } else setStatus("本机数据与云端备份一致", "success");
+            } else if (state.latest) {
+                if (pendingRestore || localState.hash && (baseline === remoteHash || baseline === remoteStableHash)) {
+                    setDirtyFlag(true);
+                    setStatus(pendingRestore ? "恢复后的数据将自动写回新版云端备份。" : "检测到尚未上传的本地修改，将自动备份。", "normal");
                     if (isAutoEnabled()) scheduleBackup(1000);
                 } else setStatus("云端备份已连接", "success");
             } else {
@@ -443,7 +553,7 @@
                     if (isAutoEnabled()) scheduleBackup(1000);
                 }
             }
-            if (localStorage.getItem(metaKey("pending", operationUserId)) === "1") {
+            if (pendingRestore) {
                 localStorage.removeItem(metaKey("pending", operationUserId));
                 markDirty("恢复后的合并数据");
             }
@@ -462,7 +572,10 @@
         userId = userId || getUserId();
         var result = await client.from("backup_snapshots")
             .select("id,data_hash,source,client_updated_at")
-            .eq("user_id", userId).order("client_updated_at", { ascending: false }).limit(HISTORY_LIMIT);
+            .eq("user_id", userId)
+            .order("client_updated_at", { ascending: false })
+            .order("id", { ascending: false })
+            .limit(HISTORY_LIMIT);
         if (result.error) throw result.error;
         ensureSameSession(userId);
         state.history = result.data || [];
@@ -476,12 +589,17 @@
             data: payload,
             data_hash: hash,
             source: source,
-            client_updated_at: payload.exportedAt
+            client_updated_at: safeBackupTime(payload)
         });
         if (result.error) throw result.error;
         ensureSameSession(userId, sessionVersion);
         localStorage.setItem(metaKey("snapshot_at", userId), String(Date.now()));
-        await pruneHistory(userId, sessionVersion);
+        try {
+            await pruneHistory(userId, sessionVersion);
+        } catch (error) {
+            if ("before_restore" !== source) throw error;
+            console.warn("恢复前保护快照已保存，但历史清理失败：", error);
+        }
     }
 
     async function pruneHistory(userId, sessionVersion) {
@@ -489,7 +607,10 @@
         for (var pass = 0; pass < 10; pass++) {
             ensureSameSession(userId, sessionVersion);
             var result = await client.from("backup_snapshots").select("id")
-                .eq("user_id", userId).order("client_updated_at", { ascending: false }).range(HISTORY_LIMIT, HISTORY_LIMIT + 199);
+                .eq("user_id", userId)
+                .order("client_updated_at", { ascending: false })
+                .order("id", { ascending: false })
+                .range(HISTORY_LIMIT, HISTORY_LIMIT + 199);
             if (result.error) throw result.error;
             var ids = (result.data || []).map(function(row) { return row.id; });
             if (!ids.length) return;
@@ -534,13 +655,16 @@
             var remoteLatest = await fetchLatestBackup(operationUserId);
             ensureSameSession(operationUserId, operationSessionVersion);
             var baseline = localStorage.getItem(metaKey("baseline", operationUserId));
+            var remoteStableHash = await digestRemoteData(remoteLatest);
+            var pendingRestore = localStorage.getItem(metaKey("pending", operationUserId)) === "1";
             if (remoteLatest && "device_override" !== source
-                && (!baseline || remoteLatest.data_hash !== baseline)) {
+                && !pendingRestore
+                && (!baseline || remoteLatest.data_hash !== baseline && remoteStableHash !== baseline)) {
                 state.latest = remoteLatest;
-                if (remoteLatest.data_hash === hash) {
+                if (hashMatches(hash, remoteLatest.data_hash, remoteStableHash)) {
                     finishUploadRevision(operationUserId, hash, localState.revision);
                     state.conflict = false;
-                    if (!forceSnapshot) {
+                    if (!forceSnapshot && remoteLatest.data_hash === hash) {
                         setStatus("本机数据与云端备份一致，无需重复上传。", "success");
                         return;
                     }
@@ -557,13 +681,13 @@
                 setStatus("数据没有变化，无需重复上传。", "success");
                 return;
             }
-            var now = (new Date()).toISOString();
+            var now = nowIso();
             var lastSnapshot = Number(localStorage.getItem(metaKey("snapshot_at", operationUserId)) || 0);
             var needsSnapshot = forceSnapshot || !lastSnapshot || Date.now() - lastSnapshot >= AUTO_SNAPSHOT_INTERVAL_MS;
             if (needsSnapshot) await insertSnapshot(payload, hash, source, operationUserId, operationSessionVersion);
             var latestRow = {
                 user_id: operationUserId, data: payload, data_hash: hash, source: source,
-                client_updated_at: payload.exportedAt, server_updated_at: now
+                client_updated_at: safeBackupTime(payload), server_updated_at: now
             };
             var writeSucceeded = await writeLatestAtomically(latestRow, remoteLatest, source, operationUserId, operationSessionVersion);
             if (!writeSucceeded) {
@@ -576,11 +700,12 @@
             }
             state.latest = {
                 data: payload, data_hash: hash, source: source,
-                client_updated_at: payload.exportedAt, server_updated_at: now
+                client_updated_at: safeBackupTime(payload), server_updated_at: now
             };
             state.conflict = false;
             state.conflictReason = "";
             finishUploadRevision(operationUserId, hash, localState.revision);
+            localStorage.removeItem(metaKey("pending", operationUserId));
             localStorage.setItem(metaKey("last_success", operationUserId), now);
             await loadHistory(operationUserId);
             ensureSameSession(operationUserId, operationSessionVersion);
@@ -650,7 +775,7 @@
                 skipConfirm: true,
                 onRestored: function() {
                     ensureSameSession(userId, sessionVersion);
-                    localStorage.setItem(metaKey("baseline", userId), remoteHash);
+                    localStorage.setItem(metaKey("baseline", userId), actualHash);
                     localStorage.setItem(metaKey("owner"), userId);
                     localStorage.setItem(metaKey("pending", userId), "1");
                 }
@@ -814,9 +939,14 @@
 
     async function init() {
         injectUi();
+        var runtimeError = getCloudRuntimeError();
+        if (runtimeError) {
+            disableCloudBackup(runtimeError);
+            return;
+        }
         installStorageObserver();
         if (!window.supabase || "function" !== typeof window.supabase.createClient) {
-            setStatus("云备份组件加载失败，请刷新页面重试。", "error");
+            disableCloudBackup("Supabase 云备份组件加载失败，请刷新页面重试。");
             return;
         }
         client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
