@@ -614,17 +614,42 @@
         }
     }
 
+    function selectSnapshotIdsToPrune(rows) {
+        rows = Array.isArray(rows) ? rows.slice() : [];
+        if (rows.length <= HISTORY_LIMIT) return [];
+        var sorted = rows.sort(function(a, b) {
+            var timeA = (new Date(a.client_updated_at)).getTime();
+            var timeB = (new Date(b.client_updated_at)).getTime();
+            if (Number.isNaN(timeA)) timeA = 0;
+            if (Number.isNaN(timeB)) timeB = 0;
+            if (timeA !== timeB) return timeB - timeA;
+            return String(b.id).localeCompare(String(a.id));
+        });
+        var deleteCount = sorted.length - HISTORY_LIMIT;
+        var oldestFirst = sorted.slice().reverse();
+        var ids = oldestFirst.filter(function(row) { return row.source === "auto"; })
+            .slice(0, deleteCount)
+            .map(function(row) { return row.id; });
+        if (ids.length < deleteCount) {
+            var selected = new Set(ids.map(String));
+            ids = ids.concat(oldestFirst.filter(function(row) {
+                return row.source !== "auto" && !selected.has(String(row.id));
+            }).slice(0, deleteCount - ids.length).map(function(row) { return row.id; }));
+        }
+        return ids.filter(function(id) { return null != id; });
+    }
+
     async function pruneHistory(userId, sessionVersion) {
         userId = userId || getUserId();
         for (var pass = 0; pass < 10; pass++) {
             ensureSameSession(userId, sessionVersion);
-            var result = await client.from("backup_snapshots").select("id")
+            var result = await client.from("backup_snapshots").select("id,source,client_updated_at")
                 .eq("user_id", userId)
                 .order("client_updated_at", { ascending: false })
                 .order("id", { ascending: false })
-                .range(HISTORY_LIMIT, HISTORY_LIMIT + 199);
+                .limit(HISTORY_LIMIT + 200);
             if (result.error) throw result.error;
-            var ids = (result.data || []).map(function(row) { return row.id; });
+            var ids = selectSnapshotIdsToPrune(result.data || []);
             if (!ids.length) return;
             var deleteResult = await client.from("backup_snapshots").delete().in("id", ids);
             if (deleteResult.error) throw deleteResult.error;
