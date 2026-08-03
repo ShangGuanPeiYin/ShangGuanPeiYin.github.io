@@ -2142,8 +2142,12 @@
         // 确保 radio 已注入
         injectZhuanlvSubStatRadios();
 
-        // 监听副词条 select 变化
+        // 监听副词条 select 和 radio 方框变化（都在 sub-stats-container 内）
         document.getElementById("sub-stats-container").addEventListener("change", function(e) {
+            if (e.target.classList.contains("zhuanlv-slot-radio")) {
+                onZhuanlvRadioChange(e.target);
+                return;
+            }
             if (e.target.classList.contains("sub-stat-select")) {
                 syncZhuanlvSubStatRadios();
                 updateZhuanlvTargetList();
@@ -2151,11 +2155,8 @@
             }
         });
 
-        // 监听 radio checkbox 变化（通过事件委托在 section 上）
+        // 监听 target checkbox 变化
         section.addEventListener("change", function(e) {
-            if (e.target.classList.contains("zhuanlv-slot-radio")) {
-                onZhuanlvRadioChange(e.target);
-            }
             if (e.target.classList.contains("zhuanlv-target-check")) {
                 autoSaveZhuanlv();
             }
