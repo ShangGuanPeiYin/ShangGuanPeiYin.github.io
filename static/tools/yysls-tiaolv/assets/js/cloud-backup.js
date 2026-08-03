@@ -242,10 +242,22 @@
         if (elements.modal) elements.modal.classList.add("hidden");
     }
 
+    function stableStringify(value) {
+        if (Array.isArray(value)) {
+            return "[" + value.map(stableStringify).join(",") + "]";
+        }
+        if (value && "object" === typeof value) {
+            return "{" + Object.keys(value).sort().map(function(key) {
+                return JSON.stringify(key) + ":" + stableStringify(value[key]);
+            }).join(",") + "}";
+        }
+        return JSON.stringify(value);
+    }
+
     async function digestPayload(payload) {
         var canonical = JSON.parse(JSON.stringify(payload));
         delete canonical.exportedAt;
-        var bytes = new TextEncoder().encode(JSON.stringify(canonical));
+        var bytes = new TextEncoder().encode(stableStringify(canonical));
         var hash = await crypto.subtle.digest("SHA-256", bytes);
         return Array.from(new Uint8Array(hash)).map(function(byte) {
             return byte.toString(16).padStart(2, "0");
@@ -618,13 +630,17 @@
             description = describePayload(payload);
             if (!remoteHash) throw new Error("云端备份缺少校验摘要");
             var actualHash = await digestPayload(payload);
-            if (actualHash !== remoteHash) throw new Error("云端备份校验摘要不匹配");
+            var legacyHashMismatch = actualHash !== remoteHash;
             ensureSameSession(userId, sessionVersion);
         } catch (error) {
             setStatus("云端备份校验失败：" + friendlyError(error), "error");
             return;
         }
-        if (!confirm("即将恢复包含 " + description + " 的云端备份。\n\n恢复会覆盖同名角色，并保留其他本地角色。确定继续吗？")) return;
+        var confirmText = "即将恢复包含 " + description + " 的云端备份。\n\n恢复会覆盖同名角色，并保留其他本地角色。确定继续吗？";
+        if (legacyHashMismatch) {
+            confirmText += "\n\n提示：这份备份可能来自旧版哈希算法，结构校验已通过；恢复后会自动写回新版校验摘要。";
+        }
+        if (!confirm(confirmText)) return;
         setBusy(true);
         setStatus("正在保存恢复前保护快照...", "normal");
         try {
