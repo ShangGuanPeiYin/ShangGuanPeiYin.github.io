@@ -110,6 +110,31 @@
    - `getTransmutationStateDigest` 必须进入最佳配装缓存键；装备等级、资格、承音状态、指定槽位或副词条类型变化后，旧搜索结果不得复用。
    - 完整备份仍不得恢复已删除的转律CD字段，也不得导出最佳40、搜索结果等可重建缓存。
 
+### 2026-08-05 新增定制
+
+1. **编辑装备弹窗重排与紧凑布局**
+   - 装备弹窗使用独立的 `.equip-modal-content`，桌面最大宽度为 `800px`，中等屏幕跟随视口收缩，`768px` 以下沿用移动端纵向布局；不得恢复全局 `.modal-content` 的 `650px` 限制，也不得重新扩大到曾使用过的 `920px`。
+   - `.equip-modal-header` 将原 `#equip-name` 节点移到标题栏：左侧保留装备图标及动态“录入装备 / 修改装备”标题，中间显示“装备名称”和输入框，右侧保留关闭按钮。名称字段 ID、必填校验、回填与保存逻辑不变。
+   - “装备名称”标签与弹窗标题使用相同字号规则，输入框中的实际装备名使用 `1.05rem`；手机端名称字段在标题区域第二行占满宽度。
+   - `.equip-basic-row` 只放装备位置、武器种类、动态注入的装备等级以及承音、紫装、可转律状态。桌面标签禁止换行，移动端允许恢复纵向排列。
+   - 主词条、副词条和定音词条的数值区域在桌面固定为 `200px`，避免随弹窗宽度产生大片空白；手机端继续使用原弹性尺寸。
+   - `#modal .modal-body` 固定预留纵向滚动条宽度，避免展开转律目标时上方字段左右跳动；装备弹窗页脚在桌面滚动时保持粘滞可操作。
+2. **转律目标紧凑网格**
+   - `local-customizations.js` 注入 `.zhuanlv-target-item` 卡片样式，将目标词条名和禁用原因分行排版，统一高度、内边距及选中/禁用状态。
+   - `#zhuanlv-target-checkboxes` 桌面使用三列 `190px–220px` 卡片，中屏使用两列 `190px–260px`，手机使用单列；卡片靠左排列，不再用 `1fr` 拉满整行。
+   - 只改变目标列表展示，不修改副词条单选、目标排除、自动保存、重复词条禁用及转律数据结构。
+3. **可用流派多选网格**
+   - 仅将装备弹窗内 `#available-classes-container.options-list.show` 改为响应式网格：宽屏四列、中屏三列、手机两列、`360px` 以下单列。
+   - “全选/取消全选”使用 `.option:first-child` 跨满第一行；列表高度随视口放宽，只在内容确实超过可用空间时纵向滚动。
+   - 武器流派限制保持不变：武器位置继续按 `ClassConfig.WEAPON_RULES` 禁用不兼容流派，全选只操作未禁用项；非武器部位不施加武器限制。
+4. **统一禁用控件光标**
+   - `#modal :disabled` 与 `#modal label:has(input:disabled)` 强制使用 `cursor:not-allowed`，确保不兼容流派、不可转律目标及其他禁用控件的控件本体和整块标签都显示禁用光标。
+   - 规则严格限定到装备弹窗，不改变站内其他页面和弹窗的光标样式。
+5. **低等级最佳配装强制承音**
+   - `BEST_BUILD_MAX_EQUIPMENT_LEVEL = 110` 固定当前最高装备等级。最佳配装候选生成中，低于 110 级的未承音装备只生成 `_chengyin` 的“需承音”升级版，原始未升级形态不得参与搜索。
+   - 低于 110 级且已经承音的真实装备直接参与，计入真实“承音”而非“需承音”；110级装备继续沿用原有按词条质量生成原装/需承音候选的规则。
+   - 缺少等级的旧数据继续按 105 级处理，因此在最佳配装中必须承音。现有 `maxNeedChengyin` 剪枝、结果标记、物理装备互斥、Top20 去重及仅110级可转律规则保持不变。
+
 ### 跨文件依赖与同步顺序
 
 以下功能不能只保留单个关键词，必须作为一组同步：
@@ -121,11 +146,12 @@
 | 词条数量模式 | 数量输入UI、真实分配器、词条组合存储、独立结果节点、最终面板、弓箭同步、贷款定音环境和完整备份中的手动数据 |
 | 转律资格 | `index.html` 的“可转律”控件、装备字段 `isTransmutable`、`zhuanlv_status_<account>` 槽位记录、迁移函数、卡片徽标和110级显示规则 |
 | 最佳配装自动转律 | 三模式选择器、候选生成、物理ID互斥、转律元数据、Top20去重、方案覆盖层、主页计算、备份白名单和方案提示节点 |
+| 编辑装备弹窗改版 | `index.html` 的 `.equip-modal-content` / `.equip-modal-header` / 原 `#equip-name` 节点，`style.css` 的弹窗宽度、滚动条、词条宽度、流派网格和禁用光标规则，`local-customizations.js` 的转律目标网格及动态等级控件 |
 | 已删除转律CD | 页面入口、运行时、存储、备份字段均保持不存在，同时保留一次性历史数据清理迁移 |
 
 同步完成后必须运行 `check_tiaolv_customizations.sh`；若任何一组只恢复了一部分，即使JavaScript语法和Hugo构建成功，也视为同步失败。
 
-主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`isTransmutableEquip`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
+主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`isTransmutableEquip`、`BEST_BUILD_MAX_EQUIPMENT_LEVEL`、`isBelowBestBuildMaxEquipmentLevel`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`equip-modal-content`、`equip-modal-header`、`equip-name-header-field`、`available-classes-container.options-list.show`、`zhuanlv-target-checkboxes`、`#modal :disabled`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
 
 云备份保护标记：`backup_latest`、`backup_snapshots`、`data_hash`、`server_updated_at`、`client_updated_at`、`tiaolv_cloud_` 前缀（`dirty` / `baseline_<userId>` / `owner` / `pending_<userId>` / `auto_<userId>` / `snapshot_at_<userId>` / `last_success_<userId>`）、`device_override`、`before_restore`、`remote_changed`、`owner_mismatch`、`first_connect`。`cloud-backup.js` 当前版本号 `?v=202608031609`，同步上游时必须保留该文件、Supabase UMD SDK 引用及其相对加载顺序。
 
