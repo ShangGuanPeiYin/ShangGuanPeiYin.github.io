@@ -1953,11 +1953,14 @@
             radio.setAttribute("data-index", String(index));
             radio.title = "选择第" + (index + 1) + "条副词条进行转律";
             row.insertBefore(radio, row.firstChild);
-            row.classList.add("has-zhuanlv-radio");
         });
     }
 
     function syncZhuanlvSubStatRadios() {
+        var transmutableCheck = document.getElementById("is-transmutable");
+        var levelSel = document.getElementById("level-select");
+        var allowLevel = levelSel ? parseInt(levelSel.value) === 110 : false;
+        var enabled = allowLevel && !!(transmutableCheck && transmutableCheck.checked);
         var rows = document.querySelectorAll("#sub-stats-container .stat-row");
         var selectedIndex = -1;
         rows.forEach(function(row, index) {
@@ -1965,8 +1968,10 @@
             if (!radio) return;
             var sel = row.querySelector(".sub-stat-select");
             var hasValue = !!(sel && sel.value && "生存类词条" !== sel.value && "生存向" !== sel.value);
-            radio.style.display = hasValue ? "" : "none";
+            var showRadio = enabled && hasValue;
+            radio.style.display = showRadio ? "" : "none";
             radio.disabled = !hasValue;
+            row.classList.toggle("has-zhuanlv-radio", showRadio);
             if (!hasValue && radio.checked) radio.checked = false;
             if (radio.checked) selectedIndex = index;
         });
