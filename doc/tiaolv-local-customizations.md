@@ -70,7 +70,7 @@
    - 保存词条数量与满值/承音值模式；毕业率按当前心法、套装、武库、定音等环境实时重算。
    - 组合数据保存在手动面板记录的 `__statCountConfig.presets` 中，并随完整 JSON 备份迁移。
 5. **110级显式转律资格**
-   - `isTransmutableEquip` 统一规定只有 `level === 110 && isTransmutable === true` 的装备可以进入转律功能；承音和紫装均不影响资格，其他等级仍可作为普通装备参与配装。
+   - `isTransmutableEquip` 统一规定只有 `level === 110 && isTransmutable === true` 的装备可以进入转律功能；承音和紫装均不影响资格，其他等级仍可作为普通装备参与计算；进入最佳配装时，未承音装备只使用“需承音”升级版。
    - 非110级装备不显示“可转律”复选框，切换到其他等级时自动取消勾选并清除指定槽位；110级新装备默认不勾选。
    - `migrateTransmutationToExplicitEligibility` 将已有合法 active 状态迁移为已勾选并保留槽位；其他旧装备默认不可转律。完整备份和旧JSON会迁移同一字段。
 6. **不可转律／待转律／已转律模型**
@@ -164,6 +164,7 @@
 | 装备等级数据保存 | `levelSelect`、`level`、`handleSaveEquip`、`handleEditEquip` | 保存装备时写入 `level`，编辑装备时回填等级。 |
 | 装备等级展示 | `levelColor`、`levelText` | 在装备卡片、穿搭槽位、最佳配装装备卡片显示 `[110]`、`[105]`、`[100]`、`[96]` 等等级标签。 |
 | 旧数据默认等级 | `getDB()` 中 `if (!item.level) item.level = 105` | 旧装备数据没有等级时默认按 105 处理。 |
+| 低等级最佳配装强制承音 | `BEST_BUILD_MAX_EQUIPMENT_LEVEL`、`isBelowBestBuildMaxEquipmentLevel`、`createChengyinVersion` | 最佳配装中低于当前最高等级 110 的未承音装备只生成 `(需承音)` 升级版；已承音装备直接参与，110 级继续沿用原候选规则。 |
 | 最多需要承音筛选 | `maxNeedChengyin`、`max-need-chengyin-select`、`countNeedChengyin` | 在最佳配装搜索阶段限制 `(需承音)` 装备数量。 |
 | 最佳配装算法选择 | `bestBuildAlgorithmId`、`best-build-algorithm-select`、`runBestBuildAlgorithm` | 最佳配装页根据算法注册中心动态生成下拉框；普通搜索和指定转律搜索通过统一算法入口分派，缓存键包含算法 ID。 |
 | 默认遍历性能优化 | `compileBestBuildEquip`、`calculateBestBuildCompiled`、`needChengyinCount`、最小堆 | 默认遍历预编译装备稀疏属性向量，搜索栈只传递装备索引并提前剪掉超过承音上限的分支；Top 200 使用固定容量最小堆维护，完整装备对象仅在候选入榜时生成。 |
