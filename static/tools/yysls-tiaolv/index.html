@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>自用装备管理台</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=202608051654">
+    <link rel="stylesheet" href="assets/css/style.css?v=202608051704">
     <link rel="stylesheet" href="assets/css/ui-codex-command-classic.css?v=202607312216">
     <script src="assets/js/tesseract.min.js" async></script>
 </head>
@@ -188,10 +188,13 @@
     </div>
     <div id="modal" class="modal hidden">
         <div class="modal-content equip-modal-content">
-            <div class="modal-header">
-                <div class="modal-header-flex"><img id="modal-icon-preview" src="index.html" alt="预览">
+            <div class="modal-header equip-modal-header">
+                <div class="modal-header-flex equip-modal-title-group"><img id="modal-icon-preview" src="index.html" alt="预览">
                     <h2 id="modal-title" class="modal-title-no-margin">录入装备</h2>
-                </div><span class="close-btn" id="close-equip-modal">&times;</span>
+                </div>
+                <div class="equip-name-header-field"><label for="equip-name">装备名称</label> <input type="text"
+                        id="equip-name" form="equip-form" placeholder="输入名称" required></div>
+                <span class="close-btn" id="close-equip-modal">&times;</span>
             </div>
             <div class="modal-body">
                 <form id="equip-form"><input type="hidden" id="edit-id" value="">
@@ -214,8 +217,6 @@
                                     id="is-transmutable" class="checkbox-input"> <label for="is-transmutable"
                                     class="checkbox-label">可转律</label></div>
                         </div>
-                        <div class="form-group grow"><label>装备名称</label> <input type="text" id="equip-name"
-                                placeholder="输入名称" required></div>
                     </div>
                     <hr>
                     <div>
