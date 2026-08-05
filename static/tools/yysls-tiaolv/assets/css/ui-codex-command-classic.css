@@ -194,6 +194,11 @@ body.ui-codex-command-classic #main-content {
 }
 
 body.ui-codex-command-classic #filter-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    justify-content: stretch;
+    align-items: center;
+    gap: 10px;
     border-color: var(--cc-line-hot);
     border-radius: 0;
     background: rgba(11, 23, 30, .97);
@@ -202,9 +207,22 @@ body.ui-codex-command-classic #filter-bar {
 }
 
 body.ui-codex-command-classic #filter-container {
+    min-width: 0;
+    max-width: 100%;
+    justify-self: center;
     border-color: transparent;
     border-radius: 0;
     background: transparent;
+}
+
+body.ui-codex-command-classic #sort-select,
+body.ui-codex-command-classic #add-btn {
+    position: static !important;
+    transform: none !important;
+}
+
+body.ui-codex-command-classic #add-btn:hover {
+    transform: none !important;
 }
 
 body.ui-codex-command-classic #filter-container .filter-btn,
@@ -241,11 +259,29 @@ body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-off {
 }
 
 body.ui-codex-command-classic #sort-select {
+    width: 120px !important;
+    height: 34px !important;
+    flex-shrink: 0;
     color: var(--cc-text) !important;
     border-color: var(--cc-line) !important;
     border-radius: 0 !important;
     background: #071218 !important;
     box-shadow: none !important;
+}
+
+@media (max-width: 768px) {
+    body.ui-codex-command-classic #filter-bar {
+        grid-template-columns: 1fr;
+    }
+
+    body.ui-codex-command-classic #filter-container {
+        justify-self: stretch;
+    }
+
+    body.ui-codex-command-classic #sort-select,
+    body.ui-codex-command-classic #add-btn {
+        width: 100% !important;
+    }
 }
 
 body.ui-codex-command-classic #empty-equip-message {
