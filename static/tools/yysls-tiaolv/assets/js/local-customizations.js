@@ -1924,20 +1924,69 @@
             '  display:flex;align-items:center;',
             '}',
             '.zhuanlv-target-item {',
-            '  display:inline-flex;align-items:center;gap:4px;',
-            '  margin-right:14px;margin-bottom:6px;',
-            '  color:#ccc;font-size:0.85rem;cursor:pointer;',
+            '  display:grid;grid-template-columns:18px minmax(0,1fr);',
+            '  grid-template-areas:"check name" "check reason";',
+            '  align-items:center;column-gap:8px;row-gap:2px;',
+            '  min-height:44px;padding:8px 10px;box-sizing:border-box;',
+            '  color:#ddd;font-size:0.85rem;line-height:1.25;cursor:pointer;',
+            '  background:rgba(255,255,255,0.025);',
+            '  border:1px solid rgba(255,255,255,0.08);border-radius:4px;',
+            '  transition:border-color 0.15s,background-color 0.15s;',
+            '}',
+            '.zhuanlv-target-item:hover {',
+            '  border-color:rgba(223,168,255,0.55);',
+            '  background:rgba(223,168,255,0.06);',
+            '}',
+            '.zhuanlv-target-item:has(.zhuanlv-target-check:checked) {',
+            '  border-color:rgba(223,168,255,0.65);',
+            '  background:rgba(109,74,143,0.18);',
+            '}',
+            '.zhuanlv-target-disabled {',
+            '  color:#666;cursor:not-allowed;background:rgba(0,0,0,0.1);',
+            '}',
+            '.zhuanlv-target-disabled:hover {',
+            '  border-color:rgba(255,255,255,0.08);background:rgba(0,0,0,0.1);',
+            '}',
+            '.zhuanlv-target-name {',
+            '  grid-area:name;min-width:0;overflow-wrap:anywhere;',
+            '}',
+            '.zhuanlv-target-disabled .zhuanlv-target-name {',
+            '  text-decoration:line-through;',
+            '}',
+            '.zhuanlv-target-reason {',
+            '  grid-area:reason;color:#d99b38;font-size:0.72rem;line-height:1.2;',
             '}',
             '.zhuanlv-target-check {',
+            '  grid-area:check;width:16px;height:16px;margin:0;',
             '  accent-color:#6d4a8f;cursor:pointer;',
             '}',
+            '#zhuanlv-section {',
+            '  margin-top:18px;padding-top:16px;border-top:1px solid #4a3d52;',
+            '}',
+            '.zhuanlv-section-title {',
+            '  margin:0 0 5px;color:#f0e7f5;font-size:1rem;',
+            '}',
+            '.zhuanlv-section-hint {',
+            '  margin:0;color:#999;font-size:0.82rem;line-height:1.5;',
+            '}',
             '#zhuanlv-target-list {',
-            '  margin-top:8px;padding:10px;',
-            '  background:rgba(255,255,255,0.03);border-radius:6px;',
-            '  border:1px solid rgba(255,255,255,0.08);',
+            '  margin-top:12px;padding:14px;',
+            '  background:rgba(0,0,0,0.13);border-radius:4px;',
+            '  border-left:3px solid #6d4a8f;',
+            '}',
+            '.zhuanlv-target-heading {',
+            '  display:block;margin-bottom:10px;color:#ccc;font-size:0.85rem;',
             '}',
             '#zhuanlv-target-checkboxes {',
-            '  display:flex;flex-wrap:wrap;gap:2px 0;line-height:1.9;',
+            '  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;',
+            '}',
+            '@media (max-width:1100px) {',
+            '  #zhuanlv-target-checkboxes { grid-template-columns:repeat(2,minmax(0,1fr)); }',
+            '}',
+            '@media (max-width:768px) {',
+            '  #zhuanlv-section { margin-top:15px;padding-top:14px; }',
+            '  #zhuanlv-target-list { padding:10px; }',
+            '  #zhuanlv-target-checkboxes { grid-template-columns:1fr;gap:6px; }',
             '}'
         ].join("\n");
         document.head.appendChild(style);
@@ -2114,16 +2163,16 @@
             var reason = duplicateReasons[target] || "";
             if (isDisabled) {
                 // 不可选：灰色，禁用，显示原因
-                return '<label class="zhuanlv-target-item zhuanlv-target-disabled" title="' + reason + '" style="color:#666;cursor:not-allowed;">'
-                    + '<input type="checkbox" class="zhuanlv-target-check" disabled style="accent-color:#555;cursor:not-allowed;">'
-                    + ' <span style="text-decoration:line-through;">' + target + '</span>'
-                    + ' <span style="font-size:0.7rem;color:#f0a500;">' + reason + '</span>'
+                return '<label class="zhuanlv-target-item zhuanlv-target-disabled" title="' + reason + '">'
+                    + '<input type="checkbox" class="zhuanlv-target-check" disabled>'
+                    + '<span class="zhuanlv-target-name">' + target + '</span>'
+                    + '<span class="zhuanlv-target-reason">' + reason + '</span>'
                     + '</label>';
             }
             var checked = excludedSet[target] ? "" : " checked";
             return '<label class="zhuanlv-target-item">'
                 + '<input type="checkbox" class="zhuanlv-target-check" value="' + target + '"' + checked + '>'
-                + ' ' + target
+                + '<span class="zhuanlv-target-name">' + target + '</span>'
                 + '</label>';
         }).join("");
 
@@ -2143,12 +2192,11 @@
         section.style.cssText = "display:none;";
 
         section.innerHTML = [
-            '<hr>',
-            '<h3 style="margin-bottom:8px;">转律词条</h3>',
+            '<h3 class="zhuanlv-section-title">转律词条</h3>',
             '<div id="zhuanlv-active-fields">',
-            '  <p style="color:#888;font-size:0.82rem;margin-bottom:6px;">点击副词条左侧方框选择需要转律的词条（仅可选择一个）</p>',
+            '  <p class="zhuanlv-section-hint">点击副词条左侧方框选择需要转律的词条（仅可选择一个）</p>',
             '  <div id="zhuanlv-target-list" style="display:none;">',
-            '    <label style="display:block;margin-bottom:6px;color:#bbb;font-size:0.85rem;">可转目标词条（取消勾选即排除该词条）</label>',
+            '    <label class="zhuanlv-target-heading">可转目标词条（取消勾选即排除该词条）</label>',
             '    <div id="zhuanlv-target-checkboxes"></div>',
             '  </div>',
             '</div>'
