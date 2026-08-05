@@ -549,6 +549,17 @@ body.ui-codex-command-classic .modal {
     backdrop-filter: blur(7px);
 }
 
+/* 装备编辑弹窗：垂直方向上顶部锚定（保留顶部留白），
+   避免勾选/取消“可转律”时内容变高导致整块弹窗重新垂直居中而“跳动”。
+   仍保留 justify-content:center 的水平居中，超高时由 .modal-body 内部滚动。 */
+body.ui-codex-command-classic #modal {
+    align-items: flex-start;
+}
+
+body.ui-codex-command-classic #modal .modal-content {
+    margin-top: 6vh;
+}
+
 body.ui-codex-command-classic .modal-content {
     color: var(--cc-text);
     border-color: var(--cc-line-hot);

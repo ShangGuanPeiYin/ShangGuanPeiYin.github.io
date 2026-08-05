@@ -2264,12 +2264,13 @@
         if (section) section.style.display = enabled ? "block" : "none";
         if (!allowLevel && transmutableCheck) transmutableCheck.checked = false;
 
-        if (enabled) {
-            // 勾选可转律后才注入 radio 方框
+        if (allowLevel) {
+            // 预注入 radio 方框（幂等）：勾选/取消勾选只做显隐与选中态切换，不再反复增删节点、触发行重排
             injectZhuanlvSubStatRadios();
             syncZhuanlvSubStatRadios();
+            if (!enabled) clearAllZhuanlvRadios();
         } else {
-            // 取消勾选后移除所有 radio 方框
+            // 非110级：移除残留的 radio 方框
             var radios = document.querySelectorAll(".zhuanlv-slot-radio");
             radios.forEach(function(r) { r.parentNode && r.parentNode.removeChild(r); });
             document.querySelectorAll(".stat-row.has-zhuanlv-radio").forEach(function(row) {

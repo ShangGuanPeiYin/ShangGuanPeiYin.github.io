@@ -127,6 +127,8 @@
 
 主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`isTransmutableEquip`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
 
+云备份保护标记：`backup_latest`、`backup_snapshots`、`data_hash`、`server_updated_at`、`client_updated_at`、`tiaolv_cloud_` 前缀（`dirty` / `baseline_<userId>` / `owner` / `pending_<userId>` / `auto_<userId>` / `snapshot_at_<userId>` / `last_success_<userId>`）、`device_override`、`before_restore`、`remote_changed`、`owner_mismatch`、`first_connect`。`cloud-backup.js` 当前版本号 `?v=202608031609`，同步上游时必须保留该文件、Supabase UMD SDK 引用及其相对加载顺序。
+
 最佳配装转律保护标记：`bestBuildTransmutationMode`、`best-build-transmutation-mode`、`transmutationSelections`、`applySchemeTransmutationSelections`、`getTransmutationStateDigest`、`sourceEquipId`、`待转律规划`。
 
 转律交互与一致性保护：装备卡片必须由主渲染器写入稳定的 `data-equip-id`，不得按名称猜测 ID；编辑弹窗中的槽位仅作为草稿，只有装备保存成功才调用 `commitZhuanlvFromModal`，取消不得写入；切换转律搜索模式前必须保留弓箭套装、忽略可用流派和承音上限等尚未执行的搜索选项；毕业率分析弹窗必须先应用当前方案的 `transmutationSelections` 覆盖层。
