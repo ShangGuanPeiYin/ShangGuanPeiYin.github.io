@@ -6,3 +6,5 @@
 
 .filter-toggle-btn.toggle-on{background-color:var(--accent);color:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3)}.filter-toggle-btn.toggle-off{background:0 0;color:var(--text-sub)}
 .excel-export-actions{display:flex;margin:-2px 0 10px}.excel-export-actions .secondary-btn{width:100%;height:34px}
+
+@media (min-width:769px){#modal .modal-body{overflow-y:scroll;scrollbar-gutter:stable}#equip-form .equip-basic-row>.form-group>label{white-space:nowrap}}
