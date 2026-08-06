@@ -897,6 +897,20 @@
         return 0;
     }
 
+    function normalizeManualStatCorrections(source) {
+        var corrections = {};
+        if (!isPlainObject(source)) return corrections;
+        Object.keys(source).forEach(function(stat) {
+            stat = String(stat || "").trim();
+            if (!stat) return;
+            var value = Number(source[stat]);
+            if (!Number.isFinite(value)) return;
+            value = Math.round(value * 100) / 100;
+            if (value !== 0) corrections[stat] = value;
+        });
+        return corrections;
+    }
+
     function normalizeManualStatCountConfig(config) {
         config = isPlainObject(config) ? config : {};
         var allowed = new Set(getManualStatCountOptions());
@@ -934,7 +948,8 @@
                     id: id,
                     name: preset.name.trim().slice(0, 40),
                     valueMode: "chengyin" === preset.valueMode ? "chengyin" : "max",
-                    counts: normalizeCounts(preset.counts, preset.name.trim().slice(0, 40))
+                    counts: normalizeCounts(preset.counts, preset.name.trim().slice(0, 40)),
+                    corrections: normalizeManualStatCorrections(preset.corrections)
                 });
             });
         }
@@ -944,6 +959,7 @@
             mode: "count" === config.mode ? "count" : "panel",
             valueMode: "chengyin" === config.valueMode ? "chengyin" : "max",
             counts: normalizeCounts(config.counts, "当前组合"),
+            corrections: normalizeManualStatCorrections(config.corrections),
             manualPanel: isPlainObject(config.manualPanel) ? cloneSafeJson(config.manualPanel) : {},
             presets: presets,
             currentPresetId: currentPresetId,
@@ -1036,6 +1052,18 @@
             !!AppState.earlySeasonBonus,
             !!AppState.loanDingyin
         ) || {};
+    }
+
+    function applyManualStatCorrections(panel, corrections) {
+        var result = { ...(panel || {}) };
+        Object.keys(corrections || {}).forEach(function(stat) {
+            if (!Object.prototype.hasOwnProperty.call(result, stat)) return;
+            var baseValue = Number(result[stat]);
+            var correction = Number(corrections[stat]);
+            if (!Number.isFinite(baseValue) || !Number.isFinite(correction)) return;
+            result[stat] = baseValue + correction;
+        });
+        return result;
     }
 
     function calculateManualStatCountRate(panel) {
@@ -1297,6 +1325,18 @@
                 '    </div>',
                 '    <div id="grad-manual-stat-count-list" style="display:flex;flex-direction:column;gap:8px;margin-top:10px;"></div>',
                 '  </details>',
+                '  <div id="grad-manual-stat-corrections" style="margin-top:12px;padding:10px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.08);border-radius:7px;">',
+                '    <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-bottom:10px;">',
+                '      <strong style="color:var(--gold);">修正项（不占词条数量）</strong>',
+                '      <span style="color:var(--text-sub);font-size:.82rem;">用于补充装备词条以外的面板数值，可填写负数和小数</span>',
+                '    </div>',
+                '    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">',
+                '      <select id="grad-manual-stat-correction-select" class="stat-select" style="flex:1;min-width:180px;"></select>',
+                '      <input id="grad-manual-stat-correction-value" type="number" step="0.01" placeholder="修正值" style="width:100px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;box-sizing:border-box;">',
+                '      <button id="grad-manual-stat-correction-add-btn" type="button" class="secondary-btn">添加/更新修正</button>',
+                '    </div>',
+                '    <div id="grad-manual-stat-correction-list" style="display:flex;flex-direction:column;gap:8px;margin-top:10px;"></div>',
+                '  </div>',
                 '  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-top:10px;font-size:.9rem;">',
                 '    <span id="grad-manual-stat-count-message" style="color:#ff8a80;"></span>',
                 '    <span style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--text-sub);"><button id="grad-manual-stat-clear-btn" type="button" class="secondary-btn" style="padding:4px 9px;font-size:.8rem;">清空词条</button><span>首词条：<strong id="grad-manual-main-count-total" style="color:var(--gold);">0</strong>/8</span><span>副词条：<strong id="grad-manual-sub-count-total" style="color:var(--gold);">0</strong>/32</span><span>普通词条：<strong id="grad-manual-stat-count-total" style="color:var(--gold);">0</strong>/40</span></span>',
@@ -1328,6 +1368,10 @@
             var addButton = controls.querySelector("#grad-manual-stat-add-btn");
             var categoryPanels = controls.querySelector("#grad-manual-stat-category-panels");
             var list = controls.querySelector("#grad-manual-stat-count-list");
+            var correctionSelect = controls.querySelector("#grad-manual-stat-correction-select");
+            var correctionValueInput = controls.querySelector("#grad-manual-stat-correction-value");
+            var correctionAddButton = controls.querySelector("#grad-manual-stat-correction-add-btn");
+            var correctionList = controls.querySelector("#grad-manual-stat-correction-list");
             var clearButton = controls.querySelector("#grad-manual-stat-clear-btn");
             var mainTotalElement = controls.querySelector("#grad-manual-main-count-total");
             var subTotalElement = controls.querySelector("#grad-manual-sub-count-total");
@@ -1365,10 +1409,86 @@
                 return JSON.stringify(result);
             }
 
+            function canonicalCorrections(corrections) {
+                var result = {};
+                Object.keys(corrections || {}).sort().forEach(function(stat) {
+                    var value = Number(corrections[stat]);
+                    if (Number.isFinite(value) && value !== 0) result[stat] = Math.round(value * 100) / 100;
+                });
+                return JSON.stringify(result);
+            }
+
+            function getManualCorrectionOptions() {
+                var options = [];
+                var seen = new Set();
+                panelInputs.forEach(function(input) {
+                    var stat = String(input.dataset.key || "").replace(/（%）/g, "").trim();
+                    if (!stat || seen.has(stat)) return;
+                    seen.add(stat);
+                    var field = input.closest("div");
+                    var label = field && field.querySelector("label");
+                    options.push({
+                        stat: stat,
+                        label: label ? label.textContent.replace(/（%）/g, "").replace(/\s+/g, " ").trim() : stat
+                    });
+                });
+                return options;
+            }
+
+            function manualCorrectionLabel(stat) {
+                var option = getManualCorrectionOptions().find(function(item) { return item.stat === stat; });
+                return option ? option.label : stat;
+            }
+
+            function setManualCorrection(stat, value) {
+                stat = String(stat || "").trim();
+                value = Number(value);
+                if (!stat || !Number.isFinite(value)) {
+                    showMessage("请输入有效的修正值");
+                    return;
+                }
+                value = Math.round(value * 100) / 100;
+                if (value === 0) delete config.corrections[stat];
+                else config.corrections[stat] = value;
+                saveConfig();
+                renderCorrectionList();
+                applyCountPanel();
+            }
+
+            function renderCorrectionList() {
+                var options = getManualCorrectionOptions();
+                correctionSelect.innerHTML = options.map(function(item) {
+                    var suffix = CommonData.PERCENT_STATS.includes(item.stat) ? "（%）" : "";
+                    return '<option value="' + escapeManualStatText(item.stat) + '">' + escapeManualStatText(item.label || item.stat) + suffix + '</option>';
+                }).join("");
+                if (options.length && !options.some(function(item) { return item.stat === correctionSelect.value; })) {
+                    correctionSelect.value = options[0].stat;
+                }
+                var entries = Object.keys(config.corrections || {});
+                correctionList.innerHTML = entries.length
+                    ? entries.map(function(stat) {
+                        var value = Number(config.corrections[stat]) || 0;
+                        var suffix = CommonData.PERCENT_STATS.includes(stat) ? "%" : "";
+                        return '<div class="grad-manual-stat-correction-row" style="display:grid;grid-template-columns:minmax(120px,1fr) 100px auto;gap:8px;align-items:center;padding:7px;background:rgba(0,0,0,.2);border-radius:6px;">'
+                            + '<span style="color:var(--text-main);font-size:.88rem;">' + escapeManualStatText(manualCorrectionLabel(stat)) + '</span>'
+                            + '<label style="display:flex;align-items:center;gap:4px;"><input class="grad-manual-stat-correction-row-value" data-stat="' + escapeManualStatText(stat) + '" type="number" step="0.01" value="' + value + '" style="width:100%;box-sizing:border-box;padding:5px;text-align:right;border-radius:5px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;"><span style="color:var(--text-sub);font-size:.8rem;">' + suffix + '</span></label>'
+                            + '<button type="button" class="grad-manual-stat-correction-remove remove-btn" data-stat="' + escapeManualStatText(stat) + '" title="删除修正">×</button>'
+                            + '</div>';
+                    }).join("")
+                    : '<div style="padding:8px;text-align:center;color:var(--text-sub);font-size:.84rem;">暂无修正项</div>';
+                correctionList.querySelectorAll(".grad-manual-stat-correction-row-value").forEach(function(input) {
+                    input.addEventListener("change", function() { setManualCorrection(this.dataset.stat, this.value); });
+                });
+                correctionList.querySelectorAll(".grad-manual-stat-correction-remove").forEach(function(button) {
+                    button.addEventListener("click", function() { setManualCorrection(this.dataset.stat, 0); });
+                });
+            }
+
             function isCurrentPresetDirty() {
                 var preset = findCurrentPreset();
                 return !!preset && (preset.valueMode !== config.valueMode
-                    || canonicalCounts(preset.counts) !== canonicalCounts(config.counts));
+                    || canonicalCounts(preset.counts) !== canonicalCounts(config.counts)
+                    || canonicalCorrections(preset.corrections) !== canonicalCorrections(config.corrections));
             }
 
             function renderPresetSelect() {
@@ -1390,6 +1510,7 @@
                     var allocation = allocateManualStatCounts(config.counts);
                     if (!allocation.valid) throw new Error(allocation.reason);
                     var panel = calculateManualStatCountPanel(config, allocation);
+                    panel = applyManualStatCorrections(panel, config.corrections);
                     // 数量模式只复用隐藏输入框展示换算值，不触发原手填模式的二次计算。
                     writeManualPanelInputs(container, panel, false);
                     renderManualStatCountPanel(panel);
@@ -1508,6 +1629,7 @@
                 mainTotalElement.textContent = allocation.mainCount;
                 subTotalElement.textContent = allocation.subCount;
                 totalElement.textContent = allocation.target;
+                renderCorrectionList();
                 renderPresetSelect();
                 controls.querySelectorAll(".grad-manual-stat-count-row").forEach(function(row) {
                     var stat = row.dataset.stat;
@@ -1568,6 +1690,7 @@
                 if (preset) {
                     config.valueMode = preset.valueMode;
                     config.counts = cloneSafeJson(preset.counts);
+                    config.corrections = normalizeManualStatCorrections(preset.corrections);
                     valueModeSelect.value = config.valueMode;
                 }
                 saveConfig();
@@ -1584,7 +1707,8 @@
                     id: id,
                     name: name.trim().slice(0, 40),
                     valueMode: config.valueMode,
-                    counts: cloneSafeJson(config.counts)
+                    counts: cloneSafeJson(config.counts),
+                    corrections: cloneSafeJson(config.corrections)
                 });
                 config.currentPresetId = id;
                 saveConfig();
@@ -1596,6 +1720,7 @@
                 if (!preset) return showMessage("请先选择已保存的词条组合");
                 preset.valueMode = config.valueMode;
                 preset.counts = cloneSafeJson(config.counts);
+                preset.corrections = cloneSafeJson(config.corrections);
                 saveConfig();
                 renderPresetSelect();
                 showMessage("词条组合已更新");
@@ -1623,6 +1748,9 @@
                 var requested = Math.max(1, Math.floor(Number(addCountInput.value) || 1));
                 if (!stat) return;
                 updateStatCount(stat, (config.counts[stat] || 0) + requested);
+            });
+            correctionAddButton.addEventListener("click", function() {
+                setManualCorrection(correctionSelect.value, correctionValueInput.value);
             });
             clearButton.addEventListener("click", function() {
                 config.counts = {};
