@@ -91,3 +91,15 @@ After syncing or editing the Tiaolv tool, run:
 - `generated-best40-stats.js`
 
 同一次推送中多次修改同一文件，只需在最终推送时更新一次版本号即可。
+
+## Tiaolv site update time
+
+**每次完成并准备发布任何调率站更新时，必须同步更新页面顶部的“最后更新时间”，不得继续沿用上一次发布时间。**
+
+发布时间使用实际最终发布时间，格式为 `YYYY年M月D日 HH:mm:ss`。发布前必须同时修改：
+
+1. `static/tools/yysls-tiaolv/assets/js/generated-calc-metadata.js` 中的 `siteUpdateTime`（页面实际显示值）；
+2. `static/tools/yysls-tiaolv/index.html` 中 `#xinli-hint` 的“最后更新时间”占位文字；
+3. `static/tools/yysls-tiaolv/index.html` 中 `generated-calc-metadata.js` 的 `?v=` 时间戳。
+
+不要修改各流派 `classRotationStats.*.updateTime`，那些字段表示对应 Excel/流派数据本身的更新时间，不是网站发布时间。
