@@ -570,7 +570,7 @@ for section in sections:
     binary.extend(section)
 DATA_PATH.write_bytes(binary)
 
-for key in ("flowIds", "flowKeys", "flowClassNames", "flowClassFields", "flowClassKinds", "flowClassCells", "flowClassDefaultValues", "classRotationStats"):
+for key in ("flowIds", "flowKeys", "flowClassNames", "flowClassFields", "flowClassKinds", "flowClassCells", "flowClassDefaultValues", "flowGraduationProfiles", "classRotationStats"):
     metadata[key] = {}
 metadata["flowNames"] = []
 metadata["classTableVersions"] = {"牵丝翊": []}
@@ -588,6 +588,9 @@ for index, record in enumerate(records):
     metadata["flowClassKinds"][flow_name] = kinds
     metadata["flowClassCells"][flow_name] = cells
     metadata["flowClassDefaultValues"][flow_name] = defaults
+    metadata["flowGraduationProfiles"][flow_name] = {
+        "fields": fields, "values": defaults, "workbook": path.name, "version": version,
+    }
     metadata["classRotationStats"][flow_name] = {
         "baseline": baseline_total, "baselineTotal": baseline_total,
         "useTime": use_time, "dps": baseline_dps, "baselineDps": baseline_dps,
