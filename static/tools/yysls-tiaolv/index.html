@@ -23,7 +23,7 @@
                         <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                         <circle cx="10" cy="13" r="1" fill="currentColor" />
                     </svg></button>
-            </div><span id="xinli-hint" class="xinli-hint">最后更新时间：2026年8月10日 18:01:00</span>
+            </div><span id="xinli-hint" class="xinli-hint" style="visibility:hidden">最后更新时间：2026年8月10日 18:04:03</span>
         </div>
         <div class="header-controls">
             <div class="account-select-group"><label>当前角色：</label> <select id="account-select">
@@ -466,7 +466,17 @@
         </div>
     </div>
     <script src="assets/js/generated-calc-strings.js?v=202607161436"></script>
-    <script src="assets/js/generated-calc-metadata.js?v=202608101801"></script>
+    <script src="assets/js/generated-calc-metadata.js?v=202608101804"></script>
+    <script>
+        (() => {
+            const hint = document.getElementById("xinli-hint");
+            const updateTime = window.YYSLS_CALC_METADATA && window.YYSLS_CALC_METADATA.siteUpdateTime;
+            if (hint && updateTime) {
+                hint.textContent = `最后更新时间：${updateTime.replace(/日\s*/, "日 ")}`;
+                hint.style.visibility = "visible";
+            }
+        })();
+    </script>
     <script src="assets/js/generated-best40-stats.js?v=202607081306"></script>
     <script src="assets/js/excel-runtime.js?v=202608101801"></script>
     <script src="assets/js/local-customizations.js?v=202608062254"></script>
