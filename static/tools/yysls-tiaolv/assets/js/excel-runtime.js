@@ -6,6 +6,8 @@
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
     const ASSET_VERSION = "21652c0c";
     const WASM_URL = `assets/wasm/yysls_calc.wasm?v=${ASSET_VERSION}`;
+    const NEXT_ASSET_VERSION = "af4cb8e5";
+    const NEXT_WASM_URL = `assets/wasm/yysls_calc_next.wasm?v=${NEXT_ASSET_VERSION}`;
 
     const slotColumns = {
         weapon1: "k",
@@ -122,6 +124,29 @@
     let classPtr = 0;
     let classOutputPtr = 0;
     let classOutputLen = 3;
+    let nextWasm = null;
+    let nextMemory = null;
+    let nextDiyPtr = 0;
+    let nextPanelPtr = 0;
+    let nextClassPtr = 0;
+    let nextClassOutputPtr = 0;
+    const calculatorEngineMode = (() => {
+        try {
+            const queryMode = new URLSearchParams(window.location.search).get("calcEngine");
+            if (queryMode === "shadow" || queryMode === "next") return queryMode;
+            const storedMode = window.localStorage && window.localStorage.getItem("yyslsCalcEngineMode");
+            return storedMode === "shadow" || storedMode === "next" ? storedMode : "legacy";
+        } catch (_) {
+            return "legacy";
+        }
+    })();
+    const parityStatus = {
+        mode: calculatorEngineMode,
+        nextAvailable: false,
+        comparisons: 0,
+        mismatches: 0,
+        lastMismatch: null
+    };
     const panelDamageBonusStates = new WeakMap();
     const panelDamageBonusStateKey = Symbol("yyslsPanelDamageBonusState");
 
@@ -239,11 +264,39 @@
         classPtr = wasm.yysls_alloc_f64(wasm.yysls_class_input_len());
         classOutputLen = typeof wasm.yysls_class_output_len === "function" ? wasm.yysls_class_output_len() : 3;
         classOutputPtr = wasm.yysls_alloc_f64(classOutputLen);
+        if (calculatorEngineMode !== "legacy") await initNextEngine();
         runtime.available = true;
         setTimeout(() => {
             if (typeof window.updateStats === "function") window.updateStats();
         }, 0);
         return runtime;
+    }
+
+    async function initNextEngine() {
+        try {
+            const response = await fetch(NEXT_WASM_URL);
+            const bytes = await response.arrayBuffer();
+            const instance = await WebAssembly.instantiate(bytes, {});
+            const candidate = instance.instance ? instance.instance.exports : instance.exports;
+            const abiFunctions = ["yysls_diy_input_len", "yysls_panel_len", "yysls_class_input_len", "yysls_class_output_len"];
+            abiFunctions.forEach(name => {
+                if (typeof candidate[name] !== "function" || candidate[name]() !== wasm[name]()) {
+                    throw new Error(`新计算器 ABI 不匹配：${name}`);
+                }
+            });
+            nextWasm = candidate;
+            nextMemory = candidate.memory;
+            nextDiyPtr = candidate.yysls_alloc_f64(candidate.yysls_diy_input_len());
+            nextPanelPtr = candidate.yysls_alloc_f64(candidate.yysls_panel_len());
+            nextClassPtr = candidate.yysls_alloc_f64(candidate.yysls_class_input_len());
+            nextClassOutputPtr = candidate.yysls_alloc_f64(candidate.yysls_class_output_len());
+            parityStatus.nextAvailable = true;
+        } catch (error) {
+            nextWasm = null;
+            nextMemory = null;
+            parityStatus.nextAvailable = false;
+            console.error("新计算器加载失败，继续使用旧计算器：", error);
+        }
     }
 
     function writeF64(ptr, values) {
@@ -252,6 +305,50 @@
 
     function readF64(ptr, len) {
         return Array.from(new Float64Array(memory.buffer, ptr, len));
+    }
+
+    function compareF64Bits(label, input, legacyValues, nextValues) {
+        parityStatus.comparisons += 1;
+        const legacyBits = new BigUint64Array(Float64Array.from(legacyValues).buffer);
+        const nextBits = new BigUint64Array(Float64Array.from(nextValues).buffer);
+        for (let index = 0; index < legacyBits.length; index += 1) {
+            if (legacyBits[index] === nextBits[index]) continue;
+            parityStatus.mismatches += 1;
+            parityStatus.lastMismatch = {
+                label,
+                index,
+                legacy: `0x${legacyBits[index].toString(16).padStart(16, "0")}`,
+                next: `0x${nextBits[index].toString(16).padStart(16, "0")}`,
+                input: Array.from(input)
+            };
+            console.error("新旧计算器位级结果不一致，已使用旧结果：", parityStatus.lastMismatch);
+            return false;
+        }
+        return true;
+    }
+
+    function runDiy(raw) {
+        writeF64(diyPtr, raw);
+        wasm.yysls_calc_diy(diyPtr, panelPtr);
+        const legacyValues = readF64(panelPtr, wasm.yysls_panel_len());
+        if (!nextWasm) return legacyValues;
+        new Float64Array(nextMemory.buffer, nextDiyPtr, raw.length).set(raw);
+        nextWasm.yysls_calc_diy(nextDiyPtr, nextPanelPtr);
+        const nextValues = Array.from(new Float64Array(nextMemory.buffer, nextPanelPtr, nextWasm.yysls_panel_len()));
+        const equal = compareF64Bits("diy", raw, legacyValues, nextValues);
+        return calculatorEngineMode === "next" && equal ? nextValues : legacyValues;
+    }
+
+    function runClassOutputs(flowId, raw) {
+        writeF64(classPtr, raw);
+        wasm.yysls_calc_class_outputs(flowId, classPtr, classOutputPtr);
+        const legacyValues = readF64(classOutputPtr, classOutputLen);
+        if (!nextWasm) return legacyValues;
+        new Float64Array(nextMemory.buffer, nextClassPtr, raw.length).set(raw);
+        nextWasm.yysls_calc_class_outputs(flowId, nextClassPtr, nextClassOutputPtr);
+        const nextValues = Array.from(new Float64Array(nextMemory.buffer, nextClassOutputPtr, classOutputLen));
+        const equal = compareF64Bits(`class:${flowId}`, raw, legacyValues, nextValues);
+        return calculatorEngineMode === "next" && equal ? nextValues : legacyValues;
     }
 
     function inputValue(stat, rawValue) {
@@ -512,9 +609,7 @@
     function calculatePanel(options) {
         if (!runtime.available) return null;
         const raw = buildDiyRaw(options);
-        writeF64(diyPtr, raw);
-        wasm.yysls_calc_diy(diyPtr, panelPtr);
-        const panel = panelFromArray(readF64(panelPtr, wasm.yysls_panel_len()));
+        const panel = panelFromArray(runDiy(raw));
         const withPurplePenalty = applyPurpleBaseAttackPenalty(panel, options.equippedItems);
         return markPanelDamageBonusState(
             applyRateOverflow(applyClassPanelRules(withPurplePenalty, options.className), options),
@@ -777,15 +872,13 @@
             damageBonusState: outputDamageBonusState
         }, flowName);
         markPanelDamageBonusState(cappedPanel, outputDamageBonusState);
-        writeF64(classPtr, raw);
         let totalDamage = 0;
         let dps = 0;
         let graduationRatio = null;
         let rdps = 0;
         let rdpsGraduationRatio = null;
         if (typeof wasm.yysls_calc_class_outputs === "function") {
-            wasm.yysls_calc_class_outputs(flowId, classPtr, classOutputPtr);
-            const outputs = readF64(classOutputPtr, classOutputLen);
+            const outputs = runClassOutputs(flowId, raw);
             totalDamage = outputs[0] || 0;
             dps = outputs[1] || 0;
             graduationRatio = Number.isFinite(outputs[2]) ? outputs[2] : null;
@@ -906,9 +999,7 @@
             });
             modifierList(context.options.modifiers).forEach(modifier => addRawModifier(raw, modifier));
             modifierList(context.options.modifiers).forEach(modifier => applyBonusModifier(bonuses, modifier));
-            writeF64(diyPtr, raw);
-            wasm.yysls_calc_diy(diyPtr, panelPtr);
-            let panel = panelFromArray(readF64(panelPtr, wasm.yysls_panel_len()));
+            let panel = panelFromArray(runDiy(raw));
             if (purplePenalties.length) {
                 panel = { ...panel };
                 purplePenalties.forEach(penalty => {
@@ -997,6 +1088,7 @@
             }
         },
         exportClassInputData,
+        parity: parityStatus,
         clearCache() {}
     };
 
