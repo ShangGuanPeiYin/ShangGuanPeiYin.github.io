@@ -26,13 +26,14 @@ function calculate(mutator = () => {}) {
 function close(actual, expected, label, tolerance = 1e-10) {
   if (Math.abs(actual - expected) > tolerance) throw new Error(`${label}: ${actual} != ${expected}`);
 }
+const round = (value, digits = 4) => Math.round(value * 10 ** digits) / 10 ** digits;
 
 const naked = calculate();
 close(naked[0], 930 + 0.9 * 283 + 0.22 * 283 + 186, "naked min external");
 close(naked[1], 1688.4 + 0.9 * 283 + 1.36 * 283 + 373, "naked max external");
-close(naked[2], (65 + (110.1 - 65) / 2.45) / 100, "naked accuracy");
-close(naked[3], (24 + 0.076 * 283) / 2.45 / 100, "naked critical");
-close(naked[6], (12 + 0.038 * 283) / 2.45 / 100, "naked insight");
+close(naked[2], round(65 + (110.1 - 65) / 2.45) / 100, "naked accuracy");
+close(naked[3], round((24 + 0.076 * 283) / 2.45) / 100, "naked critical");
+close(naked[6], round((12 + 0.038 * 283) / 2.45) / 100, "naked insight");
 
 const gold = calculate(input => { input[184] = 1; input[186] = 1; input[187] = 1; });
 close(gold[0] - naked[0], 233, "gold weapon+ring min fixed");
@@ -45,6 +46,24 @@ const ysg = calculate(input => { input[10] = id("易水歌"); });
 close(ysg[0] - naked[0], 40.5, "mind min external");
 close(ysg[1] - naked[1], 80.9, "mind max external");
 close(ysg[4], 0.046, "mind direct critical");
+
+const mingjinBase = calculate(input => { input[95] = id("鸣金影"); });
+const feisun = calculate(input => { input[95] = id("鸣金影"); input[1] = id("飞隼"); });
+close(feisun[0], mingjinBase[0], "Feisun must not multiply minimum external attack");
+close(feisun[1], mingjinBase[1], "Feisun must not multiply maximum external attack");
+close(feisun[6] - mingjinBase[6], 0.028572, "Feisun insight only");
+
+const pozhuBase = calculate(input => { input[95] = id("破竹鸢"); });
+const hantian = calculate(input => { input[95] = id("破竹鸢"); input[1] = id("撼天"); });
+close(hantian[0] - pozhuBase[0], 121, "Hantian minimum external attack only");
+close(hantian[1], pozhuBase[1], "Hantian must not multiply maximum external attack");
+for (let index = 9; index <= 18; index += 1) close(hantian[index], pozhuBase[index], `Hantian must not multiply elemental attack ${index}`);
+
+for (const [rowStart, value, outputIndex] of [[152, 0.098, 32], [160, 0.154, 33], [168, 0.051, 34], [176, 0.049, 35]]) {
+  const panel = calculate(input => { input[rowStart] = value; });
+  const expected = Math.round((value * 100 / 1.15 + Number.EPSILON) * 1e8) / 1e8 / 100;
+  if (Object.is(panel[outputIndex], expected) === false) throw new Error(`benefit resistance rounding ${outputIndex}: ${panel[outputIndex]} != ${expected}`);
+}
 
 const flows = ["鸣金虹", "鸣金影", "破竹尘", "破竹风", "破竹鸢", "裂石威", "裂石钧", "牵丝玉", "牵丝翊", "牵丝霖"];
 for (const flow of flows) {

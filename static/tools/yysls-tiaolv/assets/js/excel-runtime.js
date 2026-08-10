@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const PANEL_ASSET_VERSION = "eecfd9c8";
+    const PANEL_ASSET_VERSION = "012373c4";
     const EXCEL_ASSET_VERSION = "146d1ded";
     const PANEL_WASM_URL = `assets/wasm/yysls_panel.wasm?v=${PANEL_ASSET_VERSION}`;
     const EXCEL_WASM_URL = `assets/wasm/yysls_excel.wasm?v=${EXCEL_ASSET_VERSION}`;

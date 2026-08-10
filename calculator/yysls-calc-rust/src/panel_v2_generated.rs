@@ -122,20 +122,6 @@ pub fn set_attrs(id: i32) -> &'static [(Attr, f64)] { match id {
     _ => &[],
 } }
 
-pub fn set_key(id: i32) -> &'static str { match id {
-    63 => "SET_WEAPON_HUANHUA",
-    536 => "SET_WEAPON_YANLIU",
-    413 => "SET_WEAPON_SHIYU",
-    697 => "SET_WEAPON_CAIYUN",
-    383 => "SET_WEAPON_HANTIAN",
-    393 => "SET_WEAPON_DUANYUE",
-    723 => "SET_WEAPON_LIANXING",
-    539 => "SET_WEAPON_YANGUI",
-    768 => "SET_WEAPON_FEISUN",
-    555 => "SET_WEAPON_YUDOU",
-    _ => "",
-} }
-
 pub fn bow_attrs(id: i32) -> &'static [(Attr, f64)] { match id {
     648 => &[(Attr::AccuracyRate, 6.2)],
     63 => &[(Attr::CriticalRate, 7.0)],

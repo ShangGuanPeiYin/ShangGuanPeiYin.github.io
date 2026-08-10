@@ -97,8 +97,6 @@ for (const [name, key] of setAliases) {
   out += `    ${id} => ${attrs(item?.attr)}, // ${rust(name)}\n`;
 }
 out += `    _ => &[],\n} }\n\n`;
-out += `pub fn set_key(id: i32) -> &'static str { match id {\n${[...setAliases].map(([name,key]) => `    ${name === "浣花" ? stringId("会心") : stringId(name)} => "${key}",`).join("\n")}\n    _ => "",\n} }\n\n`;
-
 out += `pub fn bow_attrs(id: i32) -> &'static [(Attr, f64)] { match id {\n`;
 for (const [name, key] of [["精准","SET_BOW_YINYU"],["会心","SET_BOW_JINGXIAN"],["会意","SET_BOW_ZHUIYING"]]) {
   out += `    ${stringId(name)} => ${attrs(assistant.sets.find(item => item.key === key)?.attr)},\n`;
