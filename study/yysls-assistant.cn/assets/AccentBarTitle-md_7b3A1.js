@@ -1,0 +1,1 @@
+import{aM as s,ce as o,ax as n,c0 as r,cz as l,ar as p,x as i}from"./index-C5SFDSbW.js";const d=s({__name:"AccentBarTitle",props:{type:{default:0}},setup(e){const t=e,a=p(()=>`accent-bar-title--type-${t.type}`);return(c,m)=>(o(),n("div",{class:r(["accent-bar-title",a.value])},[l(c.$slots,"default",{},void 0,!0)],2))}}),u=i(d,[["__scopeId","data-v-cabe1638"]]);export{u as A};
