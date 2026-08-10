@@ -759,9 +759,17 @@ body.ui-codex-command-classic .equip-detail-float-body {
     box-sizing: border-box;
 }
 
+#grad-manual-stat-category-panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
 @media (max-width: 768px) {
     #graduation-modal .best-build-equips > div {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #grad-manual-stat-category-panels {
+        grid-template-columns: minmax(0, 1fr) !important;
     }
 }
 
