@@ -745,6 +745,26 @@ body.ui-codex-command-classic .equip-detail-float-body {
     max-width: 1280px;
 }
 
+#graduation-modal .best-build-equips > div {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px !important;
+    width: min(100%, 760px);
+    margin-inline: auto;
+}
+
+#graduation-modal .best-build-equips > div > div {
+    width: auto !important;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    #graduation-modal .best-build-equips > div {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 body.ui-codex-command-classic #graduation-modal .modal-content {
     border-color: var(--cc-line-hot);
     background: var(--cc-deck);
