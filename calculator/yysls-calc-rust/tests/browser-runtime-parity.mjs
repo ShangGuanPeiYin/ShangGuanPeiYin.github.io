@@ -39,8 +39,7 @@ async function evaluate(client, expression) {
   return response.result.value;
 }
 
-const mode = process.env.YYSLS_ENGINE_MODE || "shadow";
-const client = await openPage(`${baseUrl}/?calcEngine=${mode}`);
+const client = await openPage(`${baseUrl}/`);
 try {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     if (await evaluate(client, "Boolean(window.YYSLSExcelRuntime)")) break;
@@ -78,14 +77,9 @@ try {
       if (!normal || !manual || !best || !exported) throw new Error("runtime path returned null: " + className);
       summaries.push([className, normal.dps, manual.dps, best.dps, exported.values.length]);
     }
-    return { parity: { ...runtime.parity }, summaries };
+    return { summaries };
   })()`);
-  if (!result.parity.nextAvailable) throw new Error("next engine was not loaded");
-  if (result.parity.mismatches !== 0) throw new Error(JSON.stringify(result.parity.lastMismatch));
-  if (result.parity.comparisons < result.summaries.length * 8) {
-    throw new Error(`too few comparisons: ${result.parity.comparisons}`);
-  }
-  console.log(JSON.stringify({ status: "ok", mode, ...result.parity, flows: result.summaries.length }));
+  console.log(JSON.stringify({ status: "ok", engine: "rust", flows: result.summaries.length }));
 } finally {
   client.socket.close();
 }

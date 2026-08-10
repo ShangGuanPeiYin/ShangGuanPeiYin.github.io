@@ -40,7 +40,7 @@ CLOUD_JS="static/tools/yysls-tiaolv/assets/js/cloud-backup.js"
 THEME_CSS="static/tools/yysls-tiaolv/assets/css/ui-codex-command-classic.css"
 ALGORITHMS_JS="static/tools/yysls-tiaolv/assets/js/best-build-algorithms.js"
 RUNTIME="static/tools/yysls-tiaolv/assets/js/excel-runtime.js"
-WASM="static/tools/yysls-tiaolv/assets/wasm/yysls_calc.wasm"
+WASM="static/tools/yysls-tiaolv/assets/wasm/yysls_calc_next.wasm"
 DOC="doc/tiaolv-local-customizations.md"
 
 check_file "$INDEX"

@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repo = path.resolve(root, "../..");
-const legacyPath = path.join(repo, "static/tools/yysls-tiaolv/assets/wasm/yysls_calc.wasm");
 const nextPath = path.join(root, "dist/yysls_calc_next.wasm");
 const metadataPath = path.join(repo, "static/tools/yysls-tiaolv/assets/js/generated-calc-metadata.js");
 const stringsPath = path.join(repo, "static/tools/yysls-tiaolv/assets/js/generated-calc-strings.js");
@@ -23,6 +23,15 @@ function loadGeneratedData() {
 
 async function loadWasm(filename) {
   const module = await WebAssembly.instantiate(fs.readFileSync(filename), {});
+  return module.instance.exports;
+}
+
+async function loadBaselineWasm() {
+  const bytes = execFileSync(path.join(repo, "gitw"), [
+    "show",
+    "86a4e23:static/tools/yysls-tiaolv/assets/wasm/yysls_calc.wasm",
+  ], { maxBuffer: 2 * 1024 * 1024 });
+  const module = await WebAssembly.instantiate(bytes, {});
   return module.instance.exports;
 }
 
@@ -144,7 +153,7 @@ function runClassCase(legacy, next, flowId, input, index) {
 const cases = Number(process.env.YYSLS_PARITY_CASES || 2000);
 const seed = Number(process.env.YYSLS_PARITY_SEED || 0x21652c0c);
 const { metadata, strings } = loadGeneratedData();
-const [legacy, next] = await Promise.all([loadWasm(legacyPath), loadWasm(nextPath)]);
+const [legacy, next] = await Promise.all([loadBaselineWasm(), loadWasm(nextPath)]);
 assertAbi(legacy, next);
 const random = rng(seed);
 
