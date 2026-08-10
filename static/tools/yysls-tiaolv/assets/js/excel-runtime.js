@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const PANEL_ASSET_VERSION = "8b2cb269";
+    const PANEL_ASSET_VERSION = "eecfd9c8";
     const EXCEL_ASSET_VERSION = "146d1ded";
     const PANEL_WASM_URL = `assets/wasm/yysls_panel.wasm?v=${PANEL_ASSET_VERSION}`;
     const EXCEL_WASM_URL = `assets/wasm/yysls_excel.wasm?v=${EXCEL_ASSET_VERSION}`;
@@ -19,29 +19,8 @@
         legs: "q",
         hands: "r"
     };
-    const purpleBaseAttackPenalty = {
-        weapon: {
-            "最小外功攻击": 10,
-            "最大外功攻击": 23
-        },
-        ring: {
-            "最小外功攻击": 13
-        },
-        pendant: {
-            "最大外功攻击": 20
-        }
-    };
-    const purplePenaltySlotKeys = {
-        weapon1: "weapon",
-        weapon2: "weapon",
-        ring: "ring",
-        pendant: "pendant"
-    };
-    const purplePenaltySlotIdKeys = {
-        "1": "weapon",
-        "3": "ring",
-        "4": "pendant"
-    };
+    const panelLegacyInputLength = 184;
+    const panelSlotOrder = ["weapon1", "weapon2", "ring", "pendant", "head", "chest", "legs", "hands"];
     const statRows = {
         "劲": 3,
         "敏": 4,
@@ -95,7 +74,6 @@
         "鸣金虹": "无名剑法·蓄力技增伤",
         "破竹尘": "醉梦游春·武学技增伤",
         "破竹风": "栗子游尘·鼠鼠增伤",
-        "裂石钧（纯唐）": "斩雪刀法·轻重击派生技增伤",
         "裂石钧": "十方破阵·蓄力技增伤",
         "牵丝玉": "九重春色·特殊技增伤",
         "裂石威": "嗟夫刀法·蓄力技增伤",
@@ -364,9 +342,9 @@
     }
 
     function buildDiyRaw(options) {
-        const raw = new Float64Array(META.diyFields.length);
+        const raw = new Float64Array(panelWasm ? panelWasm.yysls_diy_input_len() : META.diyFields.length);
         setRawString(raw, diyIndex, "s2", bowLabels[options.bow] || "精准");
-        setRawString(raw, diyIndex, "t2", options.setName || "");
+        setRawString(raw, diyIndex, "t2", options.setName === "浣花" ? "会心" : options.setName || "");
         setRawString(raw, diyIndex, "g9", options.armory === "通用" ? "通用" : "本系");
         const diyClassName = options.className === "牵丝霖" ? "牵丝玉" : options.className || "";
         setRawString(raw, diyIndex, "f14", diyClassName);
@@ -378,6 +356,12 @@
         }
         Object.entries(options.equippedItems || {}).forEach(([slotKey, equip]) => {
             addEquip(raw, slotKey, equip, options.loanDingyin);
+            const slotIndex = panelSlotOrder.indexOf(slotKey);
+            if (slotIndex >= 0 && equip) {
+                raw[panelLegacyInputLength + slotIndex] = 1;
+                raw[panelLegacyInputLength + panelSlotOrder.length + slotIndex] = equip.isPurple ? 1 : 0;
+                if (slotIndex < 2) raw[panelLegacyInputLength + panelSlotOrder.length * 2 + slotIndex] = Number(equip.weaponTypeId) || 0;
+            }
         });
         modifierList(options.modifiers).forEach(modifier => addRawModifier(raw, modifier));
         return raw;
@@ -430,30 +414,8 @@
         };
     }
 
-    function applyPurpleBaseAttackPenalty(panel, equippedItems) {
-        if (!panel) return panel;
-        const adjusted = { ...panel };
-        Object.entries(equippedItems || {}).forEach(([slotKey, equip]) => {
-            if (!equip || !equip.isPurple) return;
-            const normalizedSlot = purplePenaltySlotKeys[slotKey] || purplePenaltySlotIdKeys[String(equip.slotId || "")];
-            const penalty = purpleBaseAttackPenalty[normalizedSlot];
-            if (!penalty) return;
-            Object.entries(penalty).forEach(([stat, value]) => {
-                adjusted[stat] = Math.max(0, num(adjusted[stat]) - value);
-            });
-        });
-        return adjusted;
-    }
-
     function applyClassPanelRules(panel, className) {
-        if (!panel) return panel;
-        const adjusted = { ...panel };
-        if (className === "牵丝玉" || className === "牵丝翊" || className === "牵丝霖") {
-            const minTsAttack = num(adjusted["最小牵丝攻击"]);
-            adjusted["牵丝穿透"] = minTsAttack >= 441 ? 29.6 : 29;
-            adjusted["牵丝伤害加成"] = minTsAttack >= 441 ? 14.8 : 14.5;
-        }
-        return adjusted;
+        return panel;
     }
 
     function num(value) {
@@ -534,9 +496,8 @@
         if (!runtime.available) return null;
         const raw = buildDiyRaw(options);
         const panel = panelFromArray(runDiy(raw));
-        const withPurplePenalty = applyPurpleBaseAttackPenalty(panel, options.equippedItems);
         return markPanelDamageBonusState(
-            applyRateOverflow(applyClassPanelRules(withPurplePenalty, options.className), options),
+            applyRateOverflow(applyClassPanelRules(panel, options.className), options),
             {
                 commonEffective: true,
                 genericWeaponEffective: true,
@@ -881,11 +842,18 @@
         (equip.subStats || []).forEach(stat => append(stat, equipStatValue(equip, stat), false));
         const dingyin = fullDingyinStat(slotKey);
         append(dingyin, dingyin.value, true);
-        const normalizedSlot = purplePenaltySlotKeys[slotKey] || purplePenaltySlotIdKeys[String(equip.slotId || "")];
+        const slotIndex = panelSlotOrder.indexOf(slotKey);
+        const extraEntries = slotIndex < 0 ? [] : [
+            panelLegacyInputLength + slotIndex, 1,
+            panelLegacyInputLength + panelSlotOrder.length + slotIndex, equip.isPurple ? 1 : 0
+        ];
+        if (slotIndex >= 0 && slotIndex < 2) extraEntries.push(
+            panelLegacyInputLength + panelSlotOrder.length * 2 + slotIndex, Number(equip.weaponTypeId) || 0
+        );
         return {
             rawEntries,
             bonusEntries,
-            purplePenalty: equip.isPurple && normalizedSlot ? purpleBaseAttackPenalty[normalizedSlot] || null : null
+            extraEntries
         };
     }
 
@@ -910,7 +878,6 @@
             if (!runtime.available || !context || !context.baseRaw) return null;
             const raw = context.baseRaw.slice();
             const bonuses = {};
-            const purplePenalties = [];
             (compiledEquips || []).forEach(compiled => {
                 if (!compiled) return;
                 for (let index = 0; index < compiled.rawEntries.length; index += 2) {
@@ -919,19 +886,13 @@
                 for (let index = 0; index < compiled.bonusEntries.length; index += 2) {
                     addBonus(bonuses, compiled.bonusEntries[index], compiled.bonusEntries[index + 1]);
                 }
-                if (compiled.purplePenalty) purplePenalties.push(compiled.purplePenalty);
+                for (let index = 0; index < (compiled.extraEntries || []).length; index += 2) {
+                    raw[compiled.extraEntries[index]] = compiled.extraEntries[index + 1];
+                }
             });
             modifierList(context.options.modifiers).forEach(modifier => addRawModifier(raw, modifier));
             modifierList(context.options.modifiers).forEach(modifier => applyBonusModifier(bonuses, modifier));
             let panel = panelFromArray(runDiy(raw));
-            if (purplePenalties.length) {
-                panel = { ...panel };
-                purplePenalties.forEach(penalty => {
-                    Object.entries(penalty).forEach(([stat, value]) => {
-                        panel[stat] = Math.max(0, num(panel[stat]) - value);
-                    });
-                });
-            }
             panel = markPanelDamageBonusState(
                 applyRateOverflow(applyClassPanelRules(panel, context.options.className), context.options),
                 {

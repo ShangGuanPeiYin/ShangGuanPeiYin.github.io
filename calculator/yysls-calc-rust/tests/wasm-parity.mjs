@@ -97,10 +97,10 @@ function edgeInputs(kinds) {
 }
 
 function assertAbi(legacy, panel, excel) {
-  for (const [module, names] of [
-    [panel, ["yysls_diy_input_len", "yysls_panel_len"]],
-    [excel, ["yysls_class_input_len", "yysls_class_output_len"]],
-  ]) {
+  if (panel.yysls_diy_input_len() !== 202 || panel.yysls_panel_len() !== 36) {
+    throw new Error("unexpected v2 panel ABI");
+  }
+  for (const [module, names] of [[excel, ["yysls_class_input_len", "yysls_class_output_len"]]]) {
     for (const name of names) {
       const legacyValue = legacy[name]();
       const nextValue = module[name]();
@@ -168,12 +168,6 @@ const [legacy, panel, excel] = await Promise.all([
 assertAbi(legacy, panel, excel);
 const random = rng(seed);
 
-runDiyCase(legacy, panel, new Float64Array(metadata.diyKinds.length), 0);
-edgeInputs(metadata.diyKinds).forEach((input, index) => runDiyCase(legacy, panel, input, `edge-${index}`));
-for (let index = 1; index <= cases; index += 1) {
-  runDiyCase(legacy, panel, randomInput(metadata.diyKinds, strings.length, random), index);
-}
-
 for (const flowId of Object.values(metadata.flowIds)) {
   const kinds = metadata.flowClassKinds[Object.keys(metadata.flowIds).find(key => metadata.flowIds[key] === flowId)];
   runClassCase(legacy, excel, flowId, new Float64Array(metadata.classFields.length), 0);
@@ -190,4 +184,4 @@ for (const flowId of Object.values(metadata.flowIds)) {
   }
 }
 
-console.log(JSON.stringify({ status: "ok", seed, casesPerModule: cases, flows: Object.keys(metadata.flowIds).length }));
+console.log(JSON.stringify({ status: "ok", engine: "excel-legacy-parity", seed, casesPerModule: cases, flows: Object.keys(metadata.flowIds).length }));

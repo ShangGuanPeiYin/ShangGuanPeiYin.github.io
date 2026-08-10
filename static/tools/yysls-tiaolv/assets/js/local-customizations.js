@@ -724,7 +724,7 @@
     function getManualStatSlotModel() {
         var className = window.GradModal && GradModal.state && GradModal.state.currentClass
             || window.UIManager && UIManager.dom && UIManager.dom.classSelect && UIManager.dom.classSelect.value || "";
-        var ruleClass = "裂石钧（纯唐）" === className ? "裂石钧" : className;
+        var ruleClass = className;
         var weaponRules = window.ClassConfig && ClassConfig.WEAPON_RULES && ClassConfig.WEAPON_RULES[ruleClass] || [];
         var baseSubStats = new Set(CommonData.BASE_SUB_STATS || []);
         return MANUAL_STAT_SLOT_KEYS.map(function(slotKey, index) {
@@ -1083,7 +1083,6 @@
             "鸣金虹": "无名剑法·蓄力技增伤",
             "破竹尘": "醉梦游春·武学技增伤",
             "破竹风": "栗子游尘·鼠鼠增伤",
-            "裂石钧（纯唐）": "斩雪刀法·轻重击派生技增伤",
             "裂石钧": "十方破阵·蓄力技增伤",
             "牵丝玉": "九重春色·特殊技增伤",
             "裂石威": "嗟夫刀法·蓄力技增伤",
@@ -1128,7 +1127,6 @@
             "破竹风": ["双刀武学增效", "绳标武学增效"],
             "破竹鸢": ["拳甲武学增效"],
             "裂石钧": ["陌刀武学增效"],
-            "裂石钧（纯唐）": ["横刀武学增效"],
             "裂石威": ["陌刀武学增效"],
             "牵丝玉": ["伞武学增效"],
             "牵丝翊": ["鼓武学增效", "扇武学增效"],

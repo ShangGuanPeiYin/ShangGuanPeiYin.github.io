@@ -1,70 +1,59 @@
-use std::cell::UnsafeCell;
 use std::slice;
 
+#[cfg(feature = "class")]
+use std::cell::UnsafeCell;
+
+#[cfg(feature = "class")]
 include!("generated_legacy_semantics.rs");
+
+#[cfg(feature = "diy")]
+mod panel_v2;
 
 #[cfg(all(feature = "diy", feature = "class"))]
 compile_error!("build exactly one calculator module at a time");
 #[cfg(not(any(feature = "diy", feature = "class")))]
 compile_error!("enable either the diy or class feature");
 
+#[cfg(feature = "class")]
 struct Runtime {
     engine: Instance,
-    #[cfg(feature = "diy")]
-    diy_input: i32,
-    #[cfg(feature = "diy")]
-    diy_output: i32,
-    #[cfg(feature = "class")]
     class_input: i32,
-    #[cfg(feature = "class")]
     class_output: i32,
 }
 
+#[cfg(feature = "class")]
 impl Runtime {
     fn new() -> Self {
         let mut engine = Instance::new();
-        #[cfg(feature = "diy")]
-        let diy_input_len = engine.func18();
-        #[cfg(feature = "diy")]
-        let diy_output_len = engine.func20();
-        #[cfg(feature = "class")]
         let class_input_len = engine.func16();
-        #[cfg(feature = "class")]
         let class_output_len = engine.func17();
-        #[cfg(feature = "diy")]
-        let diy_input = engine.func12(diy_input_len);
-        #[cfg(feature = "diy")]
-        let diy_output = engine.func12(diy_output_len);
-        #[cfg(feature = "class")]
         let class_input = engine.func12(class_input_len);
-        #[cfg(feature = "class")]
         let class_output = engine.func12(class_output_len);
         Self {
             engine,
-            #[cfg(feature = "diy")]
-            diy_input,
-            #[cfg(feature = "diy")]
-            diy_output,
-            #[cfg(feature = "class")]
             class_input,
-            #[cfg(feature = "class")]
             class_output,
         }
     }
 }
 
+#[cfg(feature = "class")]
 struct EngineCell(UnsafeCell<Option<Runtime>>);
 
+#[cfg(feature = "class")]
 unsafe impl Sync for EngineCell {}
 
+#[cfg(feature = "class")]
 static ENGINE: EngineCell = EngineCell(UnsafeCell::new(None));
 
+#[cfg(feature = "class")]
 fn with_runtime<T>(f: impl FnOnce(&mut Runtime) -> T) -> T {
     // The browser runtime invokes this module synchronously on one JS thread.
     let slot = unsafe { &mut *ENGINE.0.get() };
     f(slot.get_or_insert_with(Runtime::new))
 }
 
+#[cfg(feature = "class")]
 unsafe fn copy_from_engine(engine: &Instance, source: i32, target: *mut f64, len: usize) {
     let byte_len = len * size_of::<f64>();
     let target = unsafe { slice::from_raw_parts_mut(target.cast::<u8>(), byte_len) };
@@ -99,29 +88,21 @@ pub extern "C" fn yysls_class_output_len() -> i32 {
 #[unsafe(no_mangle)]
 #[cfg(feature = "diy")]
 pub extern "C" fn yysls_diy_input_len() -> i32 {
-    with_runtime(|runtime| runtime.engine.func18())
+    panel_v2::INPUT_LEN as i32
 }
 
 #[unsafe(no_mangle)]
 #[cfg(feature = "diy")]
 pub extern "C" fn yysls_panel_len() -> i32 {
-    with_runtime(|runtime| runtime.engine.func20())
+    panel_v2::OUTPUT_LEN as i32
 }
 
 #[unsafe(no_mangle)]
 #[cfg(feature = "diy")]
 pub unsafe extern "C" fn yysls_calc_diy(input: *const f64, output: *mut f64) {
-    with_runtime(|runtime| {
-        let engine = &mut runtime.engine;
-        let input_len = engine.func18() as usize;
-        let output_len = engine.func20() as usize;
-        let byte_len = input_len * size_of::<f64>();
-        let source = unsafe { slice::from_raw_parts(input.cast::<u8>(), byte_len) };
-        engine.mem_mut()[runtime.diy_input as usize..runtime.diy_input as usize + byte_len]
-            .copy_from_slice(source);
-        engine.func15(runtime.diy_input, runtime.diy_output);
-        unsafe { copy_from_engine(engine, runtime.diy_output, output, output_len) };
-    });
+    let input = unsafe { slice::from_raw_parts(input, panel_v2::INPUT_LEN) };
+    let output = unsafe { slice::from_raw_parts_mut(output, panel_v2::OUTPUT_LEN) };
+    panel_v2::calculate(input, output);
 }
 
 #[unsafe(no_mangle)]

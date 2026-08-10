@@ -77,8 +77,16 @@ try {
       if (!normal || !manual || !best || !exported) throw new Error("runtime path returned null: " + className);
       summaries.push([className, normal.dps, manual.dps, best.dps, exported.values.length]);
     }
-    return { summaries };
+    const mainClasses = Array.from(document.getElementById("class-select").options, option => option.value);
+    const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
+    return { summaries, mainClasses, availableClasses };
   })()`);
+  if (result.mainClasses.includes("pvp") || result.mainClasses.includes("裂石钧（纯唐）") || result.mainClasses.length !== 10) {
+    throw new Error(`unexpected main classes: ${JSON.stringify(result.mainClasses)}`);
+  }
+  if (!result.availableClasses.includes("pvp") || result.availableClasses.length !== 11) {
+    throw new Error(`unexpected equipment available classes: ${JSON.stringify(result.availableClasses)}`);
+  }
   console.log(JSON.stringify({ status: "ok", engine: "rust", flows: result.summaries.length }));
 } finally {
   client.socket.close();
