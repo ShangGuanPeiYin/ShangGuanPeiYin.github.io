@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "af4cb8e5";
+    const ASSET_VERSION = "a56d19e3";
     const WASM_URL = `assets/wasm/yysls_calc_next.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {

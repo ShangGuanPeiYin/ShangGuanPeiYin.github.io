@@ -38,14 +38,6 @@ fn with_runtime<T>(f: impl FnOnce(&mut Runtime) -> T) -> T {
     f(slot.get_or_insert_with(Runtime::new))
 }
 
-unsafe fn copy_into_engine(engine: &mut Instance, source: *const f64, len: usize) -> i32 {
-    let target = engine.func12(len as i32);
-    let byte_len = len * size_of::<f64>();
-    let source = unsafe { slice::from_raw_parts(source.cast::<u8>(), byte_len) };
-    engine.mem_mut()[target as usize..target as usize + byte_len].copy_from_slice(source);
-    target
-}
-
 unsafe fn copy_from_engine(engine: &Instance, source: i32, target: *mut f64, len: usize) {
     let byte_len = len * size_of::<f64>();
     let target = unsafe { slice::from_raw_parts_mut(target.cast::<u8>(), byte_len) };
