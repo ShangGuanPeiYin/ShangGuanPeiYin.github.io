@@ -1,18 +1,19 @@
 ---
 name: tiaolv-upstream-update
-description: Use this skill to fetch the latest upstream code from yysls.leoq7.com into study/new/. Rotates old snapshot to study/old/ first. Run this before comparing upstream changes or syncing into the live tiaolv tool.
+description: Use this skill to fetch and validate the latest numeric-reference snapshot from yysls-assistant.cn. It is only for Panel values and formulas, never frontend or Excel/DPS synchronization.
 ---
 
-# Tiaolv Upstream Update
+# Tiaolv Numeric Upstream Update
 
-Fetches the latest frontend code from `yysls.leoq7.com` and updates the local reference snapshots.
+Fetches the latest application bundle from `yysls-assistant.cn` solely so its Panel values and formulas can be inspected. Do not copy its UI or runtime into the live site.
 
 ## Directory layout
 
 ```
 study/
-  old/yysls.leoq7.com/   ← previous upstream snapshot (read-only reference)
-  new/yysls.leoq7.com/   ← latest upstream snapshot (just fetched)
+  old/yysls-assistant.cn/   ← previous validated numeric snapshot
+  new/yysls-assistant.cn/   ← latest validated numeric snapshot
+  yysls-assistant.cn/       ← frozen seed snapshot before first rotation
 ```
 
 ## Workflow
@@ -24,22 +25,22 @@ Run the update script:
 ```
 
 The script will:
-1. Delete the contents of `study/old/`
-2. Move the contents of `study/new/` into `study/old/`
-3. Download the latest code from `yysls.leoq7.com` into `study/new/yysls.leoq7.com/`:
-   - `index.html`
-   - All versioned JS files (versions read from the downloaded `index.html`)
-   - `assets/wasm/yysls_calc.wasm` (version read from `excel-runtime.js`)
-   - `assets/css/style.css`
-   - `assets/images/`
+
+1. Download into a temporary directory without touching valid snapshots.
+2. Recursively fetch the versioned JavaScript and CSS asset graph referenced by the page bundles.
+3. Validate the HTTP result and require recognizable Panel data markers and a `110_*` version marker.
+4. Write a manifest containing fetch time, source URL and SHA-256 hashes.
+5. Only after validation, rotate `new` to `old` and promote the temporary snapshot to `new`.
+
+It does not download or replace the live `app.min.js`, Panel WASM, Excel WASM, HTML, CSS or images.
 
 ## After running
 
-Compare the new snapshot against the old to decide what to merge into the live tool:
+Compare the validated snapshots to identify numeric changes:
 
 ```bash
-diff study/old/yysls.leoq7.com/assets/js/generated-calc-metadata.js?* \
-     study/new/yysls.leoq7.com/assets/js/generated-calc-metadata.js?*
+diff -ru study/old/yysls-assistant.cn/assets \
+         study/new/yysls-assistant.cn/assets
 ```
 
-Then follow the sync workflow in `skills/tiaolv-sync/SKILL.md` to apply upstream changes to `static/tools/yysls-tiaolv/`.
+Then follow `skills/tiaolv-sync/SKILL.md`. A changed bundle is evidence to review, not permission to copy code into the live site.

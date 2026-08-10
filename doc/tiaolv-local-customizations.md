@@ -1,6 +1,6 @@
 # 调率站本地定制清单
 
-本文记录本站相对 `study/new/yysls.leoq7.com/` 上游快照保留的本地定制功能。同步上游更新时，不要直接覆盖 `static/tools/yysls-tiaolv/`；应先对照本清单，保留或重新应用这些改动。
+本文记录调率站必须长期保留的本站功能。本站前端现为自主维护，不再以 `yysls.leoq7.com` 为代码上游；`yysls-assistant.cn` 仅作为 Panel 数值和公式参考，任何数值同步都不得覆盖 `static/tools/yysls-tiaolv/` 的前端、存储及本清单功能。
 
 ## 外置扩展脚本
 
@@ -206,10 +206,10 @@
 | 可用/全流派切换开关 | `AppState.classFilter`、`filterDB`、`initFilters`、`.filter-toggle-btn` | 将原「可用」过滤按钮改为全局切换开关。`AppState.classFilter`（默认 `true`）控制所有槽位/全部模式是否按流派过滤。开关为绿色时（可用），头/胸/佩等槽位按钮和「全部」只显示本流派装备；灰色时（全流派），显示所有装备。`filterDB` 的 `"all"`、`weapon_`、槽位分支均加入 `classFilter` 判断；`"available"` 分支已删除，原重置 `currentFilter = "available"` 的两处改为 `"all"`。样式类 `.filter-toggle-btn.toggle-on/.toggle-off` 追加在 `assets/css/style.css` 末尾。 |
 | pvp 流派选项 | `ClassConfig.CLASSES` | 在 `CLASSES` 数组末尾新增 `"pvp"`，使装备录入弹窗的「可用流派限制」多选和右侧流派下拉均包含 pvp 选项。无 `WEAPON_RULES` 条目，不限武器类型。 |
 
-## 同步上游建议
+## 数值参考同步建议
 
-1. 先更新 `study/new/yysls.leoq7.com/`，不要直接覆盖正式目录。
-2. 对比上游新旧差异，再把需要的源站更新合并进 `static/tools/yysls-tiaolv/`。
-3. 保留 `local-customizations.js` 和 `index.html` 中的加载引用。
-4. 对 `app.min.js` 检查上表关键词，确认深层定制没有被覆盖。
-5. 本地运行 `.tools/hugo/hugo --gc --minify`，确认构建成功后再发布。
+1. 使用更新 skill 获取并验证 `study/new/yysls-assistant.cn/`，失败时不得轮换有效快照。
+2. 对比新旧快照，只提取公共基础、武学天赋、心法、装备、套装、弓诀、武库、派生、抗性、阶段顺序和舍入规则。
+3. 只修改本地 Panel 源码和 `yysls_panel.wasm`，不得复制对方前端，不得修改 `yysls_excel.wasm`、DPS、RDPS和毕业率。
+4. 对10个流派执行固定矩阵和至少100万组随机配置，36项输出必须 Float64 位级零差异。
+5. 保留 `local-customizations.js`、云备份和上述全部跨文件功能，运行定制检查与 Hugo 构建后再发布。

@@ -1,79 +1,68 @@
 ---
 name: tiaolv-sync
-description: Use when syncing or checking updates from study/new/yysls.leoq7.com into static/tools/yysls-tiaolv, or when changing the Tiaolv tool while preserving local customizations such as equipment levels, JSON import/export, Chengyin filters, needed-Chengyin display, and Top20 best-build results.
+description: Use when reviewing or synchronizing Tiaolv Panel numeric changes from study/new/yysls-assistant.cn, or when checking Tiaolv edits while preserving all local UI and behavior.
 ---
 
-# Tiaolv Sync
+# Tiaolv Numeric Sync
 
-Use this skill whenever the Tiaolv upstream/reference snapshot in `study/new/yysls.leoq7.com/` is updated, or when asked to merge/check the live Tiaolv tool in `static/tools/yysls-tiaolv/`.
+`yysls-assistant.cn` is a numeric reference only. The live tool is locally maintained; never copy the reference site's frontend, storage, import/export, optimization, timeline, DPS, RDPS, or graduation-rate implementation into it.
 
 ## Required references
 
-Before making sync decisions, read:
+Before making decisions, read:
 
 ```bash
 doc/tiaolv-local-customizations.md
+doc/调率站代码实现说明.md
 ```
 
-That file is the source of truth for local features that must survive upstream syncs.
+## Source boundaries
 
-## Workflow
+- Numeric reference: `study/new/yysls-assistant.cn/`.
+- Previous numeric reference: `study/old/yysls-assistant.cn/`.
+- Live application: `static/tools/yysls-tiaolv/`.
+- Locally maintained Panel source: `calculator/yysls-calc-rust/`.
+- Historical `yysls.leoq7.com` snapshots are archives, not update sources.
+- `yysls_excel.wasm`, DPS, RDPS, graduation baselines, UI, storage and best-build behavior are always local unless a separate user request explicitly changes them.
 
-1. Treat `study/new/yysls.leoq7.com/` as the latest upstream snapshot, and `study/old/yysls.leoq7.com/` as the previous snapshot.
-2. Treat `static/tools/yysls-tiaolv/` as the live customized site.
-3. Never directly overwrite `static/tools/yysls-tiaolv/` with the `study` directory.
-4. Prefer syncing upstream-generated/runtime files only after comparing changes.
-5. Keep `static/tools/yysls-tiaolv/assets/js/local-customizations.js` and its `index.html` script tag.
-6. **For `app.min.js`: always use the new upstream as the base and re-apply all local customizations on top.** Never patch the old live file in-place — that approach risks misplacing changes when context strings are not unique.
+## Numeric synchronization workflow
 
-   Recommended method:
-   1. Copy `study/new/yysls.leoq7.com/assets/js/app.min.js?v=*` as a fresh starting point.
-   2. Generate a diff between `study/old/yysls.leoq7.com/assets/js/app.min.js?v=*` and the previous live `static/tools/yysls-tiaolv/assets/js/app.min.js` to capture all local customizations as a patch.
-   3. Apply that patch to the fresh file.
-   4. Verify the result with the checker.
+1. Run `skills/tiaolv-upstream-update/scripts/update_upstream.sh`. It must validate the download before rotating snapshots.
+2. Diff old and new assistant bundles. Identify only changes to:
+   - common naked-character attributes;
+   - martial arts and talent thresholds/rewards;
+   - mind skills;
+   - equipment fixed attributes, quality differences and tuning values;
+   - sets, bow arts and armory values;
+   - derived-attribute formulas;
+   - resistance conversion;
+   - Panel calculation stage order and rounding.
+3. Record the assistant version and source bundle hash. Do not infer numeric changes merely from a renamed hashed bundle.
+4. Update the structured Panel generator/source in `calculator/yysls-calc-rust/`; do not paste the assistant runtime into the live site.
+5. Rebuild only `yysls_panel.wasm`. Keep the JavaScript public API, 202-item Panel input and 36-item Panel output contracts stable unless the user separately authorizes an interface migration.
+6. Assert that `yysls_excel.wasm` is byte-for-byte unchanged.
+7. Update Panel documentation, hash/version references, affected frontend `?v=` tags and the site update time.
 
-   Local customizations that must survive (all checked by the checker script):
-   - equipment level save/read/display behavior (`levelSelect`, `levelColor`, `levelText`);
-   - defaulting missing equipment `level` to `105`;
-   - max-needed-Chengyin filtering (`maxNeedChengyin`, `countNeedChengyin`);
-   - needed-Chengyin count display (`needChengyinCount`, `需承音`);
-   - `(承音)` / `(需承音)` distinction;
-   - Top20 best-build results;
-   - `renderBuildStatsSummary` call in best-build solution template;
-   - cancel-search support (`bestBuildCancelled`);
-   - stats text above border line (`border-bottom`).
-   - full-backup scheme field `transmutationSelections` and its whitelist validation;
-   - three best-build transmutation modes (`bestBuildTransmutationMode` / `best-build-transmutation-mode`);
-   - physical equipment identity and deduplication (`getOriginalEquipId` / `sourceEquipId`);
-   - non-destructive scheme overlay (`applySchemeTransmutationSelections` / `scheme-transmutation-summary`);
-   - transmutation-aware cache digest (`getTransmutationStateDigest`);
-   - removed transmutation-CD reverse guards.
-7. **Always update the WASM binary** when the upstream JS files change. Check the `ASSET_VERSION` constant in `excel-runtime.js` — if it differs from the previous snapshot, the WASM must also be updated:
-   ```bash
-   curl -L "https://yysls.leoq7.com/assets/wasm/yysls_calc.wasm?v=<ASSET_VERSION>" \
-     -H "Referer: https://yysls.leoq7.com/" \
-     -o static/tools/yysls-tiaolv/assets/wasm/yysls_calc.wasm
-   ```
-   Skipping this step causes flowId mismatches and wildly wrong graduation rates (e.g. 10000%+) for any newly added flow.
-8. Run the checker after changes:
+## Mandatory parity gate
 
-```bash
-./skills/tiaolv-sync/scripts/check_tiaolv_customizations.sh
-```
+Use an independent reference implementation parsed from the assistant snapshot; it must not reuse Rust Panel outputs as expected values.
 
-## Validation
+- Cover all 10 calculable PVE flows.
+- Cover martial arts, talents, supported minds, sets, all bows, common/class armories.
+- Cover empty, all-gold, all-purple, mixed-quality and partially empty equipment.
+- Cover normal, maximum, Chengyin, Dingyin, loaned Dingyin, manual corrections and transmutation paths.
+- Run the fixed combination matrix and at least 1,000,000 fixed-seed random configurations.
+- Compare all 36 raw outputs by Float64 bit pattern, including NaN, signed zero and Infinity behavior.
+- Require zero differences. Any difference blocks publication.
+- Run browser regression for normal calculation, manual attributes, best build and scheme restoration.
+- Run `./skills/tiaolv-sync/scripts/check_tiaolv_customizations.sh` and the Hugo build.
 
-At minimum, the checker should pass. For larger syncs, also inspect the page in a browser and confirm:
+## Local customization protection
 
-- equipment entry shows the equipment-level selector;
-- export/import dialog shows `下载 JSON` and `上传 JSON`;
-- best-build tab shows the max-needed-Chengyin selector;
-- best-build results show `需承音：N 件`;
-- best-build results still distinguish `(承音)` from `(需承音)`;
-- best-build result navigation can show up to 20 retained builds.
-- all three transmutation search modes render and retain their selection per account;
-- a scheme transmutation selection changes the calculated panel without mutating the equipment database;
-- Top20 does not contain entries that differ only by transmutation target;
-- old backups without `transmutationSelections` still import, while new backups round-trip that field.
+For every Tiaolv edit, preserve the complete inventory in `doc/tiaolv-local-customizations.md`, especially `local-customizations.js`, cloud backup, equipment levels, backup/import, Chengyin behavior, Top20, cancel-search, transmutation, pvp equipment tags and removed-feature reverse guards.
 
-If code or content changed and validation passes, publish using the project publishing rule in `AGENTS.md`.
+The old rule that rebuilt `app.min.js` from `yysls.leoq7.com` no longer applies. `app.min.js` is now local code and must be edited in place with focused changes while preserving unrelated work.
+
+## Publication
+
+If changes pass all required checks, follow `AGENTS.md`: update changed JS version tags, update all three site-time locations, publish only task-related files, and report both the Git commit and displayed last-update time.

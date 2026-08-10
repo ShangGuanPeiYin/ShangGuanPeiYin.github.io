@@ -3,69 +3,100 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 STUDY="$REPO/study"
-OLD_DIR="$STUDY/old"
-NEW_DIR="$STUDY/new"
-SITE="yysls.leoq7.com"
+SITE="yysls-assistant.cn"
 BASE_URL="https://$SITE"
-REFERER="-H Referer: $BASE_URL/"
+NEW_DIR="$STUDY/new/$SITE"
+OLD_DIR="$STUDY/old/$SITE"
+SEED_DIR="$STUDY/$SITE"
+WORK_DIR="$(mktemp -d "$STUDY/.assistant-update.XXXXXX")"
+DOWNLOAD_DIR="$WORK_DIR/$SITE"
 
-echo "=== Step 1: 清空 old/ ==="
-rm -rf "$OLD_DIR"
-mkdir -p "$OLD_DIR"
+cleanup() {
+    rm -rf "$WORK_DIR"
+}
+trap cleanup EXIT
 
-echo "=== Step 2: 把 new/ 内容移入 old/ ==="
-if [ -d "$NEW_DIR/$SITE" ]; then
-    mv "$NEW_DIR/$SITE" "$OLD_DIR/$SITE"
-    echo "已移动 study/new/$SITE → study/old/$SITE"
-else
-    echo "study/new/$SITE 不存在，跳过移动"
-fi
+mkdir -p "$DOWNLOAD_DIR/assets"
 
-echo "=== Step 3: 下载最新代码到 new/ ==="
-DEST="$NEW_DIR/$SITE"
-mkdir -p "$DEST/assets/css" "$DEST/assets/js" "$DEST/assets/images" "$DEST/assets/wasm"
+fetch() {
+    local relative="$1"
+    local target="$DOWNLOAD_DIR/$relative"
+    mkdir -p "$(dirname "$target")"
+    curl --fail --silent --show-error --location \
+        --retry 3 --retry-delay 1 \
+        -H "Referer: $BASE_URL/" \
+        "$BASE_URL/$relative" -o "$target"
+}
 
-# 下载 index.html
-echo "下载 index.html..."
-curl -sL "$BASE_URL/" -H "Referer: $BASE_URL/" -o "$DEST/index.html"
+echo "下载并验证 $BASE_URL 数值参考快照……"
+fetch "index.html"
 
-# 从 index.html 提取所有 assets/ 路径（含版本号）
-ASSETS=$(grep -o 'assets/[^"]*' "$DEST/index.html" | sort -u)
+declare -A seen=()
+declare -a queue=()
 
-# 下载每个 asset
-for ASSET in $ASSETS; do
-    FILE="$DEST/$ASSET"
-    DIR="$(dirname "$FILE")"
-    mkdir -p "$DIR"
-    echo "下载 $ASSET..."
-    curl -sL "$BASE_URL/$ASSET" -H "Referer: $BASE_URL/" -o "$FILE"
+enqueue_assets() {
+    local file="$1"
+    local asset
+    while IFS= read -r asset; do
+        asset="${asset%%\?*}"
+        asset="${asset#/}"
+        case "$asset" in
+            assets/*.js|assets/*.css)
+                if [ -z "${seen[$asset]+x}" ]; then
+                    seen["$asset"]=1
+                    queue+=("$asset")
+                fi
+                ;;
+        esac
+    done < <(grep -Eo '(/)?assets/[A-Za-z0-9_./-]+\.(js|css)(\?[^"'"'"'[:space:]<>)]*)?' "$file" | sort -u || true)
+}
+
+enqueue_assets "$DOWNLOAD_DIR/index.html"
+cursor=0
+while [ "$cursor" -lt "${#queue[@]}" ]; do
+    asset="${queue[$cursor]}"
+    cursor=$((cursor + 1))
+    fetch "$asset"
+    enqueue_assets "$DOWNLOAD_DIR/$asset"
 done
 
-# 从 excel-runtime.js 读取 WASM 版本号并下载
-RUNTIME_FILE=$(find "$DEST/assets/js" -name "excel-runtime.js*" | head -1)
-if [ -n "$RUNTIME_FILE" ]; then
-    ASSET_VERSION=$(grep -o 'ASSET_VERSION = "[^"]*"' "$RUNTIME_FILE" | grep -o '"[^"]*"' | tr -d '"')
-    echo "下载 yysls_calc.wasm (v=$ASSET_VERSION)..."
-    curl -sL "$BASE_URL/assets/wasm/yysls_calc.wasm?v=$ASSET_VERSION" \
-        -H "Referer: $BASE_URL/" \
-        -o "$DEST/assets/wasm/yysls_calc.wasm" \
-        -w "  HTTP %{http_code}, %{size_download} bytes\n"
-
-    # 验证 WASM 魔数
-    MAGIC=$(xxd -l 4 "$DEST/assets/wasm/yysls_calc.wasm" | awk '{print $2$3}' | head -1)
-    if [ "$MAGIC" != "0061736d" ]; then
-        echo "ERROR: WASM 文件魔数不正确（$MAGIC），下载可能失败" >&2
-        exit 1
-    fi
-    echo "  WASM 验证通过 (asset version: $ASSET_VERSION)"
-else
-    echo "WARNING: 未找到 excel-runtime.js，跳过 WASM 下载" >&2
+if [ "${#queue[@]}" -eq 0 ]; then
+    echo "ERROR: 页面中未发现 JavaScript/CSS 资源，拒绝轮换快照。" >&2
+    exit 1
 fi
 
-echo ""
-echo "=== 完成 ==="
-echo "study/old/ → 上次快照"
-echo "study/new/ → 最新快照"
-echo ""
-echo "下载文件列表："
-find "$DEST" -type f | sort
+if ! grep -RqsE '110_[A-Z0-9_]+' "$DOWNLOAD_DIR/assets"; then
+    echo "ERROR: 未发现可识别的110级版本标记，拒绝轮换快照。" >&2
+    exit 1
+fi
+
+if ! grep -RqsE 'summaryAttributePanel|DamageCalculatorV2|martial|equipment' "$DOWNLOAD_DIR/assets"; then
+    echo "ERROR: 未发现可识别的面板数值结构，拒绝轮换快照。" >&2
+    exit 1
+fi
+
+FETCHED_AT="$(date '+%Y-%m-%d %H:%M:%S %z')"
+{
+    echo "source=$BASE_URL"
+    echo "fetched_at=$FETCHED_AT"
+    echo "purpose=numeric-panel-reference-only"
+    echo "asset_count=${#queue[@]}"
+    find "$DOWNLOAD_DIR" -type f -print0 | sort -z | xargs -0 sha256sum
+} > "$DOWNLOAD_DIR/SNAPSHOT-MANIFEST.txt"
+
+mkdir -p "$STUDY/new" "$STUDY/old"
+if [ -d "$OLD_DIR" ]; then
+    rm -rf "$OLD_DIR"
+fi
+if [ -d "$NEW_DIR" ]; then
+    mv "$NEW_DIR" "$OLD_DIR"
+elif [ -d "$SEED_DIR" ]; then
+    cp -a "$SEED_DIR" "$OLD_DIR"
+fi
+mv "$DOWNLOAD_DIR" "$NEW_DIR"
+
+echo "完成："
+echo "  最新数值快照：$NEW_DIR"
+echo "  上次数值快照：$OLD_DIR"
+echo "  抓取资源数量：${#queue[@]}"
+echo "注意：尚未修改任何本站代码或WASM，后续必须走 tiaolv-sync 数值验收流程。"

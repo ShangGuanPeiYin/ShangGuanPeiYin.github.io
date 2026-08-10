@@ -29,24 +29,29 @@ The script:
 - If unrelated changes already exist, mention them and pass only task-related paths to `skills/auto-site-publish/scripts/publish_site.sh`.
 - If the user explicitly asks not to publish, build or test locally but do not commit or push.
 
-## Tiaolv upstream snapshots
+## Tiaolv numeric upstream snapshots
 
-The `study/` directory holds local snapshots of the upstream site `yysls.leoq7.com`:
+`yysls-assistant.cn` is the only upstream reference for Tiaolv **numeric panel data and panel formulas**. It is not a frontend-code upstream and is not the upstream for the Excel WASM, DPS, RDPS, graduation rates, UI, storage, import/export, or best-build behavior.
 
-- `study/new/yysls.leoq7.com/` — latest upstream snapshot (use this as reference)
-- `study/old/yysls.leoq7.com/` — previous upstream snapshot (for diffing)
+The `study/` directory holds numeric-reference snapshots:
 
-To fetch the latest upstream code (rotate old → new, download fresh into new):
+- `study/new/yysls-assistant.cn/` — latest validated numeric snapshot;
+- `study/old/yysls-assistant.cn/` — previous validated numeric snapshot;
+- `study/yysls-assistant.cn/` — frozen seed snapshot retained until the first successful rotation.
+
+The former `study/new/yysls.leoq7.com/` and `study/old/yysls.leoq7.com/` directories are historical archives only and must not be used as an update source.
+
+To fetch the latest numeric reference (validate first, then rotate old → new):
 
 ```bash
 ./skills/tiaolv-upstream-update/scripts/update_upstream.sh
 ```
 
-## Tiaolv upstream sync
+## Tiaolv numeric upstream sync
 
-`static/tools/yysls-tiaolv/` is the live customized version of the upstream/reference site kept under `study/new/yysls.leoq7.com/`.
+`static/tools/yysls-tiaolv/` is a locally maintained application. Never overwrite its frontend files from either reference site.
 
-When syncing updates from `study/new/yysls.leoq7.com/` into `static/tools/yysls-tiaolv/`, do not directly overwrite the live directory. Use the project skill:
+When numeric changes are detected in `study/new/yysls-assistant.cn/`, use the project skill:
 
 ```bash
 skills/tiaolv-sync/
@@ -66,7 +71,7 @@ Pay special attention to preserving:
 - best-build transmutation integration: three search modes, `getOriginalEquipId` physical-equipment mutual exclusion, transmutation-aware cache digest, Chengyin-state Top20 deduplication, result metadata, and non-destructive `transmutationSelections` scheme overlays.
 - the cross-file transmutation chain: `index.html` mode/summary controls, `app.min.js` search and scheme calculation, `local-customizations.js` backup validation, and reverse guards that keep the removed transmutation-CD feature absent.
 
-**For `app.min.js`, always use the new upstream file as the base and re-apply local customizations on top** — never patch the old live file in-place. See `skills/tiaolv-sync/SKILL.md` for the recommended method (diff → patch → apply).
+Only Panel inputs, constants, formulas, stage ordering, resistance conversion, and rounding rules may be synchronized. `app.min.js`, the UI, and `yysls_excel.wasm` remain local. See `skills/tiaolv-sync/SKILL.md` for the numeric extraction and parity workflow.
 
 After syncing or editing the Tiaolv tool, run:
 
