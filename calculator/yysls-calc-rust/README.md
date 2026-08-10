@@ -7,9 +7,9 @@ Source-controlled Rust replacement for `yysls_calc.wasm`, split into two indepen
 
 The panel module uses the structured `110_RBDZ_DOWN` data recovered from the local
 `yysls-assistant.cn` snapshot. `panel_v2.rs` contains the calculation order and
-`panel_v2_generated.rs` contains generated constants. The Excel module continues to
-use `generated_legacy_semantics.rs`, mechanically recovered from the frozen baseline
-WASM, so this migration does not alter damage or graduation formulas.
+`panel_v2_generated.rs` contains generated constants. The Excel module is generated
+from the 11 current workbooks by `scripts/generate_excel_engine.py`; formulas are
+compiled to bytecode and interpreted by `excel_engine.rs`.
 
 Module boundaries:
 
@@ -27,6 +27,7 @@ Build and verify:
 
 ```bash
 node scripts/generate_panel_v2.mjs
+python3 scripts/generate_excel_engine.py
 ./scripts/build.sh
 node tests/panel-v2.mjs
 node tests/wasm-parity.mjs
@@ -40,3 +41,6 @@ and 200–201 record the two weapon types. These additions are internal to
 `scripts/build.sh` intentionally builds each feature separately. Enabling both or
 neither feature is a compile error, preventing accidental recreation of a combined
 production module.
+
+There are 10 user-facing PVE classes and 11 internal Excel versions. 牵丝翊 maps to
+independent 1.2 and 2.0 formula sections; 2.0 is the default.

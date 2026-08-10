@@ -1,0 +1,138 @@
+{
+  "inputLength": 40,
+  "outputLength": 5,
+  "workbooks": [
+    {
+      "id": 0,
+      "className": "牵丝玉",
+      "flowName": "牵丝玉",
+      "version": "1.4",
+      "file": "牵丝玉110阶竞速轴属性毕业率进阶计算器1.4.xlsx",
+      "inputs": 40,
+      "baselineTotal": 15127585.9560326,
+      "baselineDps": 137523.508691205,
+      "baselineRdps": 117772.709602175,
+      "useTime": 110.0
+    },
+    {
+      "id": 1,
+      "className": "牵丝翊",
+      "flowName": "牵丝翊@2.0",
+      "version": "2.0",
+      "file": "牵丝翊110阶竞速轴属性毕业率进阶计算器2.0.xlsx",
+      "inputs": 39,
+      "baselineTotal": 10610515.8988096,
+      "baselineDps": 105263.054551682,
+      "baselineRdps": 134977.433926224,
+      "useTime": 100.8
+    },
+    {
+      "id": 2,
+      "className": "牵丝翊",
+      "flowName": "牵丝翊@1.2",
+      "version": "1.2",
+      "file": "牵丝翊110阶竞速轴属性毕业率进阶计算器1.2.xlsx",
+      "inputs": 39,
+      "baselineTotal": 11020458.3852255,
+      "baselineDps": 100459.967048546,
+      "baselineRdps": 129570.785940063,
+      "useTime": 109.7
+    },
+    {
+      "id": 3,
+      "className": "破竹尘",
+      "flowName": "破竹尘",
+      "version": "2.0",
+      "file": "破竹尘110阶竞速轴属性毕业率进阶计算器2.0.xlsx",
+      "inputs": 40,
+      "baselineTotal": 13394742.0408693,
+      "baselineDps": 132621.208325439,
+      "baselineRdps": 129307.921624983,
+      "useTime": 101.0
+    },
+    {
+      "id": 4,
+      "className": "破竹风",
+      "flowName": "破竹风",
+      "version": "1.1",
+      "file": "破竹风110阶竞速轴属性毕业率进阶计算器1.1.xlsx",
+      "inputs": 39,
+      "baselineTotal": 14311682.0898318,
+      "baselineDps": 131059.359796995,
+      "baselineRdps": 113449.333451235,
+      "useTime": 109.2
+    },
+    {
+      "id": 5,
+      "className": "破竹鸢",
+      "flowName": "破竹鸢",
+      "version": "2.4",
+      "file": "破竹鸢110阶竞速轴属性毕业率进阶计算器2.4.xlsx",
+      "inputs": 40,
+      "baselineTotal": 14393823.4583646,
+      "baselineDps": 142795.867642506,
+      "baselineRdps": 122977.198504003,
+      "useTime": 100.8
+    },
+    {
+      "id": 6,
+      "className": "裂石威",
+      "flowName": "裂石威",
+      "version": "2.2",
+      "file": "裂石威110阶竞速轴属性毕业率进阶计算器2.2.xlsx",
+      "inputs": 39,
+      "baselineTotal": 14350166.0127175,
+      "baselineDps": 141520.374878871,
+      "baselineRdps": 147359.579642219,
+      "useTime": 101.4
+    },
+    {
+      "id": 7,
+      "className": "裂石钧",
+      "flowName": "裂石钧",
+      "version": "1.15",
+      "file": "裂石钧110阶竞速轴属性毕业率进阶计算器1.15.xlsx",
+      "inputs": 39,
+      "baselineTotal": 13703925.9548513,
+      "baselineDps": 125264.405437398,
+      "baselineRdps": 116459.629078997,
+      "useTime": 109.4
+    },
+    {
+      "id": 8,
+      "className": "鸣金虹",
+      "flowName": "鸣金虹",
+      "version": "1.3",
+      "file": "鸣金虹110阶竞速轴属性毕业率进阶计算器1.3.xlsx",
+      "inputs": 39,
+      "baselineTotal": 13164651.53971,
+      "baselineDps": 120665.916954263,
+      "baselineRdps": 118443.09556252,
+      "useTime": 109.1
+    },
+    {
+      "id": 9,
+      "className": "鸣金影",
+      "flowName": "鸣金影",
+      "version": "1.5",
+      "file": "鸣金影110阶竞速轴属性毕业率进阶计算器1.5.xlsx",
+      "inputs": 39,
+      "baselineTotal": 15082270.840045,
+      "baselineDps": 136862.711797141,
+      "baselineRdps": 122289.847193263,
+      "useTime": 110.2
+    },
+    {
+      "id": 10,
+      "className": "牵丝霖",
+      "flowName": "牵丝霖",
+      "version": "1.1",
+      "file": "牵丝霖110阶竞速轴属性毕业率进阶计算器1.1.xlsx",
+      "inputs": 39,
+      "baselineTotal": 1519700.0225165,
+      "baselineDps": 101313.334834433,
+      "baselineRdps": 108515.748299029,
+      "useTime": 15.0
+    }
+  ]
+}
