@@ -740,6 +740,11 @@ body.ui-codex-command-classic .equip-detail-float-body {
 }
 
 /* 毕业率分析保持原版工作区结构 */
+#graduation-modal .modal-content-xlarge {
+    width: min(96vw, 1280px);
+    max-width: 1280px;
+}
+
 body.ui-codex-command-classic #graduation-modal .modal-content {
     border-color: var(--cc-line-hot);
     background: var(--cc-deck);
