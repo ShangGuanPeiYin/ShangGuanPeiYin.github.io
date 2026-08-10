@@ -1,6 +1,9 @@
 # YYSLS calculator next
 
-Source-controlled Rust replacement for `yysls_calc.wasm`.
+Source-controlled Rust replacement for `yysls_calc.wasm`, split into two independently deployable modules:
+
+- `yysls_panel.wasm`: equipment/configuration to final panel;
+- `yysls_excel.wasm`: final panel and class inputs to damage, ADPS, RDPS, and graduation ratios.
 
 `generated_legacy_semantics.rs` was mechanically recovered from the frozen baseline
 WASM and preserves its instruction order and constants. The handwritten wrapper in

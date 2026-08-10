@@ -4,8 +4,10 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "a56d19e3";
-    const WASM_URL = `assets/wasm/yysls_calc_next.wasm?v=${ASSET_VERSION}`;
+    const PANEL_ASSET_VERSION = "8b2cb269";
+    const EXCEL_ASSET_VERSION = "146d1ded";
+    const PANEL_WASM_URL = `assets/wasm/yysls_panel.wasm?v=${PANEL_ASSET_VERSION}`;
+    const EXCEL_WASM_URL = `assets/wasm/yysls_excel.wasm?v=${EXCEL_ASSET_VERSION}`;
 
     const slotColumns = {
         weapon1: "k",
@@ -115,8 +117,10 @@
         intent: "会意"
     };
     const fallbackDiyAssumedOuterPen = 58.4;
-    let wasm = null;
-    let memory = null;
+    let panelWasm = null;
+    let panelMemory = null;
+    let excelWasm = null;
+    let excelMemory = null;
     let diyPtr = 0;
     let panelPtr = 0;
     let classPtr = 0;
@@ -229,16 +233,21 @@
     }
 
     async function init() {
-        const response = await fetch(WASM_URL);
-        const bytes = await response.arrayBuffer();
-        const instance = await WebAssembly.instantiate(bytes, {});
-        wasm = instance.instance ? instance.instance.exports : instance.exports;
-        memory = wasm.memory;
-        diyPtr = wasm.yysls_alloc_f64(wasm.yysls_diy_input_len());
-        panelPtr = wasm.yysls_alloc_f64(wasm.yysls_panel_len());
-        classPtr = wasm.yysls_alloc_f64(wasm.yysls_class_input_len());
-        classOutputLen = typeof wasm.yysls_class_output_len === "function" ? wasm.yysls_class_output_len() : 3;
-        classOutputPtr = wasm.yysls_alloc_f64(classOutputLen);
+        const [panelResponse, excelResponse] = await Promise.all([fetch(PANEL_WASM_URL), fetch(EXCEL_WASM_URL)]);
+        const [panelBytes, excelBytes] = await Promise.all([panelResponse.arrayBuffer(), excelResponse.arrayBuffer()]);
+        const [panelInstance, excelInstance] = await Promise.all([
+            WebAssembly.instantiate(panelBytes, {}),
+            WebAssembly.instantiate(excelBytes, {})
+        ]);
+        panelWasm = panelInstance.instance ? panelInstance.instance.exports : panelInstance.exports;
+        panelMemory = panelWasm.memory;
+        excelWasm = excelInstance.instance ? excelInstance.instance.exports : excelInstance.exports;
+        excelMemory = excelWasm.memory;
+        diyPtr = panelWasm.yysls_alloc_f64(panelWasm.yysls_diy_input_len());
+        panelPtr = panelWasm.yysls_alloc_f64(panelWasm.yysls_panel_len());
+        classPtr = excelWasm.yysls_alloc_f64(excelWasm.yysls_class_input_len());
+        classOutputLen = typeof excelWasm.yysls_class_output_len === "function" ? excelWasm.yysls_class_output_len() : 3;
+        classOutputPtr = excelWasm.yysls_alloc_f64(classOutputLen);
         runtime.available = true;
         setTimeout(() => {
             if (typeof window.updateStats === "function") window.updateStats();
@@ -246,24 +255,24 @@
         return runtime;
     }
 
-    function writeF64(ptr, values) {
+    function writeF64(memory, ptr, values) {
         new Float64Array(memory.buffer, ptr, values.length).set(values);
     }
 
-    function readF64(ptr, len) {
+    function readF64(memory, ptr, len) {
         return Array.from(new Float64Array(memory.buffer, ptr, len));
     }
 
     function runDiy(raw) {
-        writeF64(diyPtr, raw);
-        wasm.yysls_calc_diy(diyPtr, panelPtr);
-        return readF64(panelPtr, wasm.yysls_panel_len());
+        writeF64(panelMemory, diyPtr, raw);
+        panelWasm.yysls_calc_diy(diyPtr, panelPtr);
+        return readF64(panelMemory, panelPtr, panelWasm.yysls_panel_len());
     }
 
     function runClassOutputs(flowId, raw) {
-        writeF64(classPtr, raw);
-        wasm.yysls_calc_class_outputs(flowId, classPtr, classOutputPtr);
-        return readF64(classOutputPtr, classOutputLen);
+        writeF64(excelMemory, classPtr, raw);
+        excelWasm.yysls_calc_class_outputs(flowId, classPtr, classOutputPtr);
+        return readF64(excelMemory, classOutputPtr, classOutputLen);
     }
 
     function inputValue(stat, rawValue) {
@@ -792,7 +801,7 @@
         let graduationRatio = null;
         let rdps = 0;
         let rdpsGraduationRatio = null;
-        if (typeof wasm.yysls_calc_class_outputs === "function") {
+        if (typeof excelWasm.yysls_calc_class_outputs === "function") {
             const outputs = runClassOutputs(flowId, raw);
             totalDamage = outputs[0] || 0;
             dps = outputs[1] || 0;
@@ -800,7 +809,7 @@
             rdps = outputs[3] || 0;
             rdpsGraduationRatio = Number.isFinite(outputs[4]) && outputs[4] > 0 ? outputs[4] : null;
         } else {
-            totalDamage = wasm.yysls_calc_class(flowId, classPtr);
+            totalDamage = excelWasm.yysls_calc_class(flowId, classPtr);
         }
         const rotation = window.ClassConfig && window.ClassConfig.ROTATIONS && (window.ClassConfig.ROTATIONS[flowName] || window.ClassConfig.ROTATIONS[className]) || {};
         const generatedRotation = META.classRotationStats && (META.classRotationStats[flowName] || META.classRotationStats[className]) || {};

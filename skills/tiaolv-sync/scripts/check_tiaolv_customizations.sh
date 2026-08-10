@@ -40,7 +40,8 @@ CLOUD_JS="static/tools/yysls-tiaolv/assets/js/cloud-backup.js"
 THEME_CSS="static/tools/yysls-tiaolv/assets/css/ui-codex-command-classic.css"
 ALGORITHMS_JS="static/tools/yysls-tiaolv/assets/js/best-build-algorithms.js"
 RUNTIME="static/tools/yysls-tiaolv/assets/js/excel-runtime.js"
-WASM="static/tools/yysls-tiaolv/assets/wasm/yysls_calc_next.wasm"
+PANEL_WASM="static/tools/yysls-tiaolv/assets/wasm/yysls_panel.wasm"
+EXCEL_WASM="static/tools/yysls-tiaolv/assets/wasm/yysls_excel.wasm"
 DOC="doc/tiaolv-local-customizations.md"
 
 check_file "$INDEX"
@@ -50,17 +51,17 @@ check_file "$CLOUD_JS"
 check_file "$THEME_CSS"
 check_file "$ALGORITHMS_JS"
 check_file "$RUNTIME"
-check_file "$WASM"
+check_file "$PANEL_WASM"
+check_file "$EXCEL_WASM"
 check_file "$DOC"
 
-# Verify WASM matches the ASSET_VERSION declared in excel-runtime.js
-expected_version="$(grep -o 'ASSET_VERSION = "[^"]*"' "$RUNTIME" | grep -o '"[^"]*"' | tr -d '"')"
-# WASM magic number: first 4 bytes must be \0asm
-wasm_magic="$(xxd -l 4 "$WASM" | awk '{print $2$3}' | head -1)"
-if [[ "$wasm_magic" != "0061736d" ]]; then
-  fail "WASM file is not a valid WebAssembly binary (bad magic number: $wasm_magic)"
-fi
-echo "OK: WASM magic number valid (asset version expected: $expected_version)"
+for wasm_file in "$PANEL_WASM" "$EXCEL_WASM"; do
+  wasm_magic="$(xxd -l 4 "$wasm_file" | awk '{print $2$3}' | head -1)"
+  if [[ "$wasm_magic" != "0061736d" ]]; then
+    fail "$wasm_file is not a valid WebAssembly binary (bad magic number: $wasm_magic)"
+  fi
+done
+echo "OK: panel and Excel WASM magic numbers valid"
 
 check_contains "$INDEX" "assets/js/local-customizations.js" "local customizations script tag"
 check_contains "$INDEX" "@supabase/supabase-js@2.57.4" "fixed Supabase SDK version"

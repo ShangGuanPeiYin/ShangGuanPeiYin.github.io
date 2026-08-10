@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repo = path.resolve(root, "../..");
-const nextPath = path.join(root, "dist/yysls_calc_next.wasm");
+const panelPath = path.join(root, "dist/yysls_panel.wasm");
+const excelPath = path.join(root, "dist/yysls_excel.wasm");
 const metadataPath = path.join(repo, "static/tools/yysls-tiaolv/assets/js/generated-calc-metadata.js");
 const stringsPath = path.join(repo, "static/tools/yysls-tiaolv/assets/js/generated-calc-strings.js");
 
@@ -95,16 +96,22 @@ function edgeInputs(kinds) {
   return numericEdges.map(edge => Float64Array.from(kinds.map(kind => kind === "str" ? 0 : edge)));
 }
 
-function assertAbi(legacy, next) {
-  for (const name of [
-    "yysls_diy_input_len",
-    "yysls_panel_len",
-    "yysls_class_input_len",
-    "yysls_class_output_len",
+function assertAbi(legacy, panel, excel) {
+  for (const [module, names] of [
+    [panel, ["yysls_diy_input_len", "yysls_panel_len"]],
+    [excel, ["yysls_class_input_len", "yysls_class_output_len"]],
   ]) {
-    const legacyValue = legacy[name]();
-    const nextValue = next[name]();
-    if (legacyValue !== nextValue) throw new Error(`${name}: ${legacyValue} != ${nextValue}`);
+    for (const name of names) {
+      const legacyValue = legacy[name]();
+      const nextValue = module[name]();
+      if (legacyValue !== nextValue) throw new Error(`${name}: ${legacyValue} != ${nextValue}`);
+    }
+  }
+  if (panel.yysls_calc_class_outputs || panel.yysls_class_input_len) {
+    throw new Error("panel WASM unexpectedly exports Excel/class functions");
+  }
+  if (excel.yysls_calc_diy || excel.yysls_diy_input_len) {
+    throw new Error("Excel WASM unexpectedly exports panel/DIY functions");
   }
 }
 
@@ -153,29 +160,33 @@ function runClassCase(legacy, next, flowId, input, index) {
 const cases = Number(process.env.YYSLS_PARITY_CASES || 2000);
 const seed = Number(process.env.YYSLS_PARITY_SEED || 0x21652c0c);
 const { metadata, strings } = loadGeneratedData();
-const [legacy, next] = await Promise.all([loadBaselineWasm(), loadWasm(nextPath)]);
-assertAbi(legacy, next);
+const [legacy, panel, excel] = await Promise.all([
+  loadBaselineWasm(),
+  loadWasm(panelPath),
+  loadWasm(excelPath),
+]);
+assertAbi(legacy, panel, excel);
 const random = rng(seed);
 
-runDiyCase(legacy, next, new Float64Array(metadata.diyKinds.length), 0);
-edgeInputs(metadata.diyKinds).forEach((input, index) => runDiyCase(legacy, next, input, `edge-${index}`));
+runDiyCase(legacy, panel, new Float64Array(metadata.diyKinds.length), 0);
+edgeInputs(metadata.diyKinds).forEach((input, index) => runDiyCase(legacy, panel, input, `edge-${index}`));
 for (let index = 1; index <= cases; index += 1) {
-  runDiyCase(legacy, next, randomInput(metadata.diyKinds, strings.length, random), index);
+  runDiyCase(legacy, panel, randomInput(metadata.diyKinds, strings.length, random), index);
 }
 
 for (const flowId of Object.values(metadata.flowIds)) {
   const kinds = metadata.flowClassKinds[Object.keys(metadata.flowIds).find(key => metadata.flowIds[key] === flowId)];
-  runClassCase(legacy, next, flowId, new Float64Array(metadata.classFields.length), 0);
+  runClassCase(legacy, excel, flowId, new Float64Array(metadata.classFields.length), 0);
   edgeInputs(kinds).forEach((source, index) => {
     const input = new Float64Array(metadata.classFields.length);
     input.set(source.subarray(0, input.length));
-    runClassCase(legacy, next, flowId, input, `edge-${index}`);
+    runClassCase(legacy, excel, flowId, input, `edge-${index}`);
   });
   for (let index = 1; index <= cases; index += 1) {
     const source = randomInput(kinds, strings.length, random);
     const input = new Float64Array(metadata.classFields.length);
     input.set(source.subarray(0, input.length));
-    runClassCase(legacy, next, flowId, input, index);
+    runClassCase(legacy, excel, flowId, input, index);
   }
 }
 
