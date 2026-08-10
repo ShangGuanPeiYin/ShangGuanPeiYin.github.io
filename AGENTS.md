@@ -103,3 +103,10 @@ After syncing or editing the Tiaolv tool, run:
 3. `static/tools/yysls-tiaolv/index.html` 中 `generated-calc-metadata.js` 的 `?v=` 时间戳。
 
 不要修改各流派 `classRotationStats.*.updateTime`，那些字段表示对应 Excel/流派数据本身的更新时间，不是网站发布时间。
+
+每次调率站更新发布成功后的最终回复，必须同时明确告知用户：
+
+- 本次发布的 Git 提交版本号；
+- 页面实际显示的“最后更新时间”。
+
+不得只报告版本号而遗漏最后更新时间。
