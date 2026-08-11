@@ -210,6 +210,7 @@
 ## 数值参考同步建议
 
 1. Assistant Panel 更新使用 `tiaolv-sync`；Q7完整引擎更新使用 `tiaolv-q7-engine-update`。任一抓取或验收失败时不得替换有效快照。
+   - Q7抓取完成后必须保留 `localOverrides.seasonResistance = 2.45`，并确认应用配置与运行时兜底值均为 `2.45`；这是当前唯一允许偏离Q7上游的数值项。
 2. 对比新旧快照，只提取公共基础、武学天赋、心法、装备、套装、弓诀、武库、派生、抗性、阶段顺序和舍入规则。
 3. 只修改本地 Panel 源码和 `yysls_panel.wasm`，不得复制对方前端，不得修改 `assets/wasm/excel/` 下11个独立Excel模块、DPS、RDPS和毕业率。
 4. 对10个流派执行固定矩阵和至少100万组随机配置，36项输出必须 Float64 位级零差异。
