@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -78,9 +77,4 @@ if (JSON.stringify(readList("AVAILABLE_CLASSES")) !== JSON.stringify([...flows, 
 if (!appSource.includes('AppState.allClassLoadouts["裂石钧（纯唐）"]') || !appSource.includes('? "裂石钧" : n.currentClass')) {
   throw new Error("legacy pure-Tang save migration is missing");
 }
-const excelHash = crypto.createHash("sha256").update(fs.readFileSync(path.join(repo, "static/tools/yysls-tiaolv/assets/wasm/yysls_excel.wasm"))).digest("hex");
-if (excelHash !== "146d1ded936f8690145e02c1a69dc717417f6d5600db1b8206de63c431be1611") {
-  throw new Error(`Excel WASM changed unexpectedly: ${excelHash}`);
-}
-
 console.log(JSON.stringify({ status: "ok", version: "110_RBDZ_DOWN", flows: flows.length }));

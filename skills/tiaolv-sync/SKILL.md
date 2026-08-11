@@ -23,7 +23,7 @@ doc/调率站代码实现说明.md
 - Live application: `static/tools/yysls-tiaolv/`.
 - Locally maintained Panel source: `calculator/yysls-calc-rust/`.
 - Historical `yysls.leoq7.com` snapshots are archives, not update sources.
-- `yysls_excel.wasm`, DPS, RDPS, graduation baselines, UI, storage and best-build behavior are always local unless a separate user request explicitly changes them.
+- The 11 files under `assets/wasm/excel/`, DPS, RDPS, graduation baselines, UI, storage and best-build behavior are always local unless a separate user request explicitly changes them.
 
 ## Numeric synchronization workflow
 
@@ -40,7 +40,7 @@ doc/调率站代码实现说明.md
 3. Record the assistant version and source bundle hash. Do not infer numeric changes merely from a renamed hashed bundle.
 4. Update the structured Panel generator/source in `calculator/yysls-calc-rust/`; do not paste the assistant runtime into the live site.
 5. Rebuild only `yysls_panel.wasm`. Keep the JavaScript public API, 202-item Panel input and 36-item Panel output contracts stable unless the user separately authorizes an interface migration.
-6. Assert that `yysls_excel.wasm` is byte-for-byte unchanged.
+6. Assert that all 11 standalone Excel WASM modules are byte-for-byte unchanged.
 7. Update Panel documentation, hash/version references, affected frontend `?v=` tags and the site update time.
 
 ## Mandatory parity gate

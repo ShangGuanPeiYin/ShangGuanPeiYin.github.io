@@ -5,9 +5,7 @@
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
     const PANEL_ASSET_VERSION = "012373c4";
-    const EXCEL_ASSET_VERSION = "39825574";
     const PANEL_WASM_URL = `assets/wasm/yysls_panel.wasm?v=${PANEL_ASSET_VERSION}`;
-    const EXCEL_WASM_URL = `assets/wasm/yysls_excel.wasm?v=${EXCEL_ASSET_VERSION}`;
 
     const slotColumns = {
         weapon1: "k",
@@ -97,13 +95,11 @@
     const fallbackDiyAssumedOuterPen = 58.4;
     let panelWasm = null;
     let panelMemory = null;
-    let excelWasm = null;
-    let excelMemory = null;
     let diyPtr = 0;
     let panelPtr = 0;
-    let classPtr = 0;
-    let classOutputPtr = 0;
-    let classOutputLen = 3;
+    const excelModules = new Map();
+    const excelModulePromises = new Map();
+    let excelAutoLoadEnabled = false;
     const panelDamageBonusStates = new WeakMap();
     const panelDamageBonusStateKey = Symbol("yyslsPanelDamageBonusState");
 
@@ -210,27 +206,65 @@
         return className;
     }
 
-    async function init() {
-        const [panelResponse, excelResponse] = await Promise.all([fetch(PANEL_WASM_URL), fetch(EXCEL_WASM_URL)]);
-        const [panelBytes, excelBytes] = await Promise.all([panelResponse.arrayBuffer(), excelResponse.arrayBuffer()]);
-        const [panelInstance, excelInstance] = await Promise.all([
-            WebAssembly.instantiate(panelBytes, {}),
-            WebAssembly.instantiate(excelBytes, {})
-        ]);
-        panelWasm = panelInstance.instance ? panelInstance.instance.exports : panelInstance.exports;
+    async function instantiateStreamingWithFallback(url) {
+        if (typeof WebAssembly.instantiateStreaming === "function") {
+            try {
+                const streamed = await WebAssembly.instantiateStreaming(fetch(url), {});
+                return streamed.instance ? streamed.instance.exports : streamed.exports;
+            } catch (error) {
+                console.warn("WASM流式加载失败，改用完整下载：", url, error);
+            }
+        }
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`WASM加载失败 ${response.status}: ${url}`);
+        const loaded = await WebAssembly.instantiate(await response.arrayBuffer(), {});
+        return loaded.instance ? loaded.instance.exports : loaded.exports;
+    }
+
+    async function initPanel() {
+        panelWasm = await instantiateStreamingWithFallback(PANEL_WASM_URL);
         panelMemory = panelWasm.memory;
-        excelWasm = excelInstance.instance ? excelInstance.instance.exports : excelInstance.exports;
-        excelMemory = excelWasm.memory;
         diyPtr = panelWasm.yysls_alloc_f64(panelWasm.yysls_diy_input_len());
         panelPtr = panelWasm.yysls_alloc_f64(panelWasm.yysls_panel_len());
-        classPtr = excelWasm.yysls_alloc_f64(excelWasm.yysls_class_input_len());
-        classOutputLen = typeof excelWasm.yysls_class_output_len === "function" ? excelWasm.yysls_class_output_len() : 3;
-        classOutputPtr = excelWasm.yysls_alloc_f64(classOutputLen);
         runtime.available = true;
         setTimeout(() => {
             if (typeof window.updateStats === "function") window.updateStats();
+            const enableExcelLoading = () => {
+                excelAutoLoadEnabled = true;
+                ["pointerdown", "keydown", "change"].forEach(type => document.removeEventListener(type, enableExcelLoading, true));
+            };
+            ["pointerdown", "keydown", "change"].forEach(type => document.addEventListener(type, enableExcelLoading, { capture: true, once: true }));
         }, 0);
         return runtime;
+    }
+
+    function ensureExcel(flowName) {
+        if (excelModules.has(flowName)) return Promise.resolve(excelModules.get(flowName));
+        if (excelModulePromises.has(flowName)) return excelModulePromises.get(flowName);
+        const info = META.flowExcelModules && META.flowExcelModules[flowName];
+        if (!info || !info.file) return Promise.reject(new Error(`缺少Excel模块映射：${flowName}`));
+        const version = String(info.hash || info.version || "").slice(0, 12);
+        const url = `assets/wasm/excel/${info.file}?v=${encodeURIComponent(version)}`;
+        const promise = instantiateStreamingWithFallback(url).then(wasm => {
+            const memory = wasm.memory;
+            const inputLen = wasm.yysls_class_input_len();
+            const outputLen = typeof wasm.yysls_class_output_len === "function" ? wasm.yysls_class_output_len() : 5;
+            const state = {
+                wasm, memory, inputLen, outputLen,
+                inputPtr: wasm.yysls_alloc_f64(inputLen),
+                outputPtr: wasm.yysls_alloc_f64(outputLen)
+            };
+            excelModules.set(flowName, state);
+            excelModulePromises.delete(flowName);
+            setTimeout(() => { if (typeof window.updateStats === "function") window.updateStats(); }, 0);
+            return state;
+        }).catch(error => {
+            excelModulePromises.delete(flowName);
+            console.error(`Excel模块加载失败：${flowName}`, error);
+            throw error;
+        });
+        excelModulePromises.set(flowName, promise);
+        return promise;
     }
 
     function writeF64(memory, ptr, values) {
@@ -247,10 +281,12 @@
         return readF64(panelMemory, panelPtr, panelWasm.yysls_panel_len());
     }
 
-    function runClassOutputs(flowId, raw) {
-        writeF64(excelMemory, classPtr, raw);
-        excelWasm.yysls_calc_class_outputs(flowId, classPtr, classOutputPtr);
-        return readF64(excelMemory, classOutputPtr, classOutputLen);
+    function runClassOutputs(flowName, flowId, raw) {
+        const state = excelModules.get(flowName);
+        if (!state) return null;
+        writeF64(state.memory, state.inputPtr, raw);
+        state.wasm.yysls_calc_class_outputs(flowId, state.inputPtr, state.outputPtr);
+        return readF64(state.memory, state.outputPtr, state.outputLen);
     }
 
     function inputValue(stat, rawValue) {
@@ -727,6 +763,11 @@
         const flowName = resolveFlowName(className, options);
         const flowId = META.flowIds && META.flowIds[flowName];
         if (flowId === undefined) return null;
+        const excelState = excelModules.get(flowName);
+        if (!excelState) {
+            if (excelAutoLoadEnabled) ensureExcel(flowName).catch(() => {});
+            return null;
+        }
         const sourceDamageState = panelDamageBonusState(panel);
         const hasExplicitBonuses = Object.prototype.hasOwnProperty.call(options, "bonuses");
         const panelDamageBonusesAlreadyEffective = !!options.panelDamageBonusesAlreadyEffective;
@@ -762,15 +803,16 @@
         let graduationRatio = null;
         let rdps = 0;
         let rdpsGraduationRatio = null;
-        if (typeof excelWasm.yysls_calc_class_outputs === "function") {
-            const outputs = runClassOutputs(flowId, raw);
+        if (typeof excelState.wasm.yysls_calc_class_outputs === "function") {
+            const outputs = runClassOutputs(flowName, flowId, raw);
             totalDamage = outputs[0] || 0;
             dps = outputs[1] || 0;
             graduationRatio = Number.isFinite(outputs[2]) ? outputs[2] : null;
             rdps = outputs[3] || 0;
             rdpsGraduationRatio = Number.isFinite(outputs[4]) && outputs[4] > 0 ? outputs[4] : null;
         } else {
-            totalDamage = excelWasm.yysls_calc_class(flowId, classPtr);
+            writeF64(excelState.memory, excelState.inputPtr, raw);
+            totalDamage = excelState.wasm.yysls_calc_class(flowId, excelState.inputPtr);
         }
         const rotation = window.ClassConfig && window.ClassConfig.ROTATIONS && (window.ClassConfig.ROTATIONS[flowName] || window.ClassConfig.ROTATIONS[className]) || {};
         const generatedRotation = META.classRotationStats && (META.classRotationStats[flowName] || META.classRotationStats[className]) || {};
@@ -955,10 +997,15 @@
 
     const runtime = {
         available: false,
-        ready: init().catch(error => {
+        ready: null,
+        panelReady: null,
+        ensureExcel,
+        isExcelReady(flowName) { return excelModules.has(flowName); },
+        loadedExcelFlows() { return Array.from(excelModules.keys()); },
+        _initialize() { return initPanel().catch(error => {
             console.error("Rust/WASM 计算模块加载失败：", error);
             return null;
-        }),
+        }); },
         calculate,
         calculatePanel,
         compileBestBuildEquip,
@@ -975,6 +1022,9 @@
         exportClassInputData,
         clearCache() {}
     };
+
+    runtime.panelReady = runtime._initialize();
+    runtime.ready = runtime.panelReady;
 
     window.YYSLSExcelRuntime = runtime;
 }());

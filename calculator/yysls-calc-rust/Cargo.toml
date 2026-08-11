@@ -9,8 +9,6 @@ crate-type = ["cdylib"]
 
 [features]
 default = []
-diy = []
-class = []
 
 [profile.release]
 opt-level = 3

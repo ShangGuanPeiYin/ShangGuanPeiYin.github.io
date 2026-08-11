@@ -21,11 +21,12 @@ ROOT = Path(__file__).resolve().parents[3]
 EXCEL_DIR = ROOT / "static/tools/yysls-tiaolv/excels"
 METADATA_PATH = ROOT / "static/tools/yysls-tiaolv/assets/js/generated-calc-metadata.js"
 STRINGS_PATH = ROOT / "static/tools/yysls-tiaolv/assets/js/generated-calc-strings.js"
-DATA_PATH = ROOT / "calculator/yysls-calc-rust/src/generated_excel_data.bin"
+DIRECT_SOURCE_DIR = ROOT / "calculator/yysls-calc-rust/target/generated-excel-direct"
 MANIFEST_PATH = ROOT / "calculator/yysls-calc-rust/excel-sources.json"
 
 SUPPORTED_FUNCTIONS = {"IF", "IFERROR", "VLOOKUP", "XLOOKUP", "OR", "MIN", "MAX", "SUM"}
 FLOW_ORDER = ["牵丝玉", "牵丝翊", "破竹尘", "破竹风", "破竹鸢", "裂石威", "裂石钧", "鸣金虹", "鸣金影", "牵丝霖"]
+FLOW_SLUGS = {"牵丝玉": "qsyu", "牵丝翊": "qsyi", "破竹尘": "pzchen", "破竹风": "pzfeng", "破竹鸢": "pzyuan", "裂石威": "lswei", "裂石钧": "lsjun", "鸣金虹": "mjhong", "鸣金影": "mjying", "牵丝霖": "qslin"}
 INPUT_LEN = 40
 
 
@@ -153,6 +154,7 @@ class FormulaParser:
 class WorkbookCompiler:
     def __init__(self, path: Path, flow_name: str, class_name: str, input_cells: list[str], input_kinds: list[str]):
         self.path = path
+        self.direct_mode = False
         self.flow_name = flow_name
         self.class_name = class_name
         self.workbook = load_workbook(path, data_only=False, read_only=False)
@@ -233,7 +235,7 @@ class WorkbookCompiler:
             if ":" in str(node.value):
                 raise ValueError(f"范围只能作为函数参数：{node.value}")
             cell_id = self.resolve_single(str(node.value), current_sheet)
-            return "0.0" if cell_id is None else f"self.cell({cell_id})"
+            return f64_literal(0.0) if cell_id is None else (f"v[{cell_id}]" if self.direct_mode else f"self.cell({cell_id})")
         if node.kind == "binary":
             left = self.expr(node.args[0], current_sheet)
             right = self.expr(node.args[1], current_sheet)
@@ -249,6 +251,10 @@ class WorkbookCompiler:
                 return f"if {self.expr(node.args[0], current_sheet)} != 0.0 {{ {self.expr(node.args[1], current_sheet)} }} else {{ {self.expr(node.args[2], current_sheet)} }}"
             if name == "OR":
                 return "if " + " || ".join(f"{self.expr(arg, current_sheet)} != 0.0" for arg in node.args) + " { 1.0 } else { 0.0 }"
+            if name == "IFERROR":
+                if len(node.args) != 2:
+                    raise ValueError("IFERROR参数数量必须为2")
+                return self.expr(node.args[0], current_sheet)
             if name in ("MIN", "MAX"):
                 method = "min" if name == "MIN" else "max"
                 parts = [self.expr(arg, current_sheet) for arg in node.args]
@@ -259,8 +265,21 @@ class WorkbookCompiler:
             if name == "SUM":
                 parts = []
                 for arg in node.args:
+                    if arg.kind == "func" and arg.value == "XLOOKUP":
+                        lookup_value, lookup_array, return_array, default = arg.args
+                        lookup_sheet, lookup_address = self.split_ref(str(lookup_array.value), current_sheet)
+                        return_sheet, return_address = self.split_ref(str(return_array.value), current_sheet)
+                        if lookup_value.kind != "range" or lookup_sheet != "增益" or return_sheet != "增益" or lookup_address.replace("$", "") != "A:A":
+                            raise ValueError("仅支持增益表范围XLOOKUP")
+                        return_col = column_index_from_string(return_address.replace("$", "").split(":", 1)[0])
+                        fallback = self.expr(default, current_sheet)
+                        parts.extend((f"xlookup_gain(v[{cell_id}], {return_col}, {fallback}, v)" if self.direct_mode else f"self.xlookup_gain_cell({cell_id}, {return_col}, {fallback})") for cell_id in self.range_ids(str(lookup_value.value), current_sheet))
+                        continue
                     if arg.kind == "range" and ":" in str(arg.value):
-                        parts.extend(f"self.cell({cell_id})" for cell_id in self.range_ids(str(arg.value), current_sheet))
+                        for cell_id in self.range_ids(str(arg.value), current_sheet):
+                            value = self.cell_values[cell_id]
+                            if isinstance(value, (int, float)) and not isinstance(value, bool) or isinstance(value, str) and value.startswith("="):
+                                parts.append(f"v[{cell_id}]" if self.direct_mode else f"self.cell({cell_id})")
                     else:
                         parts.append(self.expr(arg, current_sheet))
                 return "(" + " + ".join(parts or ["0.0"]) + ")"
@@ -269,7 +288,25 @@ class WorkbookCompiler:
                     raise ValueError("仅支持精确匹配VLOOKUP")
                 key = self.expr(node.args[0], current_sheet)
                 col = int(node.args[2].value)
-                return f"self.vlookup({key}, {col})"
+                table_sheet, table_address = self.split_ref(str(node.args[1].value), current_sheet)
+                if table_sheet == "武学奇术" and table_address.replace("$", "") == "A:ZZ":
+                    if node.args[0].kind == "range" and ":" not in str(node.args[0].value):
+                        key_id = self.resolve_single(str(node.args[0].value), current_sheet)
+                        return (f"vlookup(v[{key_id}], {col}, v)" if self.direct_mode else f"self.vlookup_cell({key_id}, {col})") if key_id is not None else f64_literal(0.0)
+                    return f"vlookup({key}, {col}, v)" if self.direct_mode else f"self.vlookup({key}, {col})"
+                left, right = table_address.replace("$", "").split(":", 1)
+                lcol, lrow = coordinate_from_string(left)
+                rcol, rrow = coordinate_from_string(right)
+                first_col = column_index_from_string(lcol)
+                pairs = []
+                for row in range(lrow, rrow + 1):
+                    key_id = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col).coordinate))
+                    value_id = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col + col - 1).coordinate))
+                    pairs.append(f"({key_id if key_id is not None else 'usize::MAX'}, {value_id if value_id is not None else 'usize::MAX'})")
+                if node.args[0].kind == "range" and ":" not in str(node.args[0].value):
+                    key_id = self.resolve_single(str(node.args[0].value), current_sheet)
+                    return (f"local_vlookup(v[{key_id}], &[{', '.join(pairs)}], v)" if self.direct_mode else f"self.local_vlookup_cell({key_id}, &[{', '.join(pairs)}])") if key_id is not None else f64_literal(0.0)
+                return f"local_vlookup({key}, &[{', '.join(pairs)}], v)" if self.direct_mode else f"self.local_vlookup({key}, &[{', '.join(pairs)}])"
         raise ValueError(f"无法生成表达式：{node}")
 
     def cell_arm(self, cell_id: int):
@@ -280,12 +317,162 @@ class WorkbookCompiler:
             sheet = next(sheet for (sheet, address), found in self.cells.items() if found == cell_id)
             return self.expr(node, sheet)
         if isinstance(value, bool):
-            return "1.0" if value else "0.0"
+            return f64_literal(1.0 if value else 0.0)
         if isinstance(value, (int, float)):
             return f64_literal(float(value))
         if isinstance(value, str):
             return f64_literal(float(string_id(value)))
-        return "0.0"
+        return f64_literal(0.0)
+
+    def direct_dependencies(self):
+        output_ids = [self.resolve_single(ref, "期望") for ref in ("I10", "I12", "I16", "I14")]
+        reachable = set()
+        global_lookup_cols = set()
+        gain_lookup_cols = set()
+
+        def add_ref(reference, current_sheet):
+            if ":" in str(reference):
+                for found in self.range_ids(str(reference), current_sheet):
+                    visit(found)
+            else:
+                found = self.resolve_single(str(reference), current_sheet)
+                if found is not None:
+                    visit(found)
+
+        def walk(node, current_sheet):
+            if node.kind == "range":
+                add_ref(node.value, current_sheet)
+                return
+            if node.kind != "func":
+                for arg in node.args or []:
+                    walk(arg, current_sheet)
+                return
+            if node.value == "VLOOKUP":
+                walk(node.args[0], current_sheet)
+                col = int(node.args[2].value)
+                table_sheet, table_address = self.split_ref(str(node.args[1].value), current_sheet)
+                if table_sheet == "武学奇术" and table_address.replace("$", "") == "A:ZZ":
+                    global_lookup_cols.add(col)
+                    for _, row in self.lookup_rows:
+                        found = self.cells.get(("武学奇术", self.sheets["武学奇术"].cell(row, col).coordinate))
+                        if found is not None:
+                            visit(found)
+                else:
+                    left, right = table_address.replace("$", "").split(":", 1)
+                    lcol, lrow = coordinate_from_string(left)
+                    _, rrow = coordinate_from_string(right)
+                    first_col = column_index_from_string(lcol)
+                    for row in range(lrow, rrow + 1):
+                        for offset in (0, col - 1):
+                            found = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col + offset).coordinate))
+                            if found is not None:
+                                visit(found)
+                return
+            if node.value == "XLOOKUP":
+                lookup_value, _, return_array, default = node.args
+                walk(lookup_value, current_sheet)
+                walk(default, current_sheet)
+                return_sheet, return_address = self.split_ref(str(return_array.value), current_sheet)
+                col = column_index_from_string(return_address.replace("$", "").split(":", 1)[0])
+                if return_sheet == "增益":
+                    gain_lookup_cols.add(col)
+                    for _, row in self.gain_rows:
+                        found = self.cells.get(("增益", self.sheets["增益"].cell(row, col).coordinate))
+                        if found is not None:
+                            visit(found)
+                return
+            for arg in node.args or []:
+                walk(arg, current_sheet)
+
+        def visit(cell_id):
+            if cell_id is None or cell_id in reachable:
+                return
+            reachable.add(cell_id)
+            value = self.cell_values[cell_id]
+            if isinstance(value, str) and value.startswith("="):
+                sheet = self.cell_names[cell_id].split("!", 1)[0]
+                walk(FormulaParser(value).parse(), sheet)
+
+        for output_id in output_ids:
+            visit(output_id)
+        return reachable, global_lookup_cols, gain_lookup_cols
+
+    def direct_order(self, reachable):
+        """Return a stable dependency-first order for direct, single-evaluation code."""
+        dependencies = {cell_id: set() for cell_id in reachable}
+
+        def add_reference(target, reference, current_sheet):
+            ids = self.range_ids(str(reference), current_sheet) if ":" in str(reference) else [self.resolve_single(str(reference), current_sheet)]
+            dependencies[target].update(found for found in ids if found in reachable)
+
+        def walk(target, node, current_sheet):
+            if node.kind == "range":
+                add_reference(target, node.value, current_sheet)
+                return
+            if node.kind != "func":
+                for arg in node.args or []:
+                    walk(target, arg, current_sheet)
+                return
+            if node.value == "VLOOKUP":
+                walk(target, node.args[0], current_sheet)
+                col = int(node.args[2].value)
+                table_sheet, table_address = self.split_ref(str(node.args[1].value), current_sheet)
+                if table_sheet == "武学奇术" and table_address.replace("$", "") == "A:ZZ":
+                    for _, row in self.lookup_rows:
+                        found = self.cells.get(("武学奇术", self.sheets["武学奇术"].cell(row, col).coordinate))
+                        if found in reachable:
+                            dependencies[target].add(found)
+                else:
+                    left, right = table_address.replace("$", "").split(":", 1)
+                    lcol, lrow = coordinate_from_string(left)
+                    _, rrow = coordinate_from_string(right)
+                    first_col = column_index_from_string(lcol)
+                    for row in range(lrow, rrow + 1):
+                        for offset in (0, col - 1):
+                            found = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col + offset).coordinate))
+                            if found in reachable:
+                                dependencies[target].add(found)
+                return
+            if node.value == "XLOOKUP":
+                walk(target, node.args[0], current_sheet)
+                walk(target, node.args[3], current_sheet)
+                return_sheet, return_address = self.split_ref(str(node.args[2].value), current_sheet)
+                col = column_index_from_string(return_address.replace("$", "").split(":", 1)[0])
+                if return_sheet == "增益":
+                    for _, row in self.gain_rows:
+                        found = self.cells.get(("增益", self.sheets["增益"].cell(row, col).coordinate))
+                        if found in reachable:
+                            dependencies[target].add(found)
+                return
+            for arg in node.args or []:
+                walk(target, arg, current_sheet)
+
+        for cell_id in reachable:
+            value = self.cell_values[cell_id]
+            if isinstance(value, str) and value.startswith("="):
+                walk(cell_id, FormulaParser(value).parse(), self.cell_names[cell_id].split("!", 1)[0])
+
+        order, state = [], {}
+        def visit(cell_id):
+            if state.get(cell_id) == 2:
+                return
+            if state.get(cell_id) == 1:
+                raise ValueError(f"Excel公式循环引用：{self.cell_names[cell_id]}")
+            state[cell_id] = 1
+            for dependency in sorted(dependencies[cell_id]):
+                visit(dependency)
+            state[cell_id] = 2
+            order.append(cell_id)
+        for cell_id in sorted(reachable):
+            visit(cell_id)
+        return order, dependencies
+
+    def direct_value_expr(self, cell_id):
+        self.direct_mode = True
+        try:
+            return self.cell_arm(cell_id)
+        finally:
+            self.direct_mode = False
 
     def defaults(self):
         result = []
@@ -307,54 +494,93 @@ class WorkbookCompiler:
         return float(value)
 
     def rust(self, index: int) -> str:
-        arms = [f"            {cell_id} => {self.cell_arm(cell_id)}," for cell_id in range(len(self.cell_values))]
+        reachable, global_lookup_cols, gain_lookup_cols = self.direct_dependencies()
+        order, dependencies = self.direct_order(reachable)
         input_initializers = []
         for input_index, cell_id in enumerate(self.input_ids):
             if cell_id is not None:
-                input_initializers.append(f"        engine.set_input({cell_id}, input.get({input_index}).copied().unwrap_or(0.0));")
+                input_initializers.append(f"    v[{cell_id}] = input.get({input_index}).copied().unwrap_or(0.0);")
         lookup_arms = []
         for key_id, row in self.lookup_rows:
             column_arms = []
-            for col in (30, 31):
+            for col in sorted(global_lookup_cols):
                 cell_id = self.cells.get(("武学奇术", self.sheets["武学奇术"].cell(row, col).coordinate))
-                column_arms.append(f"                    {col} => {'0.0' if cell_id is None else f'self.cell({cell_id})'},")
+                column_arms.append(f"                    {col} => {'0.0' if cell_id is None else f'v[{cell_id}]'},")
             lookup_arms.append(f"            x if x == {f64_literal(float(key_id))} => match col {{\n" + "\n".join(column_arms) + "\n                    _ => 0.0,\n                },")
         output_ids = [self.resolve_single(ref, "期望") for ref in ("I10", "I12", "I16", "I14")]
         if any(cell_id is None for cell_id in output_ids):
             raise ValueError(f"{self.path.name} 缺少标准输出单元格")
         rd_baseline = self.cached("RD", "I14")
+        gain_arms = []
+        for key_id, row in self.gain_rows:
+            column_arms = []
+            for col in sorted(gain_lookup_cols):
+                cell_id = self.cells.get(("增益", self.sheets["增益"].cell(row, col).coordinate))
+                column_arms.append(f"                    {col} => {'default' if cell_id is None else f'v[{cell_id}]'},")
+            gain_arms.append(f"            x if x == {f64_literal(float(key_id))} => match col {{\n" + "\n".join(column_arms) + "\n                    _ => default,\n                },")
+        input_ids = {cell_id for cell_id in self.input_ids if cell_id is not None}
+        dynamic = set(input_ids)
+        for cell_id in order:
+            if any(dependency in dynamic for dependency in dependencies[cell_id]):
+                dynamic.add(cell_id)
+        constant_assignments = [f"    v[{cell_id}] = {self.direct_value_expr(cell_id)};" for cell_id in order if cell_id not in input_ids and cell_id not in dynamic]
+        dynamic_assignments = [f"    v[{cell_id}] = {self.direct_value_expr(cell_id)};" for cell_id in order if cell_id not in input_ids and cell_id in dynamic]
+        def make_chunks(prefix, assignments):
+            result = []
+            for chunk_index in range(0, len(assignments), 192):
+                name = f"{prefix}_{chunk_index // 192}"
+                result.append((name, assignments[chunk_index:chunk_index + 192]))
+            return result
+        constant_chunks = make_chunks(f"constant_{index}_chunk", constant_assignments)
+        dynamic_chunks = make_chunks(f"calculate_{index}_chunk", dynamic_assignments)
+        chunks = constant_chunks + dynamic_chunks
+        chunk_functions = "\n".join(f"#[inline({'never' if name.startswith('constant_') else 'always'})]\nfn {name}(v: &mut [f64; {len(self.cell_values)}]) {{\n{chr(10).join(lines)}\n}}" for name, lines in chunks)
+        constant_calls = "\n".join(f"        {name}(&mut v);" for name, _ in constant_chunks)
+        dynamic_groups = []
+        for group_index in range(0, len(dynamic_chunks), 4):
+            name = f"calculate_{index}_group_{group_index // 4}"
+            calls = "\n".join(f"    {chunk_name}(v);" for chunk_name, _ in dynamic_chunks[group_index:group_index + 4])
+            dynamic_groups.append((name, calls))
+        group_functions = "\n".join(f"#[inline(never)]\nfn {name}(v: &mut [f64; {len(self.cell_values)}]) {{\n{calls}\n}}" for name, calls in dynamic_groups)
+        dynamic_calls = "\n".join(f"    {name}(&mut v);" for name, _ in dynamic_groups)
         return f"""
-struct Engine{index} {{ cache: Vec<f64>, state: Vec<u8> }}
-impl Engine{index} {{
-    fn new() -> Self {{ Self {{ cache: vec![0.0; {len(self.cell_values)}], state: vec![0; {len(self.cell_values)}] }} }}
-    fn set_input(&mut self, id: usize, value: f64) {{ self.cache[id] = value; self.state[id] = 2; }}
-    fn cell(&mut self, id: usize) -> f64 {{
-        if self.state[id] == 2 {{ return self.cache[id]; }}
-        if self.state[id] == 1 {{ panic!("Excel公式循环引用"); }}
-        self.state[id] = 1;
-        let value = match id {{
-{chr(10).join(arms)}
-            _ => 0.0,
-        }};
-        self.cache[id] = value;
-        self.state[id] = 2;
-        value
-    }}
-    fn vlookup(&mut self, key: f64, col: usize) -> f64 {{
+fn vlookup(key: f64, col: usize, v: &[f64; {len(self.cell_values)}]) -> f64 {{
         match key {{
 {chr(10).join(lookup_arms)}
             _ => 0.0,
         }}
-    }}
+}}
+fn local_vlookup(key: f64, pairs: &[(usize, usize)], v: &[f64; {len(self.cell_values)}]) -> f64 {{
+        for &(key_id, value_id) in pairs {{
+            if key_id != usize::MAX && v[key_id] == key {{
+                return if value_id == usize::MAX {{ 0.0 }} else {{ v[value_id] }};
+            }}
+        }}
+        0.0
+}}
+fn xlookup_gain(key: f64, col: usize, default: f64, v: &[f64; {len(self.cell_values)}]) -> f64 {{
+        match key {{
+{chr(10).join(gain_arms)}
+            _ => default,
+        }}
 }}
 
+{chunk_functions}
+{group_functions}
+
 fn calculate_{index}(input: &[f64], output: &mut [f64]) {{
-    let mut engine = Engine{index}::new();
+    static CONSTANTS: std::sync::OnceLock<Box<[f64; {len(self.cell_values)}]>> = std::sync::OnceLock::new();
+    let mut v = CONSTANTS.get_or_init(|| {{
+        let mut v: Box<[f64; {len(self.cell_values)}]> = vec![0.0; {len(self.cell_values)}].into_boxed_slice().try_into().ok().unwrap();
+{constant_calls}
+        v
+    }}).clone();
 {chr(10).join(input_initializers)}
-    let total = engine.cell({output_ids[0]});
-    let adps = engine.cell({output_ids[1]});
-    let graduation = engine.cell({output_ids[2]});
-    let rdps = engine.cell({output_ids[3]});
+{dynamic_calls}
+    let total = v[{output_ids[0]}];
+    let adps = v[{output_ids[1]}];
+    let graduation = v[{output_ids[2]}];
+    let rdps = v[{output_ids[3]}];
     output[0] = total;
     output[1] = adps;
     output[2] = graduation;
@@ -363,152 +589,38 @@ fn calculate_{index}(input: &[f64], output: &mut [f64]) {{
 }}
 """
 
-    def bytecode(self, node: Node, current_sheet: str) -> bytes:
-        def ref(cell_id: int | None):
-            return b"\x00" + struct.pack("<d", 0.0) if cell_id is None else b"\x01" + struct.pack("<I", cell_id)
-
-        if node.kind == "number":
-            return b"\x00" + struct.pack("<d", float(node.value))
-        if node.kind == "text":
-            return b"\x00" + struct.pack("<d", float(string_id(str(node.value))))
-        if node.kind == "range":
-            if ":" in str(node.value):
-                raise ValueError(f"范围只能作为函数参数：{node.value}")
-            return ref(self.resolve_single(str(node.value), current_sheet))
-        if node.kind == "binary":
-            op = {"+": 2, "-": 3, "*": 4, "/": 5, "=": 6, "<>": 7, "<": 8, ">": 9, "<=": 10, ">=": 11}[str(node.value)]
-            return self.bytecode(node.args[0], current_sheet) + self.bytecode(node.args[1], current_sheet) + bytes([op])
-        if node.kind == "func":
-            name = str(node.value)
-            if name == "IF":
-                return b"".join(self.bytecode(arg, current_sheet) for arg in node.args) + b"\x0c"
-            if name == "IFERROR":
-                if len(node.args) != 2:
-                    raise ValueError("IFERROR参数数量必须为2")
-                return self.bytecode(node.args[0], current_sheet)
-            if name == "OR":
-                code = self.bytecode(node.args[0], current_sheet)
-                for arg in node.args[1:]:
-                    code += self.bytecode(arg, current_sheet) + b"\x0d"
-                return code
-            if name in ("MIN", "MAX"):
-                opcode = b"\x0e" if name == "MIN" else b"\x0f"
-                code = self.bytecode(node.args[0], current_sheet)
-                for arg in node.args[1:]:
-                    code += self.bytecode(arg, current_sheet) + opcode
-                return code
-            if name == "SUM":
-                items = []
-                for arg in node.args:
-                    if arg.kind == "func" and arg.value == "XLOOKUP":
-                        lookup_value, lookup_array, return_array, default = arg.args
-                        if lookup_value.kind != "range" or lookup_array.kind != "range" or return_array.kind != "range":
-                            raise ValueError("仅支持范围形式XLOOKUP")
-                        lookup_sheet, lookup_address = self.split_ref(str(lookup_array.value), current_sheet)
-                        return_sheet, return_address = self.split_ref(str(return_array.value), current_sheet)
-                        if lookup_sheet != "增益" or return_sheet != "增益" or lookup_address.replace("$", "") != "A:A":
-                            raise ValueError("XLOOKUP仅支持增益表A列检索")
-                        return_col = column_index_from_string(return_address.replace("$", "").split(":", 1)[0])
-                        for cell_id in self.range_ids(str(lookup_value.value), current_sheet):
-                            items.append(ref(cell_id) + self.bytecode(default, current_sheet) + b"\x12" + bytes([return_col]))
-                        continue
-                    if arg.kind == "range" and ":" in str(arg.value):
-                        for cell_id in self.range_ids(str(arg.value), current_sheet):
-                            value = self.cell_values[cell_id]
-                            if isinstance(value, (int, float)) and not isinstance(value, bool) or isinstance(value, str) and value.startswith("="):
-                                items.append(ref(cell_id))
-                    else:
-                        items.append(self.bytecode(arg, current_sheet))
-                if not items:
-                    return b"\x00" + struct.pack("<d", 0.0)
-                code = items[0]
-                for item in items[1:]:
-                    code += item + b"\x02"
-                return code
-            if name == "VLOOKUP":
-                if len(node.args) != 4 or node.args[1].kind != "range" or node.args[2].kind != "number" or node.args[3].kind != "number" or node.args[3].value != 0:
-                    raise ValueError("仅支持精确匹配VLOOKUP")
-                col = int(node.args[2].value)
-                table_sheet, table_address = self.split_ref(str(node.args[1].value), current_sheet)
-                if table_sheet == "武学奇术" and table_address.replace("$", "") == "A:ZZ":
-                    return self.bytecode(node.args[0], current_sheet) + b"\x10" + bytes([col])
-                left, right = table_address.replace("$", "").split(":", 1)
-                lcol, lrow = coordinate_from_string(left)
-                rcol, rrow = coordinate_from_string(right)
-                first_col = column_index_from_string(lcol)
-                width = column_index_from_string(rcol) - first_col + 1
-                rows = rrow - lrow + 1
-                if col > width:
-                    raise ValueError("VLOOKUP返回列超出范围")
-                pairs = []
-                for row in range(rows):
-                    excel_row = lrow + row
-                    key_address = self.sheets[table_sheet].cell(excel_row, first_col).coordinate
-                    value_address = self.sheets[table_sheet].cell(excel_row, first_col + col - 1).coordinate
-                    key_id = self.cells.get((table_sheet, key_address))
-                    value_id = self.cells.get((table_sheet, value_address))
-                    pairs.append((key_id, value_id))
-                payload = bytearray(self.bytecode(node.args[0], current_sheet))
-                payload.extend(b"\x11" + struct.pack("<H", len(pairs)))
-                for key_id, value_id in pairs:
-                    payload.extend(struct.pack("<II", key_id if key_id is not None else 0xFFFFFFFF, value_id if value_id is not None else 0xFFFFFFFF))
-                return bytes(payload)
-            if name == "XLOOKUP":
-                raise ValueError("XLOOKUP必须位于SUM内")
-        raise ValueError(f"无法生成字节码：{node}")
-
-    def cell_code(self, cell_id: int) -> bytes:
-        value = self.cell_values[cell_id]
-        if isinstance(value, str) and value.startswith("="):
-            node = FormulaParser(value).parse()
-            sheet = next(sheet for (sheet, _), found in self.cells.items() if found == cell_id)
-            return self.bytecode(node, sheet)
-        if isinstance(value, bool):
-            numeric = 1.0 if value else 0.0
-        elif isinstance(value, (int, float)):
-            numeric = float(value)
-        elif isinstance(value, str):
-            numeric = float(string_id(value))
-        else:
-            numeric = 0.0
-        return b"\x00" + struct.pack("<d", numeric)
-
-    def binary_section(self) -> bytes:
-        code = bytearray()
-        records = []
-        for cell_id in range(len(self.cell_values)):
-            fragment = self.cell_code(cell_id)
-            records.append((len(code), len(fragment)))
-            code.extend(fragment)
-        output_ids = [self.resolve_single(ref, "期望") for ref in ("I10", "I12", "I16", "I14")]
-        if any(cell_id is None for cell_id in output_ids):
-            raise ValueError(f"{self.path.name} 缺少标准输出单元格")
-        out = bytearray()
-        out.extend(struct.pack("<IIIII", len(self.cell_values), len(code), INPUT_LEN, len(self.lookup_rows), len(self.gain_rows)))
-        out.extend(struct.pack("<IIII", *output_ids))
-        out.extend(struct.pack("<d", self.cached("RD", "I14")))
-        padded_inputs = [(cell_id if cell_id is not None else 0xFFFFFFFF) for cell_id in self.input_ids]
-        padded_inputs.extend([0xFFFFFFFF] * (INPUT_LEN - len(padded_inputs)))
-        out.extend(struct.pack("<" + "I" * INPUT_LEN, *padded_inputs))
-        for offset, length in records:
-            out.extend(struct.pack("<II", offset, length))
-        for key_id, row in self.lookup_rows:
-            out.extend(struct.pack("<d", float(key_id)))
-            ids = []
-            for col in range(1, 32):
-                cell_id = self.cells.get(("武学奇术", self.sheets["武学奇术"].cell(row, col).coordinate))
-                ids.append(cell_id if cell_id is not None else 0xFFFFFFFF)
-            out.extend(struct.pack("<" + "I" * 31, *ids))
-        for key_id, row in self.gain_rows:
-            out.extend(struct.pack("<d", float(key_id)))
-            ids = []
-            for col in range(1, 24):
-                cell_id = self.cells.get(("增益", self.sheets["增益"].cell(row, col).coordinate))
-                ids.append(cell_id if cell_id is not None else 0xFFFFFFFF)
-            out.extend(struct.pack("<" + "I" * 23, *ids))
-        out.extend(code)
-        return bytes(out)
-
+    def standalone_rust(self) -> str:
+        body = self.rust(0)
+        return """use std::slice;
+const INPUT_LEN: usize = 40;
+const OUTPUT_LEN: usize = 5;
+""" + body + """
+#[unsafe(no_mangle)]
+pub extern "C" fn yysls_alloc_f64(len: usize) -> *mut f64 {
+    Box::into_raw(vec![0.0_f64; len].into_boxed_slice()).cast::<f64>()
+}
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yysls_free_f64(ptr: *mut f64, len: usize) {
+    if !ptr.is_null() { drop(unsafe { Box::from_raw(std::ptr::slice_from_raw_parts_mut(ptr, len)) }); }
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn yysls_class_input_len() -> i32 { INPUT_LEN as i32 }
+#[unsafe(no_mangle)]
+pub extern "C" fn yysls_class_output_len() -> i32 { OUTPUT_LEN as i32 }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yysls_calc_class(_flow_id: i32, input: *const f64) -> f64 {
+    let input = unsafe { slice::from_raw_parts(input, INPUT_LEN) };
+    let mut output = [0.0; OUTPUT_LEN];
+    calculate_0(input, &mut output);
+    output[0]
+}
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yysls_calc_class_outputs(_flow_id: i32, input: *const f64, output: *mut f64) {
+    let input = unsafe { slice::from_raw_parts(input, INPUT_LEN) };
+    let output = unsafe { slice::from_raw_parts_mut(output, OUTPUT_LEN) };
+    calculate_0(input, output);
+}
+"""
 
 def workbook_specs():
     files = sorted(EXCEL_DIR.glob("*.xlsx"))
@@ -533,7 +645,9 @@ def workbook_specs():
 
 specs = workbook_specs()
 records = []
-sections = []
+DIRECT_SOURCE_DIR.mkdir(parents=True, exist_ok=True)
+for generated_source in DIRECT_SOURCE_DIR.glob("excel_*.rs"):
+    generated_source.unlink()
 for class_name, flow_name, version, path in specs:
     base_key = class_name if class_name in source_metadata["flowClassFields"] else next(
         key for key, mapped in source_metadata.get("flowClassNames", {}).items() if mapped == class_name
@@ -547,8 +661,9 @@ for class_name, flow_name, version, path in specs:
         base_cells[base_fields.index("third_xinfa")] = "期望!E22"
         base_cells[base_fields.index("fourth_xinfa")] = "期望!E24"
     compiler = WorkbookCompiler(path, flow_name, class_name, base_cells, base_kinds)
-    sections.append(compiler.binary_section())
-    records.append((class_name, flow_name, version, path, list(base_fields), list(base_kinds),
+    module_name = f"excel_{FLOW_SLUGS[class_name]}_{version.replace('.', '_')}.wasm"
+    (DIRECT_SOURCE_DIR / module_name.replace(".wasm", ".rs")).write_text(compiler.standalone_rust(), encoding="utf-8")
+    records.append((class_name, flow_name, version, path, module_name, list(base_fields), list(base_kinds),
                     [compiler.cell_names[cell_id] if cell_id is not None else base_cells[i]
                      for i, cell_id in enumerate(compiler.input_ids)],
                     compiler.defaults(), compiler.workbook.properties.modified,
@@ -557,27 +672,15 @@ for class_name, flow_name, version, path in specs:
     compiler.workbook.close()
     del compiler
     gc.collect()
-header_size = 12 + 4 * len(sections)
-offsets = []
-cursor = header_size
-for section in sections:
-    offsets.append(cursor)
-    cursor += len(section)
-binary = bytearray(b"YEXL")
-binary.extend(struct.pack("<II", 1, len(sections)))
-binary.extend(struct.pack("<" + "I" * len(offsets), *offsets))
-for section in sections:
-    binary.extend(section)
-DATA_PATH.write_bytes(binary)
-
 for key in ("flowIds", "flowKeys", "flowClassNames", "flowClassFields", "flowClassKinds", "flowClassCells", "flowClassDefaultValues", "flowGraduationProfiles", "classRotationStats"):
     metadata[key] = {}
 metadata["flowNames"] = []
 metadata["classTableVersions"] = {"牵丝翊": []}
+metadata["flowExcelModules"] = {}
 
 manifest = {"inputLength": INPUT_LEN, "outputLength": 5, "workbooks": []}
 for index, record in enumerate(records):
-    (class_name, flow_name, version, path, fields, kinds, cells, defaults, modified,
+    (class_name, flow_name, version, path, module_name, fields, kinds, cells, defaults, modified,
      baseline_total, use_time, baseline_dps, baseline_rdps) = record
     update_time = modified.replace(tzinfo=timezone.utc).astimezone().strftime("%Y年%-m月%-d日 %H:%M:%S") if modified else ""
     metadata["flowIds"][flow_name] = index
@@ -591,6 +694,7 @@ for index, record in enumerate(records):
     metadata["flowGraduationProfiles"][flow_name] = {
         "fields": fields, "values": defaults, "workbook": path.name, "version": version,
     }
+    metadata["flowExcelModules"][flow_name] = {"file": module_name, "version": version}
     metadata["classRotationStats"][flow_name] = {
         "baseline": baseline_total, "baselineTotal": baseline_total,
         "useTime": use_time, "dps": baseline_dps, "baselineDps": baseline_dps,
@@ -604,7 +708,7 @@ for index, record in enumerate(records):
         })
     manifest["workbooks"].append({
         "id": index, "className": class_name, "flowName": flow_name, "version": version,
-        "file": path.name, "inputs": len(fields), "baselineTotal": baseline_total,
+        "file": path.name, "module": module_name, "inputs": len(fields), "baselineTotal": baseline_total,
         "baselineDps": baseline_dps, "baselineRdps": baseline_rdps, "useTime": use_time,
     })
 

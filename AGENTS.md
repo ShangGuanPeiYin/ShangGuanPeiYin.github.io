@@ -71,7 +71,7 @@ Pay special attention to preserving:
 - best-build transmutation integration: three search modes, `getOriginalEquipId` physical-equipment mutual exclusion, transmutation-aware cache digest, Chengyin-state Top20 deduplication, result metadata, and non-destructive `transmutationSelections` scheme overlays.
 - the cross-file transmutation chain: `index.html` mode/summary controls, `app.min.js` search and scheme calculation, `local-customizations.js` backup validation, and reverse guards that keep the removed transmutation-CD feature absent.
 
-Only Panel inputs, constants, formulas, stage ordering, resistance conversion, and rounding rules may be synchronized. `app.min.js`, the UI, and `yysls_excel.wasm` remain local. See `skills/tiaolv-sync/SKILL.md` for the numeric extraction and parity workflow.
+Only Panel inputs, constants, formulas, stage ordering, resistance conversion, and rounding rules may be synchronized. `app.min.js`, the UI, and the per-workbook Excel WASM modules remain local. See `skills/tiaolv-sync/SKILL.md` for the numeric extraction and parity workflow.
 
 After syncing or editing the Tiaolv tool, run:
 
@@ -96,6 +96,16 @@ After syncing or editing the Tiaolv tool, run:
 - `generated-best40-stats.js`
 
 同一次推送中多次修改同一文件，只需在最终推送时更新一次版本号即可。
+
+## Tiaolv Excel calculator updates
+
+用户替换 `excels/` 中的工作簿，或要求更新、重建 Excel 计算器及增加表格版本时，必须先读取并执行：
+
+```text
+skills/tiaolv-excel-update/SKILL.md
+```
+
+Excel 第二步使用按流派/表格版本独立编译、按需加载的专用 WASM。不得恢复通用 Excel 字节码解释器，也不得在遇到不支持的公式时静默返回 0、复用旧缓存结果或跳过公式。
 
 ## Tiaolv site update time
 

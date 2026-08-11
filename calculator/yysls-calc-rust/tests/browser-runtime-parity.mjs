@@ -51,9 +51,11 @@ try {
   const result = await evaluate(client, `(async () => {
     await window.YYSLSExcelRuntime.ready;
     const runtime = window.YYSLSExcelRuntime;
+    const initiallyLoaded = runtime.loadedExcelFlows();
     const flowNames = Object.keys(window.YYSLS_CALC_METADATA.flowIds);
     const summaries = [];
     for (const className of flowNames) {
+      await runtime.ensureExcel(className);
       const base = { className, equippedItems: {}, xinfa: [], modifiers: [] };
       const normal = runtime.calculate(base);
       const manual = runtime.calculate({
@@ -79,8 +81,14 @@ try {
     }
     const mainClasses = Array.from(document.getElementById("class-select").options, option => option.value);
     const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
-    return { summaries, mainClasses, availableClasses };
+    return { summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows() };
   })()`);
+  if (result.initiallyLoaded.length !== 0) {
+    throw new Error(`Excel modules loaded before demand: ${JSON.stringify(result.initiallyLoaded)}`);
+  }
+  if (result.loadedFlows.length !== 11) {
+    throw new Error(`unexpected loaded Excel module count: ${JSON.stringify(result.loadedFlows)}`);
+  }
   if (result.mainClasses.includes("pvp") || result.mainClasses.includes("裂石钧（纯唐）") || result.mainClasses.length !== 10) {
     throw new Error(`unexpected main classes: ${JSON.stringify(result.mainClasses)}`);
   }

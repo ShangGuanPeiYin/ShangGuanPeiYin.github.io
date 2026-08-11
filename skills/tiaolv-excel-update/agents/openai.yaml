@@ -1,0 +1,4 @@
+interface:
+  display_name: "调率站 Excel 更新"
+  short_description: "替换工作簿后重建、验收并发布极速 Excel 计算模块"
+  default_prompt: "使用 $tiaolv-excel-update 根据 excels 目录当前工作簿更新调率站 Excel 计算器，完成零差异验收和发布。"
