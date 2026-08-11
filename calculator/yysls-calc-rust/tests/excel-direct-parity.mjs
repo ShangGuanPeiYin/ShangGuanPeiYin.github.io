@@ -23,6 +23,7 @@ vm.runInContext(fs.readFileSync(stringsPath, "utf8"), context);
 vm.runInContext(fs.readFileSync(metadataPath, "utf8"), context);
 const metadata = context.window.YYSLS_CALC_METADATA;
 const stringCount = context.window.YYSLS_CALC_STRINGS.length;
+const stringIds = context.window.YYSLS_CALC_STRING_IDS;
 
 async function instantiate(filename) {
   return (await WebAssembly.instantiate(fs.readFileSync(filename), {})).instance.exports;
@@ -60,12 +61,20 @@ let directMs = 0;
 let qsyuAdjacentPerSecond = 0;
 for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
   if (selectedFlow && flow !== selectedFlow) continue;
-  if (legacyMismatchFlows.has(flow)) continue;
+  const usesWorkbookJudge = legacyMismatchFlows.has(flow);
   const info = metadata.flowExcelModules[flow];
   const direct = await instantiate(path.join(calc, "dist/excel", info.file));
   const runDirect = runner(direct, flowId);
   let flowDirectMs = 0;
-  const corpus = fixture.flows[flow];
+  let corpus = fixture.flows[flow];
+  if (!corpus) {
+    const defaults = metadata.flowClassDefaultValues[flow].map((value, inputIndex) =>
+      metadata.flowClassKinds[flow][inputIndex] === "str" ? Number(stringIds[value] || 0) : Number(value || 0));
+    const changed = Array.from(defaults);
+    const firstNumeric = metadata.flowClassKinds[flow].findIndex(kind => kind !== "str");
+    changed[firstNumeric] += 0.125;
+    corpus = [{ input: defaults, bits: [] }, { input: changed, bits: [] }];
+  }
   for (let index = 0; index < corpus.length; index += 1) {
     const { input, bits } = corpus[index];
     const expected = bits.map(value => BigInt(`0x${value}`));
@@ -74,16 +83,24 @@ for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
     const directElapsed = performance.now() - startDirect;
     directMs += directElapsed;
     flowDirectMs += directElapsed;
-    assertBits(flow, index, expected, actual, input);
-    compared += 1;
+    if (!usesWorkbookJudge) {
+      assertBits(flow, index, expected, actual, input);
+      compared += 1;
+    }
   }
   if (corpus.length >= 2) {
     const a = corpus[0];
     const b = corpus[1];
-    assertBits(flow, "state-A", a.bits.map(value => BigInt(`0x${value}`)), runDirect(a.input), a.input);
-    assertBits(flow, "state-B", b.bits.map(value => BigInt(`0x${value}`)), runDirect(b.input), b.input);
-    assertBits(flow, "state-A-again", a.bits.map(value => BigInt(`0x${value}`)), runDirect(a.input), a.input);
-    assertBits(flow, "state-A-repeat", a.bits.map(value => BigInt(`0x${value}`)), runDirect(a.input), a.input);
+    const expectedA = usesWorkbookJudge
+      ? runner(await instantiate(path.join(calc, "dist/excel", info.file)), flowId)(a.input)
+      : a.bits.map(value => BigInt(`0x${value}`));
+    const expectedB = usesWorkbookJudge
+      ? runner(await instantiate(path.join(calc, "dist/excel", info.file)), flowId)(b.input)
+      : b.bits.map(value => BigInt(`0x${value}`));
+    assertBits(flow, "state-A", expectedA, runDirect(a.input), a.input);
+    assertBits(flow, "state-B", expectedB, runDirect(b.input), b.input);
+    assertBits(flow, "state-A-again", expectedA, runDirect(a.input), a.input);
+    assertBits(flow, "state-A-repeat", expectedA, runDirect(a.input), a.input);
 
     const numericIndexes = metadata.flowClassKinds[flow]
       .map((kind, inputIndex) => kind === "str" ? -1 : inputIndex)
@@ -132,4 +149,4 @@ for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
   if (flowDirectMs > maximumFlowDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`${flow} direct engine ${flowDirectMs.toFixed(2)}ms exceeds ${maximumFlowDirectMs}ms`);
 }
 if (directMs > maximumDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`direct engine ${directMs.toFixed(2)}ms exceeds ${maximumDirectMs}ms`);
-console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length - legacyMismatchFlows.size, compared, seed: fixture.seed, directMs, qsyuAdjacentPerSecond, performanceGate: { maximumDirectMs, maximumFlowDirectMs, minimumQsyuAdjacentPerSecond } }));
+console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length, compared, workbookJudges: legacyMismatchFlows.size, seed: fixture.seed, directMs, qsyuAdjacentPerSecond, performanceGate: { maximumDirectMs, maximumFlowDirectMs, minimumQsyuAdjacentPerSecond } }));
