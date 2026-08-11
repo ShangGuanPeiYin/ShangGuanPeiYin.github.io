@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>自用装备管理台</title>
     <link rel="stylesheet" href="assets/css/style.css?v=202608051749">
-    <link rel="stylesheet" href="assets/css/ui-codex-command-classic.css?v=202608101845">
+    <link rel="stylesheet" href="assets/css/ui-codex-command-classic.css?v=202608111912">
     <script src="assets/js/tesseract.min.js" async></script>
 </head>
 
@@ -23,7 +23,17 @@
                         <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                         <circle cx="10" cy="13" r="1" fill="currentColor" />
                     </svg></button>
-            </div><span id="xinli-hint" class="xinli-hint" style="visibility:hidden">最后更新时间：2026年8月11日 19:09:41</span>
+            </div>
+            <div class="header-meta-controls">
+                <span id="xinli-hint" class="xinli-hint" style="visibility:hidden">最后更新时间：2026年8月11日 19:12:11</span>
+                <label class="engine-source-field" for="engine-source-select">
+                    <span>计算数据源</span>
+                    <select id="engine-source-select" aria-label="计算数据源" title="Q7 原版引擎将在后续版本接入">
+                        <option value="assistant" selected>Assistant 新版（当前）</option>
+                        <option value="q7" disabled>Q7 原版（待接入）</option>
+                    </select>
+                </label>
+            </div>
         </div>
         <div class="header-controls">
             <div class="account-select-group"><label>当前角色：</label> <select id="account-select">
@@ -466,7 +476,7 @@
         </div>
     </div>
     <script src="assets/js/generated-calc-strings.js?v=202608110029"></script>
-    <script src="assets/js/generated-calc-metadata.js?v=202608111909"></script>
+    <script src="assets/js/generated-calc-metadata.js?v=202608111912"></script>
     <script>
         (() => {
             const hint = document.getElementById("xinli-hint");

@@ -56,6 +56,9 @@ check_file "$EXCEL_EXPORT"
 check_file "$PANEL_WASM"
 check_file "$DOC"
 
+check_contains "$INDEX" 'id="engine-source-select"' "calculation source selector"
+check_contains "$INDEX" 'value="q7" disabled' "future Q7 source remains visibly unavailable"
+
 check_contains "$APP" 'ensureExcel: async function' "shared lazy Excel readiness guard"
 check_contains "$APP" 'await Calculator.ensureExcel(a)' "transmutation Excel readiness guard"
 check_contains "$APP" 'await Calculator.ensureExcel(i)' "cultivation Excel readiness guard"

@@ -79,6 +79,59 @@ body.ui-codex-command-classic .account-select-group > label {
     color: var(--cc-muted);
 }
 
+body.ui-codex-command-classic .header-meta-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+body.ui-codex-command-classic .engine-source-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--cc-muted);
+    font-family: var(--cc-mono);
+    font-size: .7rem;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+
+body.ui-codex-command-classic #engine-source-select {
+    width: auto;
+    min-width: 172px;
+    height: 30px;
+    padding: 4px 28px 4px 9px;
+    border-color: var(--cc-line-hot);
+    background-color: rgba(4, 14, 18, .78);
+    color: var(--cc-cyan);
+    font-family: var(--cc-mono);
+    font-size: .72rem;
+}
+
+body.ui-codex-command-classic #engine-source-select:focus-visible {
+    border-color: var(--cc-cyan);
+    box-shadow: 0 0 0 2px rgba(88, 213, 208, .12);
+}
+
+@media (max-width: 768px) {
+    body.ui-codex-command-classic .header-meta-controls {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    body.ui-codex-command-classic .engine-source-field > span {
+        display: none;
+    }
+
+    body.ui-codex-command-classic #engine-source-select {
+        min-width: 158px;
+        height: 32px;
+        font-size: .68rem;
+    }
+}
+
 body.ui-codex-command-classic .info-icon-btn {
     color: var(--cc-muted);
     border-color: var(--cc-line);
