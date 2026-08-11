@@ -5,6 +5,7 @@ import json
 import copy
 import gc
 import math
+import os
 import re
 import struct
 from dataclasses import dataclass
@@ -497,9 +498,25 @@ class WorkbookCompiler:
         reachable, global_lookup_cols, gain_lookup_cols = self.direct_dependencies()
         order, dependencies = self.direct_order(reachable)
         input_initializers = []
+        input_updates = []
         for input_index, cell_id in enumerate(self.input_ids):
             if cell_id is not None:
-                input_initializers.append(f"    v[{cell_id}] = input.get({input_index}).copied().unwrap_or(0.0);")
+                input_initializers.append(
+                    f"        let value = input.get({input_index}).copied().unwrap_or(0.0);\n"
+                    f"        state.input_bits[{input_index}] = value.to_bits();\n"
+                    f"        state.v[{cell_id}] = value;\n"
+                    f"        state.dirty[{cell_id}] = epoch;"
+                )
+                input_updates.append(
+                    f"        let value = input.get({input_index}).copied().unwrap_or(0.0);\n"
+                    f"        let bits = value.to_bits();\n"
+                    f"        if state.input_bits[{input_index}] != bits {{\n"
+                    f"            state.input_bits[{input_index}] = bits;\n"
+                    f"            state.v[{cell_id}] = value;\n"
+                    f"            state.dirty[{cell_id}] = epoch;\n"
+                    f"            changed_mask |= 1_u64 << {input_index};\n"
+                    f"        }}"
+                )
         lookup_arms = []
         for key_id, row in self.lookup_rows:
             column_arms = []
@@ -524,7 +541,29 @@ class WorkbookCompiler:
             if any(dependency in dynamic for dependency in dependencies[cell_id]):
                 dynamic.add(cell_id)
         constant_assignments = [f"    v[{cell_id}] = {self.direct_value_expr(cell_id)};" for cell_id in order if cell_id not in input_ids and cell_id not in dynamic]
-        dynamic_assignments = [f"    v[{cell_id}] = {self.direct_value_expr(cell_id)};" for cell_id in order if cell_id not in input_ids and cell_id in dynamic]
+        input_masks = [0 for _ in self.cell_values]
+        for input_index, cell_id in enumerate(self.input_ids):
+            if cell_id is not None:
+                input_masks[cell_id] |= 1 << input_index
+        for cell_id in order:
+            for dependency in dependencies[cell_id]:
+                input_masks[cell_id] |= input_masks[dependency]
+        dynamic_assignments = []
+        for cell_id in order:
+            if cell_id in input_ids or cell_id not in dynamic:
+                continue
+            dynamic_dependencies = sorted(dependency for dependency in dependencies[cell_id] if dependency in dynamic)
+            if not dynamic_dependencies:
+                raise ValueError(f"{self.path.name} 动态单元格缺少动态依赖：{self.cell_names[cell_id]}")
+            dirty_condition = " || ".join(f"dirty[{dependency}] == epoch" for dependency in dynamic_dependencies)
+            dynamic_assignments.append((
+                f"    if {dirty_condition} {{\n"
+                f"        let old_bits = v[{cell_id}].to_bits();\n"
+                f"        v[{cell_id}] = {self.direct_value_expr(cell_id)};\n"
+                f"        if v[{cell_id}].to_bits() != old_bits {{ dirty[{cell_id}] = epoch; }}\n"
+                f"    }}",
+                input_masks[cell_id],
+            ))
         def make_chunks(prefix, assignments):
             result = []
             for chunk_index in range(0, len(assignments), 192):
@@ -532,17 +571,33 @@ class WorkbookCompiler:
                 result.append((name, assignments[chunk_index:chunk_index + 192]))
             return result
         constant_chunks = make_chunks(f"constant_{index}_chunk", constant_assignments)
-        dynamic_chunks = make_chunks(f"calculate_{index}_chunk", dynamic_assignments)
-        chunks = constant_chunks + dynamic_chunks
-        chunk_functions = "\n".join(f"#[inline({'never' if name.startswith('constant_') else 'always'})]\nfn {name}(v: &mut [f64; {len(self.cell_values)}]) {{\n{chr(10).join(lines)}\n}}" for name, lines in chunks)
+        dynamic_chunks = []
+        for chunk_index in range(0, len(dynamic_assignments), 192):
+            entries = dynamic_assignments[chunk_index:chunk_index + 192]
+            name = f"calculate_{index}_chunk_{chunk_index // 192}"
+            mask = 0
+            for _, entry_mask in entries:
+                mask |= entry_mask
+            dynamic_chunks.append((name, [line for line, _ in entries], mask))
+        chunks = constant_chunks + [(name, lines) for name, lines, _ in dynamic_chunks]
+        chunk_functions = "\n".join(
+            f"#[inline({'never' if name.startswith('constant_') else 'always'})]\n"
+            f"fn {name}(v: &mut [f64; {len(self.cell_values)}]"
+            f"{'' if name.startswith('constant_') else f', dirty: &mut [u32; {len(self.cell_values)}], epoch: u32'}) {{\n"
+            f"{chr(10).join(lines)}\n}}"
+            for name, lines in chunks
+        )
         constant_calls = "\n".join(f"        {name}(&mut v);" for name, _ in constant_chunks)
         dynamic_groups = []
         for group_index in range(0, len(dynamic_chunks), 4):
             name = f"calculate_{index}_group_{group_index // 4}"
-            calls = "\n".join(f"    {chunk_name}(v);" for chunk_name, _ in dynamic_chunks[group_index:group_index + 4])
+            calls = "\n".join(
+                f"    if changed_mask & 0x{mask:016x} != 0 {{ {chunk_name}(v, dirty, epoch); }}"
+                for chunk_name, _, mask in dynamic_chunks[group_index:group_index + 4]
+            )
             dynamic_groups.append((name, calls))
-        group_functions = "\n".join(f"#[inline(never)]\nfn {name}(v: &mut [f64; {len(self.cell_values)}]) {{\n{calls}\n}}" for name, calls in dynamic_groups)
-        dynamic_calls = "\n".join(f"    {name}(&mut v);" for name, _ in dynamic_groups)
+        group_functions = "\n".join(f"#[inline(never)]\nfn {name}(v: &mut [f64; {len(self.cell_values)}], dirty: &mut [u32; {len(self.cell_values)}], epoch: u32, changed_mask: u64) {{\n{calls}\n}}" for name, calls in dynamic_groups)
+        dynamic_calls = "\n".join(f"        {name}(&mut state.v, &mut state.dirty, epoch, changed_mask);" for name, _ in dynamic_groups)
         return f"""
 fn vlookup(key: f64, col: usize, v: &[f64; {len(self.cell_values)}]) -> f64 {{
         match key {{
@@ -568,19 +623,55 @@ fn xlookup_gain(key: f64, col: usize, default: f64, v: &[f64; {len(self.cell_val
 {chunk_functions}
 {group_functions}
 
+struct EngineState {{
+    v: Box<[f64; {len(self.cell_values)}]>,
+    dirty: Box<[u32; {len(self.cell_values)}]>,
+    input_bits: [u64; {INPUT_LEN}],
+    epoch: u32,
+    initialized: bool,
+}}
+struct EngineWorkspace(std::cell::UnsafeCell<EngineState>);
+unsafe impl Sync for EngineWorkspace {{}}
+
 fn calculate_{index}(input: &[f64], output: &mut [f64]) {{
-    static CONSTANTS: std::sync::OnceLock<Box<[f64; {len(self.cell_values)}]>> = std::sync::OnceLock::new();
-    let mut v = CONSTANTS.get_or_init(|| {{
+    static WORKSPACE: std::sync::OnceLock<EngineWorkspace> = std::sync::OnceLock::new();
+    let workspace = WORKSPACE.get_or_init(|| {{
         let mut v: Box<[f64; {len(self.cell_values)}]> = vec![0.0; {len(self.cell_values)}].into_boxed_slice().try_into().ok().unwrap();
 {constant_calls}
-        v
-    }}).clone();
+        EngineWorkspace(std::cell::UnsafeCell::new(EngineState {{
+            v,
+            dirty: vec![0_u32; {len(self.cell_values)}].into_boxed_slice().try_into().ok().unwrap(),
+            input_bits: [0_u64; {INPUT_LEN}],
+            epoch: 0,
+            initialized: false,
+        }}))
+    }});
+    // A WebAssembly module instance is single-threaded and this ABI is deliberately non-reentrant.
+    let state = unsafe {{ &mut *workspace.0.get() }};
+    state.epoch = state.epoch.wrapping_add(1);
+    if state.epoch == 0 {{
+        state.dirty.fill(0);
+        state.epoch = 1;
+    }}
+    let epoch = state.epoch;
+    let mut changed_mask = 0_u64;
+    if !state.initialized {{
+        // The first call must evaluate the complete dynamic graph. A zero-valued
+        // intermediate can still feed a non-zero formula together with constants.
+        state.dirty.fill(epoch);
 {chr(10).join(input_initializers)}
+        changed_mask = (1_u64 << {INPUT_LEN}) - 1;
+        state.initialized = true;
+    }} else {{
+{chr(10).join(input_updates)}
+    }}
+    if changed_mask != 0 {{
 {dynamic_calls}
-    let total = v[{output_ids[0]}];
-    let adps = v[{output_ids[1]}];
-    let graduation = v[{output_ids[2]}];
-    let rdps = v[{output_ids[3]}];
+    }}
+    let total = state.v[{output_ids[0]}];
+    let adps = state.v[{output_ids[1]}];
+    let graduation = state.v[{output_ids[2]}];
+    let rdps = state.v[{output_ids[3]}];
     output[0] = total;
     output[1] = adps;
     output[2] = graduation;
@@ -714,6 +805,8 @@ for index, record in enumerate(records):
 
 metadata["classDefaultValues"] = {name: metadata["flowClassDefaultValues"][name] for name in FLOW_ORDER if name in metadata["flowClassDefaultValues"]}
 metadata["classDefaultValues"]["牵丝翊"] = metadata["flowClassDefaultValues"]["牵丝翊@2.0"]
+if site_update_time := os.environ.get("YYSLS_SITE_UPDATE_TIME"):
+    metadata["siteUpdateTime"] = site_update_time
 METADATA_PATH.write_text("// Generated from calculator workbooks. Do not edit by hand.\nwindow.YYSLS_CALC_METADATA=" + json.dumps(metadata, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
 STRINGS_PATH.write_text("// Generated from calculator workbooks. Do not edit by hand.\nwindow.YYSLS_CALC_STRINGS=" + json.dumps(strings, ensure_ascii=False, separators=(",", ":")) + ";\nwindow.YYSLS_CALC_STRING_IDS=" + json.dumps(string_ids, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
 MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

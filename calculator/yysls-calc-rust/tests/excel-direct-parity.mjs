@@ -15,6 +15,7 @@ const legacyMismatchFlows = new Set(["破竹鸢"]);
 const fixture = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(calc, "tests/fixtures/excel-legacy-v1.json.gz"))));
 const maximumDirectMs = Number(process.env.YYSLS_MAX_DIRECT_MS || 20000);
 const maximumFlowDirectMs = Number(process.env.YYSLS_MAX_FLOW_DIRECT_MS || 4000);
+const minimumQsyuAdjacentPerSecond = Number(process.env.YYSLS_MIN_QSYU_ADJACENT_PER_SECOND || 10000);
 
 const context = { window: {} };
 vm.createContext(context);
@@ -56,6 +57,7 @@ function assertBits(flow, index, expected, actual, input) {
 
 let compared = 0;
 let directMs = 0;
+let qsyuAdjacentPerSecond = 0;
 for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
   if (selectedFlow && flow !== selectedFlow) continue;
   if (legacyMismatchFlows.has(flow)) continue;
@@ -75,7 +77,59 @@ for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
     assertBits(flow, index, expected, actual, input);
     compared += 1;
   }
+  if (corpus.length >= 2) {
+    const a = corpus[0];
+    const b = corpus[1];
+    assertBits(flow, "state-A", a.bits.map(value => BigInt(`0x${value}`)), runDirect(a.input), a.input);
+    assertBits(flow, "state-B", b.bits.map(value => BigInt(`0x${value}`)), runDirect(b.input), b.input);
+    assertBits(flow, "state-A-again", a.bits.map(value => BigInt(`0x${value}`)), runDirect(a.input), a.input);
+    assertBits(flow, "state-A-repeat", a.bits.map(value => BigInt(`0x${value}`)), runDirect(a.input), a.input);
+
+    const numericIndexes = metadata.flowClassKinds[flow]
+      .map((kind, inputIndex) => kind === "str" ? -1 : inputIndex)
+      .filter(inputIndex => inputIndex >= 0);
+    const mutations = [];
+    const single = Float64Array.from(a.input);
+    single[numericIndexes[0]] += 0.125;
+    mutations.push(single);
+    const multiple = Float64Array.from(a.input);
+    for (const inputIndex of numericIndexes.slice(0, 4)) multiple[inputIndex] -= 0.25;
+    mutations.push(multiple);
+    for (const bits of [0x0000000000000000n, 0x8000000000000000n, 0x7ff8000000000001n, 0x7ff8000000000042n]) {
+      const special = Float64Array.from(a.input);
+      new BigUint64Array(special.buffer)[numericIndexes[0]] = bits;
+      mutations.push(special);
+    }
+    for (let mutationIndex = 0; mutationIndex < mutations.length; mutationIndex += 1) {
+      const cold = await instantiate(path.join(calc, "dist/excel", info.file));
+      const expected = runner(cold, flowId)(mutations[mutationIndex]);
+      const actual = runDirect(mutations[mutationIndex]);
+      assertBits(flow, `state-mutation-${mutationIndex}`, expected, actual, Array.from(mutations[mutationIndex]));
+    }
+  }
+  if (flow === "牵丝玉") {
+    const equipmentIndexes = metadata.flowClassKinds[flow]
+      .map((kind, inputIndex) => kind === "str" || inputIndex === 0 || inputIndex > 23 ? -1 : inputIndex)
+      .filter(inputIndex => inputIndex >= 0);
+    const rates = [];
+    for (let sample = 0; sample < 3; sample += 1) {
+      const adjacent = Float64Array.from(corpus[0].input);
+      const iterations = 10000;
+      const started = performance.now();
+      for (let iteration = 0; iteration < iterations; iteration += 1) {
+        const inputIndex = equipmentIndexes[iteration % equipmentIndexes.length];
+        adjacent[inputIndex] += iteration & 1 ? 0.0001 : -0.0001;
+        runDirect(adjacent);
+      }
+      rates.push(iterations * 1000 / (performance.now() - started));
+    }
+    rates.sort((left, right) => left - right);
+    qsyuAdjacentPerSecond = rates[1];
+    if (qsyuAdjacentPerSecond < minimumQsyuAdjacentPerSecond && process.env.YYSLS_SKIP_SPEED_GATE !== "1") {
+      throw new Error(`牵丝玉 adjacent throughput ${qsyuAdjacentPerSecond.toFixed(0)}/s is below ${minimumQsyuAdjacentPerSecond}/s`);
+    }
+  }
   if (flowDirectMs > maximumFlowDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`${flow} direct engine ${flowDirectMs.toFixed(2)}ms exceeds ${maximumFlowDirectMs}ms`);
 }
 if (directMs > maximumDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`direct engine ${directMs.toFixed(2)}ms exceeds ${maximumDirectMs}ms`);
-console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length - legacyMismatchFlows.size, compared, seed: fixture.seed, directMs, performanceGate: { maximumDirectMs, maximumFlowDirectMs } }));
+console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length - legacyMismatchFlows.size, compared, seed: fixture.seed, directMs, qsyuAdjacentPerSecond, performanceGate: { maximumDirectMs, maximumFlowDirectMs, minimumQsyuAdjacentPerSecond } }));
