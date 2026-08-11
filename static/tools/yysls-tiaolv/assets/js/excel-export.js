@@ -50,7 +50,8 @@
     }
 
     function workbookUrl(workbookName) {
-        return `excels/${encodePathSegment(workbookName)}`;
+        const prefix = window.YYSLS_ACTIVE_ENGINE === "q7" ? "excels/q7" : "excels";
+        return `${prefix}/${encodePathSegment(workbookName)}`;
     }
 
     function safeFileName(name) {

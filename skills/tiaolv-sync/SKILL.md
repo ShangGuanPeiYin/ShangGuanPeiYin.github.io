@@ -5,7 +5,7 @@ description: Use when reviewing or synchronizing Tiaolv Panel numeric changes fr
 
 # Tiaolv Numeric Sync
 
-`yysls-assistant.cn` is a numeric reference only. The live tool is locally maintained; never copy the reference site's frontend, storage, import/export, optimization, timeline, DPS, RDPS, or graduation-rate implementation into it.
+`yysls-assistant.cn` is the Panel numeric reference for the Assistant engine only. The separately namespaced Q7 engine follows `yysls.leoq7.com`; use `skills/tiaolv-q7-engine-update/` for Q7 work. Never mix either engine's metadata, WASM, workbook, cache, or output with the other.
 
 ## Required references
 
@@ -22,7 +22,7 @@ doc/调率站代码实现说明.md
 - Previous numeric reference: `study/old/yysls-assistant.cn/`.
 - Live application: `static/tools/yysls-tiaolv/`.
 - Locally maintained Panel source: `calculator/yysls-calc-rust/`.
-- Historical `yysls.leoq7.com` snapshots are archives, not update sources.
+- Q7 assets are outside this skill's scope and must remain byte-for-byte unchanged during Assistant updates.
 - The 11 files under `assets/wasm/excel/`, DPS, RDPS, graduation baselines, UI, storage and best-build behavior are always local unless a separate user request explicitly changes them.
 
 ## Numeric synchronization workflow
@@ -61,7 +61,7 @@ Use an independent reference implementation parsed from the assistant snapshot; 
 
 For every Tiaolv edit, preserve the complete inventory in `doc/tiaolv-local-customizations.md`, especially `local-customizations.js`, cloud backup, equipment levels, backup/import, Chengyin behavior, Top20, cancel-search, transmutation, pvp equipment tags and removed-feature reverse guards.
 
-The old rule that rebuilt `app.min.js` from `yysls.leoq7.com` no longer applies. `app.min.js` is now local code and must be edited in place with focused changes while preserving unrelated work.
+The shared `app.min.js` remains local code and must preserve all custom features. Q7 supplies numeric configuration and scoring through its isolated snapshot, not by overwriting the shared application.
 
 ## Publication
 

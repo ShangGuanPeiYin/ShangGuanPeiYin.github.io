@@ -1,5 +1,6 @@
 const baseUrl = process.env.YYSLS_BROWSER_URL;
 if (!baseUrl) throw new Error("YYSLS_BROWSER_URL is required");
+const expectedEngine = process.env.YYSLS_ENGINE || "assistant";
 
 async function openPage(url) {
   const target = await fetch(`http://127.0.0.1:9222/json/new?${encodeURIComponent(url)}`, {
@@ -12,8 +13,10 @@ async function openPage(url) {
   });
   let id = 0;
   const pending = new Map();
+  const exceptions = [];
   socket.addEventListener("message", event => {
     const message = JSON.parse(event.data);
+    if (message.method === "Runtime.exceptionThrown") exceptions.push(message.params.exceptionDetails.exception?.description || message.params.exceptionDetails.text);
     if (!message.id || !pending.has(message.id)) return;
     const { resolve, reject } = pending.get(message.id);
     pending.delete(message.id);
@@ -26,7 +29,7 @@ async function openPage(url) {
     socket.send(JSON.stringify({ id: messageId, method, params }));
   });
   await send("Runtime.enable");
-  return { socket, send };
+  return { socket, send, exceptions };
 }
 
 async function evaluate(client, expression) {
@@ -41,13 +44,23 @@ async function evaluate(client, expression) {
 
 const client = await openPage(`${baseUrl}/`);
 try {
+  await evaluate(client, `(() => {
+    const expected = ${JSON.stringify(expectedEngine)};
+    if (localStorage.getItem("yysls_calculator_engine") !== expected) {
+      localStorage.setItem("yysls_calculator_engine", expected);
+      location.reload();
+      return true;
+    }
+    return false;
+  })()`);
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    if (await evaluate(client, "Boolean(window.YYSLSExcelRuntime)")) break;
+    if (await evaluate(client, `window.YYSLS_ACTIVE_ENGINE === ${JSON.stringify(expectedEngine)} && Boolean(window.YYSLSExcelRuntime)`)) break;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   if (!await evaluate(client, "Boolean(window.YYSLSExcelRuntime)")) {
     throw new Error("YYSLSExcelRuntime did not load");
   }
+  client.exceptions.length = 0;
   const result = await evaluate(client, `(async () => {
     await window.YYSLSExcelRuntime.ready;
     const runtime = window.YYSLSExcelRuntime;
@@ -57,10 +70,18 @@ try {
     const firstFlow = flowNames[0];
     await Calculator.ensureExcel(firstFlow);
     const firstBase = { className: firstFlow, equippedItems: {}, xinfa: [], modifiers: [] };
-    const firstContext = runtime.createBestBuildContext(firstBase);
-    const firstBest = runtime.calculateBestBuildCompiled(firstContext, []);
+    const firstBest = typeof runtime.createBestBuildContext === "function"
+      ? runtime.calculateBestBuildCompiled(runtime.createBestBuildContext(firstBase), [])
+      : runtime.calculate(firstBase);
     const firstExport = runtime.exportClassInputData(firstBase);
     if (!firstBest || !firstExport || firstExport.values.length !== 40) throw new Error("first-use Excel path returned null");
+    if (window.YYSLS_ACTIVE_ENGINE === "q7") {
+      const scored = GradModal.calculateBuildRate({}, firstFlow, "precision", "", [], false);
+      const directScore = runtime.calculate({ className: firstFlow, equippedItems: {}, bow: "precision", xinfa: [], setName: "", armory: AppState.currentArmory, earlySeasonBonus: AppState.earlySeasonBonus || false, loanDingyin: false, loanDingyinValue: normalizeLoanDingyinValue(AppState.loanDingyinValue), classInputOverrides: getCurrentClassInputOverrides(firstFlow), flowVersion: getCurrentFlowVersionKey(firstFlow), flowName: getFlowNameForClass(firstFlow) });
+      if (!scored || !directScore || scored.rate !== directScore.graduationRate || scored.dps !== directScore.dps) throw new Error("Q7 best-build score differs from direct Q7 runtime");
+      const template = await fetch("excels/q7/" + encodeURIComponent(firstExport.workbookName));
+      if (!template.ok) throw new Error("Q7 workbook template is unavailable: " + firstExport.workbookName);
+    }
     const summaries = [];
     for (const className of flowNames) {
       await runtime.ensureExcel(className);
@@ -75,26 +96,23 @@ try {
           { type: "最小外功攻击", value: 121.4 }
         ]
       });
-      const context = runtime.createBestBuildContext(base);
-      const equip = runtime.compileBestBuildEquip("weapon1", {
-        slotId: 1,
-        isPurple: true,
-        mainStat: { type: "最小外功攻击", value: 121.4 },
-        subStats: [{ type: "精准率", value: 12.4 }]
-      });
-      const best = runtime.calculateBestBuildCompiled(context, [equip]);
+      const best = typeof runtime.createBestBuildContext === "function" ? runtime.calculateBestBuildCompiled(
+        runtime.createBestBuildContext(base),
+        [runtime.compileBestBuildEquip("weapon1", { slotId: 1, isPurple: true, mainStat: { type: "最小外功攻击", value: 121.4 }, subStats: [{ type: "精准率", value: 12.4 }] })]
+      ) : runtime.calculate({ ...base, equippedItems: { weapon1: { slotId: 1, isPurple: true, mainStat: { type: "最小外功攻击", value: 121.4 }, subStats: [{ type: "精准率", value: 12.4 }] } } });
       const exported = runtime.exportClassInputData(base);
       if (!normal || !manual || !best || !exported) throw new Error("runtime path returned null: " + className);
       summaries.push([className, normal.dps, manual.dps, best.dps, exported.values.length]);
     }
     const mainClasses = Array.from(document.getElementById("class-select").options, option => option.value);
     const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
-    return { summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate };
+    return { engine: window.YYSLS_ACTIVE_ENGINE, compiled: typeof runtime.calculateBestBuildCompiled === "function", summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate, resources: performance.getEntriesByType("resource").map(entry => entry.name) };
   })()`);
-  if (result.initiallyLoaded.length !== 0) {
+  if (expectedEngine === "assistant" && result.initiallyLoaded.length !== 0) {
     throw new Error(`Excel modules loaded before demand: ${JSON.stringify(result.initiallyLoaded)}`);
   }
-  if (result.loadedFlows.length !== 11) {
+  const expectedFlowCount = expectedEngine === "q7" ? 10 : 11;
+  if (result.loadedFlows.length !== expectedFlowCount) {
     throw new Error(`unexpected loaded Excel module count: ${JSON.stringify(result.loadedFlows)}`);
   }
   if (result.mainClasses.includes("pvp") || result.mainClasses.includes("裂石钧（纯唐）") || result.mainClasses.length !== 10) {
@@ -103,7 +121,13 @@ try {
   if (!result.availableClasses.includes("pvp") || result.availableClasses.length !== 11) {
     throw new Error(`unexpected equipment available classes: ${JSON.stringify(result.availableClasses)}`);
   }
-  console.log(JSON.stringify({ status: "ok", engine: "rust", flows: result.summaries.length, firstUse: result.firstFlow, firstBestRate: result.firstBestRate }));
+  if (result.engine !== expectedEngine || result.compiled !== (expectedEngine === "assistant")) throw new Error(`engine isolation failed: ${JSON.stringify(result)}`);
+  const loadedQ7 = result.resources.some(url => url.includes("/assets/wasm/q7/") || url.includes("/assets/engines/q7/"));
+  const loadedAssistantWasm = result.resources.some(url => url.includes("/assets/wasm/yysls_panel.wasm") || url.includes("/assets/wasm/excel/"));
+  if (expectedEngine === "q7" ? (!loadedQ7 || loadedAssistantWasm) : (loadedQ7 || !loadedAssistantWasm)) throw new Error(`cross-engine resource load: ${JSON.stringify(result.resources)}`);
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (client.exceptions.length) throw new Error(`browser exceptions: ${JSON.stringify(client.exceptions)}`);
+  console.log(JSON.stringify({ status: "ok", engine: result.engine, compiledBestBuild: result.compiled, flows: result.summaries.length, firstUse: result.firstFlow, firstBestRate: result.firstBestRate }));
 } finally {
   client.socket.close();
 }

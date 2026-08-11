@@ -1,0 +1,4 @@
+interface:
+  display_name: "调率站 Q7 引擎更新"
+  short_description: "抓取、固化、更新并完整验收调率站Q7原版双引擎计算快照"
+  default_prompt: "使用 $tiaolv-q7-engine-update 更新并验收 Q7 原版计算引擎。"

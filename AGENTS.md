@@ -29,9 +29,9 @@ The script:
 - If unrelated changes already exist, mention them and pass only task-related paths to `skills/auto-site-publish/scripts/publish_site.sh`.
 - If the user explicitly asks not to publish, build or test locally but do not commit or push.
 
-## Tiaolv numeric upstream snapshots
+## Tiaolv calculator upstreams
 
-`yysls-assistant.cn` is the only upstream reference for Tiaolv **numeric panel data and panel formulas**. It is not a frontend-code upstream and is not the upstream for the Excel WASM, DPS, RDPS, graduation rates, UI, storage, import/export, or best-build behavior.
+The live tool has two isolated calculator engines. `yysls.leoq7.com` is the complete upstream for the default **Q7 original** engine: Panel values, formulas, combined WASM, DPS, RDPS, graduation rates, workbook versions, templates, and best-build scoring. `yysls-assistant.cn` remains the Panel numeric reference for the separately selectable **Assistant** engine.
 
 The `study/` directory holds numeric-reference snapshots:
 
@@ -39,7 +39,7 @@ The `study/` directory holds numeric-reference snapshots:
 - `study/old/yysls-assistant.cn/` — previous validated numeric snapshot;
 - `study/yysls-assistant.cn/` — frozen seed snapshot retained until the first successful rotation.
 
-The former `study/new/yysls.leoq7.com/` and `study/old/yysls.leoq7.com/` directories are historical archives only and must not be used as an update source.
+Q7 production snapshots are namespaced under `static/tools/yysls-tiaolv/assets/engines/q7/`, `assets/wasm/q7/`, and `excels/q7/`. Update them only with `skills/tiaolv-q7-engine-update/`; never overwrite the Assistant engine.
 
 To fetch the latest numeric reference (validate first, then rotate old → new):
 
@@ -47,11 +47,11 @@ To fetch the latest numeric reference (validate first, then rotate old → new):
 ./skills/tiaolv-upstream-update/scripts/update_upstream.sh
 ```
 
-## Tiaolv numeric upstream sync
+## Tiaolv upstream sync
 
 `static/tools/yysls-tiaolv/` is a locally maintained application. Never overwrite its frontend files from either reference site.
 
-When numeric changes are detected in `study/new/yysls-assistant.cn/`, use the project skill:
+For Assistant Panel numeric changes use `skills/tiaolv-sync/`. For any Q7 engine, formula, WASM, metadata, or workbook update use `skills/tiaolv-q7-engine-update/`.
 
 ```bash
 skills/tiaolv-sync/

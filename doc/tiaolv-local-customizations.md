@@ -1,6 +1,6 @@
 # 调率站本地定制清单
 
-本文记录调率站必须长期保留的本站功能。本站前端现为自主维护，不再以 `yysls.leoq7.com` 为代码上游；`yysls-assistant.cn` 仅作为 Panel 数值和公式参考，任何数值同步都不得覆盖 `static/tools/yysls-tiaolv/` 的前端、存储及本清单功能。
+本文记录调率站必须长期保留的本站功能。本站前端与存储自主维护；默认Q7原版引擎完整跟随 `yysls.leoq7.com` 的数值、WASM、DPS、RDPS、毕业率和最佳配装评分，Assistant引擎继续使用 `yysls-assistant.cn` Panel口径与本站Excel模块。任何上游同步都不得覆盖本清单功能，也不得在两套引擎之间混用数据。
 
 ## 外置扩展脚本
 
@@ -209,7 +209,7 @@
 
 ## 数值参考同步建议
 
-1. 使用更新 skill 获取并验证 `study/new/yysls-assistant.cn/`，失败时不得轮换有效快照。
+1. Assistant Panel 更新使用 `tiaolv-sync`；Q7完整引擎更新使用 `tiaolv-q7-engine-update`。任一抓取或验收失败时不得替换有效快照。
 2. 对比新旧快照，只提取公共基础、武学天赋、心法、装备、套装、弓诀、武库、派生、抗性、阶段顺序和舍入规则。
 3. 只修改本地 Panel 源码和 `yysls_panel.wasm`，不得复制对方前端，不得修改 `assets/wasm/excel/` 下11个独立Excel模块、DPS、RDPS和毕业率。
 4. 对10个流派执行固定矩阵和至少100万组随机配置，36项输出必须 Float64 位级零差异。
