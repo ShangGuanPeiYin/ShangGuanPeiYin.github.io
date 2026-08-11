@@ -206,6 +206,7 @@
 | 装备库排序功能 | `sortDB`、`currentSort`、`sortSelect`、`filterDB` | 新增 `sortDB` 函数和 `AppState.currentSort` 状态，在 `filterDB` 的四个非 equipped 返回点包裹 `sortDB`，绑定 `#sort-select` 下拉框事件。排序规则：等级降序 → 同等级金先紫后 → 同等级同色非承音先承音后 → 按首词条种类（大外/小外/精准率/会心率/会意率/劲/敏/势/神力）。`index.html` 中需保留 `<select id="sort-select">` 元素。 |
 | 可用/全流派切换开关 | `AppState.classFilter`、`filterDB`、`initFilters`、`.filter-toggle-btn` | 将原「可用」过滤按钮改为全局切换开关。`AppState.classFilter`（默认 `true`）控制所有槽位/全部模式是否按流派过滤。开关为绿色时（可用），头/胸/佩等槽位按钮和「全部」只显示本流派装备；灰色时（全流派），显示所有装备。`filterDB` 的 `"all"`、`weapon_`、槽位分支均加入 `classFilter` 判断；`"available"` 分支已删除，原重置 `currentFilter = "available"` 的两处改为 `"all"`。样式类 `.filter-toggle-btn.toggle-on/.toggle-off` 追加在 `assets/css/style.css` 末尾。 |
 | pvp 流派选项 | `ClassConfig.CLASSES` | 在 `CLASSES` 数组末尾新增 `"pvp"`，使装备录入弹窗的「可用流派限制」多选和右侧流派下拉均包含 pvp 选项。无 `WEAPON_RULES` 条目，不限武器类型。 |
+| 装备自动命名 | `auto-name-btn`、`handleAutoName`、`STAT_ABBR`、`isNameManuallyEdited` | 在装备录入/修改弹窗名称栏右侧新增「自动命名」按钮。点击后按当前主词条+副词条生成缩写名并写入名称框，置 `isNameManuallyEdited = !0` 防止后续换部位/武器时被“我的XX”默认值覆盖。缩写规则：最大/最小外功攻击→大外/小外；全武学增效→全增；各武学增效→XX增（剑增…横刀增、拳增、鼓增）；无相/鸣金/裂石/牵丝/破竹攻击→大X/小X；劲/敏/势原样；精准率→精准、会心率→会心、会意率→会意；对首领单位增伤→首领；对玩家单位增效→玩家；单体/群体类奇术增伤→单奇/群奇；生存类词条/生存向→生存；未知词条原样保留。排序固定：三率（精准/会心/会意）→ 敏势劲 → 攻击 → 生存 → 全部增效（全增/各武学增/首领/玩家/单奇/群奇）置于最后；相同词条出现多次时前缀数量（如两条大外 → `2大外`）。定音类穿透词条（外穿/属穿/无相穿/技伤）不在主副词条内，不会进入名字。`index.html` 中需保留 `<button id="auto-name-btn">` 及 `app.min.js` 中 `handleAutoName` 调用链。 |
 
 ## 数值参考同步建议
 
