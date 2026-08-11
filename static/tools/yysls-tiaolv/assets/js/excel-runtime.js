@@ -99,7 +99,6 @@
     let panelPtr = 0;
     const excelModules = new Map();
     const excelModulePromises = new Map();
-    let excelAutoLoadEnabled = false;
     const panelDamageBonusStates = new WeakMap();
     const panelDamageBonusStateKey = Symbol("yyslsPanelDamageBonusState");
 
@@ -229,11 +228,6 @@
         runtime.available = true;
         setTimeout(() => {
             if (typeof window.updateStats === "function") window.updateStats();
-            const enableExcelLoading = () => {
-                excelAutoLoadEnabled = true;
-                ["pointerdown", "keydown", "change"].forEach(type => document.removeEventListener(type, enableExcelLoading, true));
-            };
-            ["pointerdown", "keydown", "change"].forEach(type => document.addEventListener(type, enableExcelLoading, { capture: true, once: true }));
         }, 0);
         return runtime;
     }
@@ -765,7 +759,7 @@
         if (flowId === undefined) return null;
         const excelState = excelModules.get(flowName);
         if (!excelState) {
-            if (excelAutoLoadEnabled) ensureExcel(flowName).catch(() => {});
+            ensureExcel(flowName).catch(() => {});
             return null;
         }
         const sourceDamageState = panelDamageBonusState(panel);

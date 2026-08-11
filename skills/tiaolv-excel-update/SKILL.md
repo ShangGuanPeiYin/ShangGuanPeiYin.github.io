@@ -14,7 +14,7 @@ Read `references/contracts.md` before changing the generator, runtime, metadata 
 3. Inspect formula functions used by the new workbooks. Extend the compiler and its tests for every new function; never silently return zero, copy cached outputs as formulas, or skip unsupported cells.
 4. Run `scripts/rebuild_excel_modules.sh`. It regenerates direct Rust formulas, builds 11 flow-version WASMs, verifies the known large module is reproducible, finalizes hashes, and runs parity/performance checks.
 5. Confirm the Panel WASM hash and 36-output contract are unchanged.
-6. Test normal calculation, manual attributes, best build, cultivation, transmutation, flow-version persistence and Excel export. Every asynchronous entry must await the selected module through `Calculator.ensureExcel` or `runtime.ensureExcel` before its first synchronous calculation. Verify the initial page requests no Excel module and each flow module loads at most once.
+6. Test normal calculation, manual attributes, best build, cultivation, transmutation, flow-version persistence and Excel export. Every asynchronous entry must await the selected module through `Calculator.ensureExcel` or `runtime.ensureExcel` before its first synchronous calculation. Verify the initial page preloads only the restored current flow-version module and each flow module loads at most once.
 7. Update calculation documentation, modified JS `?v=` tags, all site-update-time locations and calculator baselines.
 8. Run the Tiaolv customization check and Hugo build. Publish only task files with the project publication script, then report commit, displayed update time, module sizes and parity counts.
 

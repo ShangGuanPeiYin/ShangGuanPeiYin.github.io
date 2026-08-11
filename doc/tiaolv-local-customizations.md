@@ -187,6 +187,7 @@
 
 | 功能 | 位置/关键词 | 说明 |
 | --- | --- | --- |
+| 首页当前流派预加载 | `updateBannerLoading`、`isExcelReady`、`ensureExcel` | Panel WASM 就绪并恢复角色后立即加载当前流派/表格版本的专用 Excel WASM；加载期间显示“计算中…”，完成后自动重算。首屏不得等待首次点击，也不得同时预载其他流派模块。 |
 | “关于本工具”弹窗 | `showAuthorInfo`、`自用装备管理台` | 使用本站自有工具说明、浏览器本地数据备份提示、上游来源致谢及数据免责声明；不保留上游署名和教程链接。 |
 | 装备等级数据保存 | `levelSelect`、`level`、`handleSaveEquip`、`handleEditEquip` | 保存装备时写入 `level`，编辑装备时回填等级。 |
 | 装备等级展示 | `levelColor`、`levelText` | 在装备卡片、穿搭槽位、最佳配装装备卡片显示 `[110]`、`[105]`、`[100]`、`[96]` 等等级标签。 |
