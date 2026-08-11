@@ -15,7 +15,9 @@ compile_one() {
   local codegen_units=8
   if [[ "$(basename "$source")" == "excel_qslin_1_1.rs" ]]; then
     opt_level=2
-    codegen_units=16
+    # This large module produced different section ordering across cold builds
+    # with parallel codegen. A single unit keeps the published hash reproducible.
+    codegen_units=1
   fi
   echo "Compiling $(basename "$output")"
   rustc -Awarnings --edition=2024 --target wasm32-unknown-unknown \
