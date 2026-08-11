@@ -34,4 +34,5 @@ Output order is total damage, ADPS, graduation ratio, RDPS, RDPS graduation rati
 - 破竹鸢2.4以当前工作簿公式及有效缓存输出为数值裁判；旧39 MB解释器的该流派结果已确认过期，不得作为新模块预期值。
 - Panel WASM must remain byte-for-byte unchanged during Excel-only updates.
 - 性能验收下限为10个旧引擎可比流派整体至少3.5倍、任一单流派至少1.8倍；模块gzip仍不得超过1 MB。
+- 牵丝霖固定使用 `opt-level=2`、单 codegen unit；正式候选生成后必须再次独立编译，并用 `cmp` 验证两个WASM逐字节一致。不得只比较数值输出后忽略构建哈希漂移。
 - Follow `AGENTS.md` for JS tags, site time, validation, scoped staging and publication.
