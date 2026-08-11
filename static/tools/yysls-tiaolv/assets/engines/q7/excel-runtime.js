@@ -442,7 +442,7 @@
 
     function seasonResistance() {
         const seasonStats = window.CommonData && window.CommonData.SEASON_STATS || {};
-        return num(seasonStats["赛季抗性"]) || 2.15;
+        return num(seasonStats["赛季抗性"]) || 2.45;
     }
 
     function diyAssumedOuterPen() {

@@ -1,5 +1,8 @@
 {
   "source": "https://yysls.leoq7.com",
+  "localOverrides": {
+    "seasonResistance": 2.45
+  },
   "siteUpdateTime": "2026年8月10日 23:34:08",
   "flows": [
     "牵丝玉",

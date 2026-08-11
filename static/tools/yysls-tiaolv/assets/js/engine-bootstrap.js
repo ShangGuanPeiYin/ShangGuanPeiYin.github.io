@@ -20,11 +20,11 @@
         const scripts = engine === "q7" ? [
             "assets/engines/q7/generated-calc-strings.js?v=ff1814f6",
             "assets/engines/q7/generated-calc-metadata.js?v=19197b0e",
-            "assets/engines/q7/q7-app-config.js?v=791a0a4b",
-            "assets/engines/q7/excel-runtime.js?v=9d54bf8a"
+            "assets/engines/q7/q7-app-config.js?v=819a7d65",
+            "assets/engines/q7/excel-runtime.js?v=8da52c0d"
         ] : [
             "assets/js/generated-calc-strings.js?v=202608110029",
-            "assets/js/generated-calc-metadata.js?v=202608111941",
+            "assets/js/generated-calc-metadata.js?v=202608112041",
             "assets/js/excel-runtime.js?v=202608111909"
         ];
         document.write(scripts.map(src => `<script src="${src}"><\/script>`).join(""));

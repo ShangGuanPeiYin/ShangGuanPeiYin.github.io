@@ -31,7 +31,7 @@ The script:
 
 ## Tiaolv calculator upstreams
 
-The live tool has two isolated calculator engines. `yysls.leoq7.com` is the complete upstream for the default **Q7 original** engine: Panel values, formulas, combined WASM, DPS, RDPS, graduation rates, workbook versions, templates, and best-build scoring. `yysls-assistant.cn` remains the Panel numeric reference for the separately selectable **Assistant** engine.
+The live tool has two isolated calculator engines. `yysls.leoq7.com` is the complete upstream for the default **Q7 original** engine: Panel values, formulas, combined WASM, DPS, RDPS, graduation rates, workbook versions, templates, and best-build scoring. The sole local Q7 numeric override is season resistance `2.45` instead of upstream `2.15`. `yysls-assistant.cn` remains the Panel numeric reference for the separately selectable **Assistant** engine.
 
 The `study/` directory holds numeric-reference snapshots:
 

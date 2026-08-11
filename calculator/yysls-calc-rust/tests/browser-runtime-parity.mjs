@@ -106,7 +106,7 @@ try {
     }
     const mainClasses = Array.from(document.getElementById("class-select").options, option => option.value);
     const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
-    return { engine: window.YYSLS_ACTIVE_ENGINE, compiled: typeof runtime.calculateBestBuildCompiled === "function", summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate, resources: performance.getEntriesByType("resource").map(entry => entry.name) };
+    return { engine: window.YYSLS_ACTIVE_ENGINE, seasonResistance: CommonData.SEASON_STATS["赛季抗性"], compiled: typeof runtime.calculateBestBuildCompiled === "function", summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate, resources: performance.getEntriesByType("resource").map(entry => entry.name) };
   })()`);
   if (expectedEngine === "assistant" && result.initiallyLoaded.length !== 0) {
     throw new Error(`Excel modules loaded before demand: ${JSON.stringify(result.initiallyLoaded)}`);
@@ -122,6 +122,7 @@ try {
     throw new Error(`unexpected equipment available classes: ${JSON.stringify(result.availableClasses)}`);
   }
   if (result.engine !== expectedEngine || result.compiled !== (expectedEngine === "assistant")) throw new Error(`engine isolation failed: ${JSON.stringify(result)}`);
+  if (result.seasonResistance !== 2.45) throw new Error(`unexpected season resistance: ${result.seasonResistance}`);
   const loadedQ7 = result.resources.some(url => url.includes("/assets/wasm/q7/") || url.includes("/assets/engines/q7/"));
   const loadedAssistantWasm = result.resources.some(url => url.includes("/assets/wasm/yysls_panel.wasm") || url.includes("/assets/wasm/excel/"));
   if (expectedEngine === "q7" ? (!loadedQ7 || loadedAssistantWasm) : (loadedQ7 || !loadedAssistantWasm)) throw new Error(`cross-engine resource load: ${JSON.stringify(result.resources)}`);

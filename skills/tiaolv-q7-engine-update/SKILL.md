@@ -12,7 +12,7 @@ Read `references/contracts.md` and `doc/tiaolv-local-customizations.md` before c
 1. Record the current Assistant Panel, 11 Excel module, metadata, and workbook hashes.
 2. Run `scripts/fetch_q7_snapshot.py`. It downloads into a temporary directory, validates all required assets and ten workbooks, then replaces only the namespaced Q7 snapshot.
 3. Review the generated manifest. A changed upstream hash is a numeric engine update, even when the public filename is unchanged.
-4. Keep upstream Q7 metadata and strings byte-identical. Limit the Q7 runtime modification to its namespaced WASM URL; generate Q7 app constants from the upstream app source.
+4. Keep upstream Q7 metadata and strings byte-identical. Limit runtime changes to the namespaced WASM URL and the documented `2.45` season-resistance fallback; generate Q7 app constants from upstream and then apply the sole local numeric override `SEASON_STATS.赛季抗性 = 2.45`.
 5. Run Q7 upstream/local parity, dual-engine isolation, best-build scoring, workbook hash, browser, customization, baseline, and Hugo checks.
 6. Update documentation, frontend cache tags, and all site update-time locations. Publish only after every gate passes.
 
@@ -24,6 +24,7 @@ Read `references/contracts.md` and `doc/tiaolv-local-customizations.md` before c
 - Cache keys and workbook paths include the engine ID. Q7 exposes only its ten current workbook versions; Assistant retains its own versions.
 - Switching engines persists globally and reloads the page. First use defaults to `q7`.
 - Any change to Assistant WASM, workbook, or numeric baseline blocks a Q7-only update.
+- Q7's pinned WASM, metadata, strings, workbooks, and all other constants remain upstream-identical; the season resistance is intentionally overridden from upstream `2.15` to local `2.45`.
 
 ## Commands
 

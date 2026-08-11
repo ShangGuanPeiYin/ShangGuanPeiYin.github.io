@@ -20,7 +20,9 @@ for (const filename of ["generated-calc-strings.js", "generated-calc-metadata.js
     return Buffer.from(await response.arrayBuffer());
   });
   let local = fs.readFileSync(path.join(live, "assets/engines/q7", filename));
-  if (filename === "excel-runtime.js") local = Buffer.from(local.toString("utf8").replace("assets/wasm/q7/yysls_calc.wasm", "assets/wasm/yysls_calc.wasm"));
+  if (filename === "excel-runtime.js") local = Buffer.from(local.toString("utf8")
+    .replace("assets/wasm/q7/yysls_calc.wasm", "assets/wasm/yysls_calc.wasm")
+    .replace('return num(seasonStats["赛季抗性"]) || 2.45;', 'return num(seasonStats["赛季抗性"]) || 2.15;'));
   if (!local.equals(upstream)) throw new Error(`Q7 ${filename} snapshot differs from upstream`);
 }
 

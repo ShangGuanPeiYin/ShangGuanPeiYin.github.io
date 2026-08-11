@@ -55,7 +55,10 @@ const context = {}; vm.createContext(context); vm.runInContext(block, context);
 process.stdout.write("window.YYSLS_Q7_APP_CONFIG=" + JSON.stringify({CommonData: context.CommonData, ClassConfig: context.ClassConfig}) + ";\n");
 '''
     result = subprocess.run(["node", "-e", script, str(app_path)], check=True, capture_output=True, text=True)
-    output.write_text(result.stdout, encoding="utf-8")
+    config = json.loads(re.search(r"window\.YYSLS_Q7_APP_CONFIG=(.*);\s*$", result.stdout, re.S).group(1))
+    # 本站明确采用 2.45；这是相对 Q7 上游快照唯一允许的数值覆盖。
+    config["CommonData"]["SEASON_STATS"]["赛季抗性"] = 2.45
+    output.write_text("window.YYSLS_Q7_APP_CONFIG=" + json.dumps(config, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -87,11 +90,16 @@ def main() -> None:
         if runtime_text.count(old_url) != 1:
             raise RuntimeError("unexpected Q7 WASM URL contract")
         runtime_text = runtime_text.replace(old_url, "assets/wasm/q7/yysls_calc.wasm")
+        fallback = 'return num(seasonStats["赛季抗性"]) || 2.15;'
+        if runtime_text.count(fallback) != 1:
+            raise RuntimeError("unexpected Q7 season-resistance fallback contract")
+        runtime_text = runtime_text.replace(fallback, 'return num(seasonStats["赛季抗性"]) || 2.45;')
         (tmp / "excel-runtime.namespaced.js").write_text(runtime_text, encoding="utf-8")
         extract_app_config(tmp / "app.min.js", tmp / "q7-app-config.js")
 
         manifest = {
             "source": BASE,
+            "localOverrides": {"seasonResistance": 2.45},
             "siteUpdateTime": metadata.get("siteUpdateTime", ""),
             "flows": list(rotations),
             "assets": {filename: {"sha256": digest(tmp / filename), "size": (tmp / filename).stat().st_size} for filename in JS_FILES},
