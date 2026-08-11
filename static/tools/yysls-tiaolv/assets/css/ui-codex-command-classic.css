@@ -732,6 +732,19 @@ body.ui-codex-command-classic .max-btn:hover {
     background: var(--cc-cyan);
 }
 
+body.ui-codex-command-classic .auto-name-btn {
+    color: var(--cc-cyan);
+    border-color: var(--cc-line);
+    border-radius: 0;
+    background: var(--cc-deck);
+}
+
+body.ui-codex-command-classic .auto-name-btn:hover {
+    color: var(--cc-void);
+    border-color: var(--cc-cyan);
+    background: var(--cc-cyan);
+}
+
 body.ui-codex-command-classic .quality-tag,
 body.ui-codex-command-classic .unit-suffix {
     color: var(--cc-muted);
