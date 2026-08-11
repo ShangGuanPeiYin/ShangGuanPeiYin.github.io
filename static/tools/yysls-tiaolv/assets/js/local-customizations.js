@@ -2794,7 +2794,7 @@
             }
         };
 
-        GradModal.startTransmutationCalc = function(slotKey) {
+        GradModal.startTransmutationCalc = async function(slotKey) {
             var resultElement = document.getElementById("transmute-result-area");
             if (!resultElement) return;
             var equip = this.state.transmutationTarget || this.state.currentEquips[slotKey];
@@ -2809,6 +2809,12 @@
             var className = UIManager.dom.classSelect.value;
             if (!className) {
                 resultElement.innerHTML = '<p class="error-text">请先在主界面选择流派</p>';
+                return;
+            }
+            try {
+                await Calculator.ensureExcel(className);
+            } catch (error) {
+                resultElement.innerHTML = '<p class="error-text">计算模块加载失败：' + error.message + '</p>';
                 return;
             }
             var status = getAdviceStatus(equip);

@@ -471,7 +471,9 @@
                 button.textContent = "生成中...";
             }
             await runtime.ready;
-            const exportData = runtime.exportClassInputData(getCurrentExcelExportOptions());
+            const exportOptions = getCurrentExcelExportOptions();
+            await runtime.ensureExcel(exportOptions.flowName || exportOptions.className);
+            const exportData = runtime.exportClassInputData(exportOptions);
             if (!exportData || !exportData.workbookName) throw new Error("当前流派没有可下载的表格模板");
             const response = await fetch(workbookUrl(exportData.workbookName));
             if (!response.ok) throw new Error(`无法下载模板：${exportData.workbookName}`);

@@ -14,7 +14,7 @@ Read `references/contracts.md` before changing the generator, runtime, metadata 
 3. Inspect formula functions used by the new workbooks. Extend the compiler and its tests for every new function; never silently return zero, copy cached outputs as formulas, or skip unsupported cells.
 4. Run `scripts/rebuild_excel_modules.sh`. It regenerates direct Rust formulas, builds 11 flow-version WASMs, verifies the known large module is reproducible, finalizes hashes, and runs parity/performance checks.
 5. Confirm the Panel WASM hash and 36-output contract are unchanged.
-6. Test normal calculation, manual attributes, best build, cultivation, transmutation, flow-version persistence and Excel export. Verify the initial page requests no Excel module and each flow module loads at most once.
+6. Test normal calculation, manual attributes, best build, cultivation, transmutation, flow-version persistence and Excel export. Every asynchronous entry must await the selected module through `Calculator.ensureExcel` or `runtime.ensureExcel` before its first synchronous calculation. Verify the initial page requests no Excel module and each flow module loads at most once.
 7. Update calculation documentation, modified JS `?v=` tags, all site-update-time locations and calculator baselines.
 8. Run the Tiaolv customization check and Hugo build. Publish only task files with the project publication script, then report commit, displayed update time, module sizes and parity counts.
 
@@ -22,9 +22,9 @@ Read `references/contracts.md` before changing the generator, runtime, metadata 
 
 - Require 40 inputs and 5 outputs for every Excel module.
 - Compare all five outputs against the migration oracle by Float64 bit pattern for the fixed corpus. 破竹鸢2.4 is the documented exception because the retired interpreter disagrees with the current workbook; validate its default outputs against the workbook cache and keep its generated direct-formula tests instead of reproducing the old error.
-- Require every module gzip size to be at most 1 MB. The accepted migration performance floor is at least 3.5× overall and 1.8× for every individual flow; record any flow below the original 5× target.
+- Require every module gzip size to be at most 1 MB. While the retired interpreter is available as a migration oracle, require at least 3.5× overall and 1.8× for every individual flow. After it is deleted, the fixed parity corpus must complete within 20 seconds overall and 4 seconds per flow unless an explicitly documented CI override is used.
 - Keep 牵丝霖 on `opt-level=2` with one codegen unit. Compile it a second time in an independent temporary output and require byte-for-byte equality with the published candidate; a hash or size difference blocks publication.
-- Keep the old interpreter until all gates pass; after migration, keep the checked-in parity fixture/tooling needed to validate future Excel replacements.
+- Keep the old interpreter until all migration gates pass, then delete it and all runtime fallback paths. After migration, keep the checked-in parity fixture/tooling needed to validate unchanged formulas; when a workbook intentionally changes, regenerate its oracle only after independently validating the workbook formulas and cached outputs.
 - Do not change Panel values, equipment values, resistance, Excel formulas, baselines or UI behavior unless separately requested.
 
 ## Commands

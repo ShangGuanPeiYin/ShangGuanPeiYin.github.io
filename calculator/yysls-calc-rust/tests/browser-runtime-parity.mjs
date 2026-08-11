@@ -53,6 +53,14 @@ try {
     const runtime = window.YYSLSExcelRuntime;
     const initiallyLoaded = runtime.loadedExcelFlows();
     const flowNames = Object.keys(window.YYSLS_CALC_METADATA.flowIds);
+    if (!Calculator || typeof Calculator.ensureExcel !== "function") throw new Error("Calculator.ensureExcel is missing");
+    const firstFlow = flowNames[0];
+    await Calculator.ensureExcel(firstFlow);
+    const firstBase = { className: firstFlow, equippedItems: {}, xinfa: [], modifiers: [] };
+    const firstContext = runtime.createBestBuildContext(firstBase);
+    const firstBest = runtime.calculateBestBuildCompiled(firstContext, []);
+    const firstExport = runtime.exportClassInputData(firstBase);
+    if (!firstBest || !firstExport || firstExport.values.length !== 40) throw new Error("first-use Excel path returned null");
     const summaries = [];
     for (const className of flowNames) {
       await runtime.ensureExcel(className);
@@ -81,7 +89,7 @@ try {
     }
     const mainClasses = Array.from(document.getElementById("class-select").options, option => option.value);
     const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
-    return { summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows() };
+    return { summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate };
   })()`);
   if (result.initiallyLoaded.length !== 0) {
     throw new Error(`Excel modules loaded before demand: ${JSON.stringify(result.initiallyLoaded)}`);
@@ -95,7 +103,7 @@ try {
   if (!result.availableClasses.includes("pvp") || result.availableClasses.length !== 11) {
     throw new Error(`unexpected equipment available classes: ${JSON.stringify(result.availableClasses)}`);
   }
-  console.log(JSON.stringify({ status: "ok", engine: "rust", flows: result.summaries.length }));
+  console.log(JSON.stringify({ status: "ok", engine: "rust", flows: result.summaries.length, firstUse: result.firstFlow, firstBestRate: result.firstBestRate }));
 } finally {
   client.socket.close();
 }

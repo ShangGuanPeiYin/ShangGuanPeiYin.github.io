@@ -24,7 +24,7 @@ Output order is total damage, ADPS, graduation ratio, RDPS, RDPS graduation rati
 
 - `YYSLSExcelRuntime.ready` and `panelReady` resolve when the 29 KB Panel module is usable.
 - `ensureExcel(flowName)` loads only the selected flow-version module and caches its instance.
-- Synchronous calculations return no graduation result while a module is loading and schedule an automatic recalculation after loading.
+- General synchronous display calculations may return no graduation result while a module is loading and schedule an automatic recalculation after loading. Best build, cultivation, transmutation and Excel export must await the selected module before their first synchronous calculation; they must never continue with zero values or an old-engine fallback.
 - Panel calculation must remain available without any Excel request.
 
 ## Version and publication invariants
@@ -33,6 +33,6 @@ Output order is total damage, ADPS, graduation ratio, RDPS, RDPS graduation rati
 - `flowGraduationProfiles` remains version-specific.
 - 破竹鸢2.4以当前工作簿公式及有效缓存输出为数值裁判；旧39 MB解释器的该流派结果已确认过期，不得作为新模块预期值。
 - Panel WASM must remain byte-for-byte unchanged during Excel-only updates.
-- 性能验收下限为10个旧引擎可比流派整体至少3.5倍、任一单流派至少1.8倍；模块gzip仍不得超过1 MB。
+- 迁移期存在旧解释器时，性能验收下限为10个可比流派整体至少3.5倍、任一单流派至少1.8倍。旧解释器删除后，固定语料改用直接耗时硬门槛：整体不超过20秒、单流派不超过4秒；模块gzip仍不得超过1 MB。
 - 牵丝霖固定使用 `opt-level=2`、单 codegen unit；正式候选生成后必须再次独立编译，并用 `cmp` 验证两个WASM逐字节一致。不得只比较数值输出后忽略构建哈希漂移。
 - Follow `AGENTS.md` for JS tags, site time, validation, scoped staging and publication.
