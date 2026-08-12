@@ -13,7 +13,7 @@
     window.YYSLS_ENGINE_STORAGE_KEY = STORAGE_KEY;
     window.YYSLS_ENGINE_MANIFEST = Object.freeze({
         q7: Object.freeze({ id: "q7", label: "Q7 原版", wasmHash: "840bcf61a057799de9d933c0907430086ec1dfcfd7c386fda6b8776921c05def" }),
-        assistant: Object.freeze({ id: "assistant", label: "Assistant 新版" })
+        assistant: Object.freeze({ id: "assistant", label: "测试新版" })
     });
 
     window.YYSLSWriteEngineScripts = function () {
@@ -24,7 +24,7 @@
             "assets/engines/q7/excel-runtime.js?v=8da52c0d"
         ] : [
             "assets/js/generated-calc-strings.js?v=202608110029",
-            "assets/js/generated-calc-metadata.js?v=202608121302",
+            "assets/js/generated-calc-metadata.js?v=202608130019",
             "assets/js/excel-runtime.js?v=202608121302"
         ];
         document.write(scripts.map(src => `<script src="${src}"><\/script>`).join(""));

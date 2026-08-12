@@ -58,7 +58,7 @@ check_file "$DOC"
 
 check_contains "$INDEX" 'id="engine-source-select"' "calculation source selector"
 check_contains "$INDEX" '<option value="q7">Q7 原版</option>' "Q7 engine selector option"
-check_contains "$INDEX" '<option value="assistant">Assistant 新版</option>' "Assistant engine selector option"
+check_contains "$INDEX" '<option value="assistant">测试新版</option>' "Assistant engine selector option"
 check_contains "$INDEX" 'engine-bootstrap.js' "dual-engine bootstrap"
 check_contains "$INDEX" 'engine-runtime-adapter.js' "dual-engine runtime adapter"
 check_file "static/tools/yysls-tiaolv/assets/wasm/q7/yysls_calc.wasm"
