@@ -193,6 +193,9 @@ class WorkbookCompiler:
             key = gain.cell(row, 1).value
             if isinstance(key, str) and key:
                 self.gain_rows.append((string_id(key), row))
+        self._const_ids = set()
+        self._const_cache = {}
+        self._pairs_key_cells = set()
 
     def split_ref(self, reference: str, current_sheet: str):
         cleaned = reference.replace("$", "")
@@ -274,7 +277,9 @@ class WorkbookCompiler:
                             raise ValueError("仅支持增益表范围XLOOKUP")
                         return_col = column_index_from_string(return_address.replace("$", "").split(":", 1)[0])
                         fallback = self.expr(default, current_sheet)
-                        parts.extend((f"xlookup_gain(v[{cell_id}], {return_col}, {fallback}, v)" if self.direct_mode else f"self.xlookup_gain_cell({cell_id}, {return_col}, {fallback})") for cell_id in self.range_ids(str(lookup_value.value), current_sheet))
+                        for cell_id in self.range_ids(str(lookup_value.value), current_sheet):
+                            folded = self._try_fold_gain(cell_id, return_col, fallback)
+                            parts.append(folded if folded is not None else (f"xlookup_gain(v[{cell_id}], {return_col}, {fallback}, v)" if self.direct_mode else f"self.xlookup_gain_cell({cell_id}, {return_col}, {fallback})"))
                         continue
                     if arg.kind == "range" and ":" in str(arg.value):
                         for cell_id in self.range_ids(str(arg.value), current_sheet):
@@ -293,7 +298,10 @@ class WorkbookCompiler:
                 if table_sheet == "武学奇术" and table_address.replace("$", "") == "A:ZZ":
                     if node.args[0].kind == "range" and ":" not in str(node.args[0].value):
                         key_id = self.resolve_single(str(node.args[0].value), current_sheet)
-                        return (f"vlookup(v[{key_id}], {col}, v)" if self.direct_mode else f"self.vlookup_cell({key_id}, {col})") if key_id is not None else f64_literal(0.0)
+                        if key_id is None:
+                            return f64_literal(0.0)
+                        folded = self._try_fold_vlookup_global(key_id, col)
+                        return folded if folded is not None else (f"vlookup(v[{key_id}], {col}, v)" if self.direct_mode else f"self.vlookup_cell({key_id}, {col})")
                     return f"vlookup({key}, {col}, v)" if self.direct_mode else f"self.vlookup({key}, {col})"
                 left, right = table_address.replace("$", "").split(":", 1)
                 lcol, lrow = coordinate_from_string(left)
@@ -306,7 +314,10 @@ class WorkbookCompiler:
                     pairs.append(f"({key_id if key_id is not None else 'usize::MAX'}, {value_id if value_id is not None else 'usize::MAX'})")
                 if node.args[0].kind == "range" and ":" not in str(node.args[0].value):
                     key_id = self.resolve_single(str(node.args[0].value), current_sheet)
-                    return (f"local_vlookup(v[{key_id}], &[{', '.join(pairs)}], v)" if self.direct_mode else f"self.local_vlookup_cell({key_id}, &[{', '.join(pairs)}])") if key_id is not None else f64_literal(0.0)
+                    if key_id is None:
+                        return f64_literal(0.0)
+                    folded = self._try_fold_local_vlookup(key_id, col, table_sheet, table_address)
+                    return folded if folded is not None else (f"local_vlookup(v[{key_id}], &[{', '.join(pairs)}], v)" if self.direct_mode else f"self.local_vlookup_cell({key_id}, &[{', '.join(pairs)}])")
                 return f"local_vlookup({key}, &[{', '.join(pairs)}], v)" if self.direct_mode else f"self.local_vlookup({key}, &[{', '.join(pairs)}])"
         raise ValueError(f"无法生成表达式：{node}")
 
@@ -475,6 +486,167 @@ class WorkbookCompiler:
         finally:
             self.direct_mode = False
 
+    def _const_value_cell(self, cell_id):
+        if cell_id not in self._const_cache:
+            raise ValueError(f"非常量单元格无法求值：{self.cell_names[cell_id]}")
+        return self._const_cache[cell_id]
+
+    def _const_value_of(self, cell_id):
+        value = self.cell_values[cell_id]
+        if isinstance(value, str) and value.startswith("="):
+            parser = FormulaParser(value)
+            node = parser.parse()
+            sheet = next(sheet for (sheet, address), found in self.cells.items() if found == cell_id)
+            return self._const_expr(node, sheet)
+        return self._const_literal(value)
+
+    def _cell_ref(self, cell_id):
+        return f"v[{cell_id}]" if self.direct_mode else f"self.cell({cell_id})"
+
+    def _try_fold_gain(self, cell_id: int, return_col: int, fallback: str):
+        if cell_id not in self._const_ids:
+            return None
+        key = self._const_cache[cell_id]
+        for key_id, row in self.gain_rows:
+            if float(key_id) == key:
+                value_id = self.cells.get(("增益", self.sheets["增益"].cell(row, return_col).coordinate))
+                return fallback if value_id is None else self._cell_ref(value_id)
+        return fallback
+
+    def _try_fold_vlookup_global(self, key_id: int, col: int):
+        if key_id not in self._const_ids:
+            return None
+        key = self._const_cache[key_id]
+        for match_id, row in self.lookup_rows:
+            if float(match_id) == key:
+                value_id = self.cells.get(("武学奇术", self.sheets["武学奇术"].cell(row, col).coordinate))
+                return f64_literal(0.0) if value_id is None else self._cell_ref(value_id)
+        return f64_literal(0.0)
+
+    def _try_fold_local_vlookup(self, key_id: int, col: int, table_sheet: str, table_address: str):
+        if key_id not in self._const_ids:
+            return None
+        key = self._const_cache[key_id]
+        left, right = table_address.replace("$", "").split(":", 1)
+        lcol, lrow = coordinate_from_string(left)
+        rcol, rrow = coordinate_from_string(right)
+        first_col = column_index_from_string(lcol)
+        for row in range(lrow, rrow + 1):
+            kid = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col).coordinate))
+            vid = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col + col - 1).coordinate))
+            if kid is None:
+                continue
+            if kid not in self._const_ids:
+                return None
+            if self._const_cache[kid] == key:
+                return f64_literal(0.0) if vid is None else self._cell_ref(vid)
+        return f64_literal(0.0)
+
+    def _const_literal(self, value) -> float:
+        if isinstance(value, bool):
+            return 1.0 if value else 0.0
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            return float(string_id(value))
+        return 0.0
+
+    def _const_expr(self, node: Node, current_sheet: str) -> float:
+        if node.kind == "number":
+            return float(node.value)
+        if node.kind == "text":
+            return float(string_id(node.value))
+        if node.kind == "range":
+            cell_id = self.resolve_single(str(node.value), current_sheet)
+            return 0.0 if cell_id is None else self._const_value_cell(cell_id)
+        if node.kind == "binary":
+            left = self._const_expr(node.args[0], current_sheet)
+            right = self._const_expr(node.args[1], current_sheet)
+            if node.value == "+":
+                return left + right
+            if node.value == "-":
+                return left - right
+            if node.value == "*":
+                return left * right
+            if node.value == "/":
+                return left / right
+            cmp = {"=": left == right, "<>": left != right, "<": left < right, ">": left > right, "<=": left <= right, ">=": left >= right}[node.value]
+            return 1.0 if cmp else 0.0
+        if node.kind == "func":
+            name = node.value
+            if name == "IF":
+                return self._const_expr(node.args[1], current_sheet) if self._const_expr(node.args[0], current_sheet) != 0.0 else self._const_expr(node.args[2], current_sheet)
+            if name == "OR":
+                return 1.0 if any(self._const_expr(arg, current_sheet) != 0.0 for arg in node.args) else 0.0
+            if name == "IFERROR":
+                return self._const_expr(node.args[0], current_sheet)
+            if name in ("MIN", "MAX"):
+                parts = [self._const_expr(arg, current_sheet) for arg in node.args]
+                result = parts[0]
+                for part in parts[1:]:
+                    result = max(result, part) if name == "MAX" else min(result, part)
+                return result
+            if name == "SUM":
+                parts = []
+                for arg in node.args:
+                    if arg.kind == "func" and arg.value == "XLOOKUP":
+                        lookup_value, lookup_array, return_array, default = arg.args
+                        lookup_sheet, lookup_address = self.split_ref(str(lookup_array.value), current_sheet)
+                        return_sheet, return_address = self.split_ref(str(return_array.value), current_sheet)
+                        if lookup_sheet != "增益" or return_sheet != "增益":
+                            raise ValueError("常量求值仅支持增益表XLOOKUP")
+                        return_col = column_index_from_string(return_address.replace("$", "").split(":", 1)[0])
+                        default_value = self._const_expr(default, current_sheet)
+                        parts.extend(self._const_gain(cell_id, return_col, default_value, current_sheet) for cell_id in self.range_ids(str(lookup_value.value), current_sheet))
+                        continue
+                    if arg.kind == "range" and ":" in str(arg.value):
+                        for cell_id in self.range_ids(str(arg.value), current_sheet):
+                            value = self.cell_values[cell_id]
+                            if isinstance(value, (int, float)) and not isinstance(value, bool) or isinstance(value, str) and value.startswith("="):
+                                parts.append(self._const_value_cell(cell_id))
+                    else:
+                        parts.append(self._const_expr(arg, current_sheet))
+                return sum(parts)
+            if name == "VLOOKUP":
+                if len(node.args) != 4 or node.args[1].kind != "range" or node.args[2].kind != "number" or node.args[3].kind != "number" or node.args[3].value != 0:
+                    raise ValueError("仅支持精确匹配VLOOKUP")
+                key = self._const_expr(node.args[0], current_sheet)
+                col = int(node.args[2].value)
+                table_sheet, table_address = self.split_ref(str(node.args[1].value), current_sheet)
+                if table_sheet == "武学奇术" and table_address.replace("$", "") == "A:ZZ":
+                    for key_id, row in self.lookup_rows:
+                        if float(key_id) == key:
+                            value_id = self.cells.get(("武学奇术", self.sheets["武学奇术"].cell(row, col).coordinate))
+                            return 0.0 if value_id is None else self._const_value_cell(value_id)
+                    return 0.0
+                pairs = self._vlookup_pairs(node, table_sheet, table_address, col, current_sheet)
+                for key_id, value_id in pairs:
+                    if key_id is not None and self._const_value_cell(key_id) == key:
+                        return 0.0 if value_id is None else self._const_value_cell(value_id)
+                return 0.0
+        raise ValueError(f"常量求值失败：{node}")
+
+    def _const_gain(self, cell_id: int, return_col: int, default_value: float, current_sheet: str) -> float:
+        key = self._const_value_cell(cell_id)
+        for match_id, row in self.gain_rows:
+            if float(match_id) == key:
+                value_id = self.cells.get(("增益", self.sheets["增益"].cell(row, return_col).coordinate))
+                return default_value if value_id is None else self._const_value_cell(value_id)
+        return default_value
+
+    def _vlookup_pairs(self, node: Node, table_sheet: str, table_address: str, col: int, current_sheet: str):
+        left, right = table_address.replace("$", "").split(":", 1)
+        lcol, lrow = coordinate_from_string(left)
+        rcol, rrow = coordinate_from_string(right)
+        first_col = column_index_from_string(lcol)
+        pairs = []
+        for row in range(lrow, rrow + 1):
+            key_id = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col).coordinate))
+            value_id = self.cells.get((table_sheet, self.sheets[table_sheet].cell(row, first_col + col - 1).coordinate))
+            pairs.append((key_id, value_id))
+        self._pairs_key_cells = {key_id for key_id, _ in pairs if key_id is not None}
+        return pairs
+
     def defaults(self):
         result = []
         for cell_id, kind in zip(self.input_ids, self.input_kinds):
@@ -540,6 +712,11 @@ class WorkbookCompiler:
         for cell_id in order:
             if any(dependency in dynamic for dependency in dependencies[cell_id]):
                 dynamic.add(cell_id)
+        self._const_ids = set(order) - input_ids - dynamic
+        self._const_cache = {}
+        for cell_id in order:
+            if cell_id in self._const_ids:
+                self._const_cache[cell_id] = self._const_value_of(cell_id)
         constant_assignments = [f"    v[{cell_id}] = {self.direct_value_expr(cell_id)};" for cell_id in order if cell_id not in input_ids and cell_id not in dynamic]
         input_masks = [0 for _ in self.cell_values]
         for input_index, cell_id in enumerate(self.input_ids):
@@ -598,6 +775,17 @@ class WorkbookCompiler:
             dynamic_groups.append((name, calls))
         group_functions = "\n".join(f"#[inline(never)]\nfn {name}(v: &mut [f64; {len(self.cell_values)}], dirty: &mut [u32; {len(self.cell_values)}], epoch: u32, changed_mask: u64) {{\n{calls}\n}}" for name, calls in dynamic_groups)
         dynamic_calls = "\n".join(f"        {name}(&mut state.v, &mut state.dirty, epoch, changed_mask);" for name, _ in dynamic_groups)
+        batch_assignments = [f"    v[{cell_id}] = {self.direct_value_expr(cell_id)};" for cell_id in order if cell_id not in input_ids and cell_id in dynamic]
+        batch_chunks = make_chunks(f"batch_{index}_chunk", batch_assignments)
+        batch_chunk_functions = "\n".join(
+            f"#[inline(always)]\nfn {name}(v: &mut [f64; {len(self.cell_values)}]) {{\n{chr(10).join(lines)}\n}}"
+            for name, lines in batch_chunks
+        )
+        batch_dynamic_calls = "\n".join(f"        {name}(&mut **state);" for name, _ in batch_chunks)
+        batch_input_sets = "\n".join(
+            f"        state[{cell_id}] = input[offset + {input_index}];"
+            for input_index, cell_id in enumerate(self.input_ids) if cell_id is not None
+        )
         return f"""
 fn vlookup(key: f64, col: usize, v: &[f64; {len(self.cell_values)}]) -> f64 {{
         match key {{
@@ -622,6 +810,7 @@ fn xlookup_gain(key: f64, col: usize, default: f64, v: &[f64; {len(self.cell_val
 
 {chunk_functions}
 {group_functions}
+{batch_chunk_functions}
 
 struct EngineState {{
     v: Box<[f64; {len(self.cell_values)}]>,
@@ -632,8 +821,10 @@ struct EngineState {{
 }}
 struct EngineWorkspace(std::cell::UnsafeCell<EngineState>);
 unsafe impl Sync for EngineWorkspace {{}}
+struct BatchWorkspace(std::cell::UnsafeCell<Box<[f64; {len(self.cell_values)}]>>);
+unsafe impl Sync for BatchWorkspace {{}}
 
-fn calculate_{index}(input: &[f64], output: &mut [f64]) {{
+fn get_workspace() -> &'static mut EngineState {{
     static WORKSPACE: std::sync::OnceLock<EngineWorkspace> = std::sync::OnceLock::new();
     let workspace = WORKSPACE.get_or_init(|| {{
         let mut v: Box<[f64; {len(self.cell_values)}]> = vec![0.0; {len(self.cell_values)}].into_boxed_slice().try_into().ok().unwrap();
@@ -647,7 +838,11 @@ fn calculate_{index}(input: &[f64], output: &mut [f64]) {{
         }}))
     }});
     // A WebAssembly module instance is single-threaded and this ABI is deliberately non-reentrant.
-    let state = unsafe {{ &mut *workspace.0.get() }};
+    unsafe {{ &mut *workspace.0.get() }}
+}}
+
+fn calculate_{index}(input: &[f64], output: &mut [f64]) {{
+    let state = get_workspace();
     state.epoch = state.epoch.wrapping_add(1);
     if state.epoch == 0 {{
         state.dirty.fill(0);
@@ -677,6 +872,29 @@ fn calculate_{index}(input: &[f64], output: &mut [f64]) {{
     output[2] = graduation;
     output[3] = rdps;
     output[4] = rdps / {f64_literal(rd_baseline)};
+}}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yysls_calc_batch(input: *const f64, count: usize, output: *mut f64) {{
+    let input = unsafe {{ slice::from_raw_parts(input, INPUT_LEN * count) }};
+    let output = unsafe {{ slice::from_raw_parts_mut(output, OUTPUT_LEN * count) }};
+static BATCH_WORKSPACE: std::sync::OnceLock<BatchWorkspace> = std::sync::OnceLock::new();
+    let workspace = BATCH_WORKSPACE.get_or_init(|| {{
+        let mut v: Box<[f64; {len(self.cell_values)}]> = vec![0.0; {len(self.cell_values)}].into_boxed_slice().try_into().ok().unwrap();
+{constant_calls}
+        BatchWorkspace(std::cell::UnsafeCell::new(v))
+    }});
+    let state = unsafe {{ &mut *workspace.0.get() }};
+    for i in 0..count {{
+        let offset = i * INPUT_LEN;
+{batch_input_sets}
+{batch_dynamic_calls}
+        output[i * OUTPUT_LEN + 0] = state[{output_ids[0]}];
+        output[i * OUTPUT_LEN + 1] = state[{output_ids[1]}];
+        output[i * OUTPUT_LEN + 2] = state[{output_ids[2]}];
+        output[i * OUTPUT_LEN + 3] = state[{output_ids[3]}];
+        output[i * OUTPUT_LEN + 4] = state[{output_ids[3]}] / {f64_literal(rd_baseline)};
+    }}
 }}
 """
 

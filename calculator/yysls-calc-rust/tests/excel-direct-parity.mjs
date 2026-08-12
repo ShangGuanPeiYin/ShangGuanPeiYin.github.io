@@ -16,6 +16,7 @@ const fixture = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(calc, "test
 const maximumDirectMs = Number(process.env.YYSLS_MAX_DIRECT_MS || 20000);
 const maximumFlowDirectMs = Number(process.env.YYSLS_MAX_FLOW_DIRECT_MS || 4000);
 const minimumQsyuAdjacentPerSecond = Number(process.env.YYSLS_MIN_QSYU_ADJACENT_PER_SECOND || 10000);
+const minimumQsyuBatchPerSecond = Number(process.env.YYSLS_MIN_QSYU_BATCH_PER_SECOND || 20000);
 
 const context = { window: {} };
 vm.createContext(context);
@@ -59,6 +60,7 @@ function assertBits(flow, index, expected, actual, input) {
 let compared = 0;
 let directMs = 0;
 let qsyuAdjacentPerSecond = 0;
+let qsyuBatchPerSecond = 0;
 for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
   if (selectedFlow && flow !== selectedFlow) continue;
   const usesWorkbookJudge = legacyMismatchFlows.has(flow);
@@ -145,8 +147,45 @@ for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
     if (qsyuAdjacentPerSecond < minimumQsyuAdjacentPerSecond && process.env.YYSLS_SKIP_SPEED_GATE !== "1") {
       throw new Error(`牵丝玉 adjacent throughput ${qsyuAdjacentPerSecond.toFixed(0)}/s is below ${minimumQsyuAdjacentPerSecond}/s`);
     }
+    if (typeof direct.yysls_calc_batch === "function") {
+      const batchCount = 256;
+      const batchInput = new Float64Array(40 * batchCount);
+      const batchOutput = new Float64Array(5 * batchCount);
+      for (let c = 0; c < batchCount; c += 1) {
+        const row = Float64Array.from(corpus[0].input);
+        for (let i = 0; i < 40; i += 1) row[i] += ((c * 7 + i) % 13) / 1000;
+        batchInput.set(row, c * 40);
+      }
+      const batchInputPtr = direct.yysls_alloc_f64(batchInput.length);
+      const batchOutputPtr = direct.yysls_alloc_f64(batchOutput.length);
+      new Float64Array(direct.memory.buffer, batchInputPtr, batchInput.length).set(batchInput);
+      direct.yysls_calc_batch(batchInputPtr, batchCount, batchOutputPtr);
+      const batchOuts = Array.from(new BigUint64Array(direct.memory.buffer, batchOutputPtr, 5 * batchCount));
+      for (let c = 0; c < batchCount; c += 1) {
+        const input = Array.from(batchInput.subarray(c * 40, (c + 1) * 40));
+        const single = runDirect(input);
+        for (let k = 0; k < 5; k += 1) {
+          if (single[k] !== batchOuts[c * 5 + k]) throw new Error(`batch vs single mismatch flow=${flow} case=${c} output=${k}`);
+        }
+      }
+      const batchRates = [];
+      for (let sample = 0; sample < 3; sample += 1) {
+        const iterations = 200;
+        const started = performance.now();
+        for (let iteration = 0; iteration < iterations; iteration += 1) {
+          direct.yysls_calc_batch(batchInputPtr, batchCount, batchOutputPtr);
+        }
+        batchRates.push(iterations * batchCount * 1000 / (performance.now() - started));
+      }
+      batchRates.sort((left, right) => left - right);
+      const qsyuBatchPerSecondLocal = batchRates[1];
+      if (qsyuBatchPerSecondLocal < minimumQsyuBatchPerSecond && process.env.YYSLS_SKIP_SPEED_GATE !== "1") {
+        throw new Error(`牵丝玉 batch throughput ${qsyuBatchPerSecondLocal.toFixed(0)}/s is below ${minimumQsyuBatchPerSecond}/s`);
+      }
+      qsyuBatchPerSecond = qsyuBatchPerSecondLocal;
+    }
   }
   if (flowDirectMs > maximumFlowDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`${flow} direct engine ${flowDirectMs.toFixed(2)}ms exceeds ${maximumFlowDirectMs}ms`);
 }
 if (directMs > maximumDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`direct engine ${directMs.toFixed(2)}ms exceeds ${maximumDirectMs}ms`);
-console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length, compared, workbookJudges: legacyMismatchFlows.size, seed: fixture.seed, directMs, qsyuAdjacentPerSecond, performanceGate: { maximumDirectMs, maximumFlowDirectMs, minimumQsyuAdjacentPerSecond } }));
+console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length, compared, workbookJudges: legacyMismatchFlows.size, seed: fixture.seed, directMs, qsyuAdjacentPerSecond, qsyuBatchPerSecond, performanceGate: { maximumDirectMs, maximumFlowDirectMs, minimumQsyuAdjacentPerSecond, minimumQsyuBatchPerSecond } }));

@@ -145,8 +145,9 @@
         return map;
     }
 
-    const diyIndex = fieldIndex(META.diyFields);
-    const classIndexCache = new Map();
+const diyIndex = fieldIndex(META.diyFields);
+const panelRowIndexMap = new Map((META.panelRows || []).map((row, index) => [row, index]));
+const classIndexCache = new Map();
 
     function classFieldsFor(flowName) {
         return META.flowClassFields && META.flowClassFields[flowName] || META.classFields || [];
@@ -180,14 +181,20 @@
         if (index !== undefined) raw[index] = stringId(value);
     }
 
+    const classDefaultsCache = new Map();
+
     function classRawFromDefaults(className) {
-        const defaults = classDefaultsFor(className);
-        const kinds = classKindsFor(className);
-        const raw = new Float64Array(classFieldsFor(className).length);
-        defaults.forEach((value, index) => {
-            raw[index] = kinds && kinds[index] === "str" ? stringId(value) : Number(value) || 0;
-        });
-        return raw;
+        if (!classDefaultsCache.has(className)) {
+            const defaults = classDefaultsFor(className);
+            const kinds = classKindsFor(className);
+            const fields = classFieldsFor(className);
+            const precomputed = new Float64Array(fields.length);
+            defaults.forEach((value, index) => {
+                precomputed[index] = kinds && kinds[index] === "str" ? stringId(value) : Number(value) || 0;
+            });
+            classDefaultsCache.set(className, precomputed);
+        }
+        return classDefaultsCache.get(className).slice();
     }
 
     function resolveFlowName(className, options = {}) {
@@ -398,7 +405,7 @@
     }
 
     function panelFromArray(values) {
-        const byRow = row => Number(values[(META.panelRows || []).indexOf(row)]) || 0;
+        const byRow = row => Number(values[panelRowIndexMap.get(row)]) || 0;
         const actualPrecision = byRow(6) * 100;
         const actualCrit = byRow(7) * 100;
         const actualIntent = byRow(10) * 100;
@@ -750,7 +757,7 @@
         return raw;
     }
 
-    function calculateFromPanel(panel, options = {}) {
+    function prepareCompute(panel, options = {}) {
         if (!runtime.available || !panel) return null;
         const originalClassName = options.className || panel["当前流派"] || panel.currentClass;
         const className = originalClassName;
@@ -792,21 +799,25 @@
             damageBonusState: outputDamageBonusState
         }, flowName);
         markPanelDamageBonusState(cappedPanel, outputDamageBonusState);
+        return { className, flowName, flowId, excelState, cappedPanel, raw, panel };
+    }
+
+    function assembleComputeResult(prepared, outputs, options = {}) {
+        const { className, flowName, cappedPanel, panel } = prepared;
+        const outputValues = Array.from(outputs);
         let totalDamage = 0;
         let dps = 0;
         let graduationRatio = null;
         let rdps = 0;
         let rdpsGraduationRatio = null;
-        if (typeof excelState.wasm.yysls_calc_class_outputs === "function") {
-            const outputs = runClassOutputs(flowName, flowId, raw);
-            totalDamage = outputs[0] || 0;
-            dps = outputs[1] || 0;
-            graduationRatio = Number.isFinite(outputs[2]) ? outputs[2] : null;
-            rdps = outputs[3] || 0;
-            rdpsGraduationRatio = Number.isFinite(outputs[4]) && outputs[4] > 0 ? outputs[4] : null;
+        if (typeof prepared.excelState.wasm.yysls_calc_class_outputs === "function") {
+            totalDamage = outputValues[0] || 0;
+            dps = outputValues[1] || 0;
+            graduationRatio = Number.isFinite(outputValues[2]) ? outputValues[2] : null;
+            rdps = outputValues[3] || 0;
+            rdpsGraduationRatio = Number.isFinite(outputValues[4]) && outputValues[4] > 0 ? outputValues[4] : null;
         } else {
-            writeF64(excelState.memory, excelState.inputPtr, raw);
-            totalDamage = excelState.wasm.yysls_calc_class(flowId, excelState.inputPtr);
+            totalDamage = outputValues[0] || 0;
         }
         const rotation = window.ClassConfig && window.ClassConfig.ROTATIONS && (window.ClassConfig.ROTATIONS[flowName] || window.ClassConfig.ROTATIONS[className]) || {};
         const generatedRotation = META.classRotationStats && (META.classRotationStats[flowName] || META.classRotationStats[className]) || {};
@@ -835,6 +846,19 @@
             rdpsGraduationRate,
             meta: { ...rotation, ...generatedRotation }
         };
+    }
+
+    function calculateFromPanel(panel, options = {}) {
+        if (!runtime.available || !panel) return null;
+        const prepared = prepareCompute(panel, options);
+        if (!prepared) return null;
+        if (typeof prepared.excelState.wasm.yysls_calc_class_outputs === "function") {
+            const outputs = runClassOutputs(prepared.flowName, prepared.flowId, prepared.raw);
+            return assembleComputeResult(prepared, outputs, options);
+        }
+        writeF64(prepared.excelState.memory, prepared.excelState.inputPtr, prepared.raw);
+        const totalDamage = prepared.excelState.wasm.yysls_calc_class(prepared.flowId, prepared.excelState.inputPtr);
+        return assembleComputeResult(prepared, [totalDamage], options);
     }
 
     function calculate(options) {
@@ -909,42 +933,118 @@
         };
     }
 
+    function transformBestBuildCandidate(context, compiledEquips) {
+        const raw = context.baseRaw.slice();
+        const bonuses = {};
+        (compiledEquips || []).forEach(compiled => {
+            if (!compiled) return;
+            for (let index = 0; index < compiled.rawEntries.length; index += 2) {
+                raw[compiled.rawEntries[index]] += compiled.rawEntries[index + 1];
+            }
+            for (let index = 0; index < compiled.bonusEntries.length; index += 2) {
+                addBonus(bonuses, compiled.bonusEntries[index], compiled.bonusEntries[index + 1]);
+            }
+            for (let index = 0; index < (compiled.extraEntries || []).length; index += 2) {
+                raw[compiled.extraEntries[index]] = compiled.extraEntries[index + 1];
+            }
+        });
+        modifierList(context.options.modifiers).forEach(modifier => addRawModifier(raw, modifier));
+        modifierList(context.options.modifiers).forEach(modifier => applyBonusModifier(bonuses, modifier));
+        let panel = panelFromArray(runDiy(raw));
+        panel = markPanelDamageBonusState(
+            applyRateOverflow(applyClassPanelRules(panel, context.options.className), context.options),
+            {
+                commonEffective: true,
+                genericWeaponEffective: true,
+                weaponSpecificEffective: false,
+                qishuEffective: true,
+                dingyinEffective: true
+            }
+        );
+        return { panel, bonuses };
+    }
+
     function calculateBestBuildCompiled(context, compiledEquips) {
         try {
             if (!runtime.available || !context || !context.baseRaw) return null;
-            const raw = context.baseRaw.slice();
-            const bonuses = {};
-            (compiledEquips || []).forEach(compiled => {
-                if (!compiled) return;
-                for (let index = 0; index < compiled.rawEntries.length; index += 2) {
-                    raw[compiled.rawEntries[index]] += compiled.rawEntries[index + 1];
-                }
-                for (let index = 0; index < compiled.bonusEntries.length; index += 2) {
-                    addBonus(bonuses, compiled.bonusEntries[index], compiled.bonusEntries[index + 1]);
-                }
-                for (let index = 0; index < (compiled.extraEntries || []).length; index += 2) {
-                    raw[compiled.extraEntries[index]] = compiled.extraEntries[index + 1];
-                }
-            });
-            modifierList(context.options.modifiers).forEach(modifier => addRawModifier(raw, modifier));
-            modifierList(context.options.modifiers).forEach(modifier => applyBonusModifier(bonuses, modifier));
-            let panel = panelFromArray(runDiy(raw));
-            panel = markPanelDamageBonusState(
-                applyRateOverflow(applyClassPanelRules(panel, context.options.className), context.options),
-                {
-                    commonEffective: true,
-                    genericWeaponEffective: true,
-                    weaponSpecificEffective: false,
-                    qishuEffective: true,
-                    dingyinEffective: true
-                }
-            );
-            return calculateFromPanel(panel, {
+            const step = transformBestBuildCandidate(context, compiledEquips);
+            if (!step) return null;
+            return calculateFromPanel(step.panel, {
                 ...context.options,
-                bonuses
+                bonuses: step.bonuses
             });
         } catch (error) {
             console.warn("最佳配装向量计算失败：", error);
+            return null;
+        }
+    }
+
+    const EXCEL_BATCH_CAPACITY = 1024;
+
+    function ensureBatchPointers(state) {
+        if (state.batchInputPtr && state.batchOutputPtr) return true;
+        state.batchCapacity = EXCEL_BATCH_CAPACITY;
+        state.batchInputPtr = state.wasm.yysls_alloc_f64(EXCEL_BATCH_CAPACITY * state.inputLen);
+        state.batchOutputPtr = state.wasm.yysls_alloc_f64(EXCEL_BATCH_CAPACITY * state.outputLen);
+        return true;
+    }
+
+    function calculateBestBuildBatch(contexts, compiledList) {
+        try {
+            if (!runtime.available || !Array.isArray(compiledList) || compiledList.length === 0) return null;
+            const contextFor = id => contexts instanceof Map ? contexts.get(id) : (contexts && contexts[id]);
+            const groups = new Map();
+            for (const item of compiledList) {
+                const context = contextFor(item.contextId);
+                if (!context || !context.options || !context.baseRaw) return null;
+                const flowName = resolveFlowName(context.options.className, context.options);
+                if (!groups.has(flowName)) {
+                    groups.set(flowName, { excelState: excelModules.get(flowName), items: [] });
+                }
+                groups.get(flowName).items.push({ context, compiled: item.compiled || [], entryIndex: item.entryIndex });
+            }
+            const results = new Array(compiledList.length);
+            const resultsByFlow = new Map();
+            for (const [flowName, group] of groups) {
+                if (!group.excelState || typeof group.excelState.wasm.yysls_calc_batch !== "function") {
+                    group.items.forEach((entry, index) => {
+                        resultsByFlow.set(entry.entryIndex, calculateBestBuildCompiled(entry.context, entry.compiled));
+                    });
+                    continue;
+                }
+                ensureBatchPointers(group.excelState);
+                const { excelState } = group;
+                const chunkSize = excelState.batchCapacity;
+                for (let start = 0; start < group.items.length; start += chunkSize) {
+                    const chunk = group.items.slice(start, start + chunkSize);
+                    const count = chunk.length;
+                    for (let offset = 0; offset < count; offset += 1) {
+                        const step = transformBestBuildCandidate(chunk[offset].context, chunk[offset].compiled);
+                        if (!step) return null;
+                        const prepared = prepareCompute(step.panel, {
+                            ...chunk[offset].context.options,
+                            bonuses: step.bonuses
+                        });
+                        if (!prepared) return null;
+                        chunk[offset].prepared = prepared;
+                        chunk[offset].bonuses = step.bonuses;
+                        const base = excelState.batchInputPtr + offset * excelState.inputLen * 8;
+                        new Float64Array(excelState.memory.buffer, base, excelState.inputLen).set(prepared.raw);
+                    }
+                    excelState.wasm.yysls_calc_batch(excelState.batchInputPtr, count, excelState.batchOutputPtr);
+                    for (let offset = 0; offset < count; offset += 1) {
+                        const base = excelState.batchOutputPtr + offset * excelState.outputLen * 8;
+                        const outputs = Array.from(new Float64Array(excelState.memory.buffer, base, excelState.outputLen));
+                        resultsByFlow.set(chunk[offset].entryIndex, assembleComputeResult(chunk[offset].prepared, outputs, chunk[offset].context.options));
+                    }
+                }
+            }
+            for (let index = 0; index < compiledList.length; index += 1) {
+                results[index] = resultsByFlow.has(index) ? resultsByFlow.get(index) : null;
+            }
+            return results;
+        } catch (error) {
+            console.warn("最佳配装批量计算失败：", error);
             return null;
         }
     }
@@ -1005,6 +1105,7 @@
         compileBestBuildEquip,
         createBestBuildContext,
         calculateBestBuildCompiled,
+        calculateBestBuildBatch,
         calculateFromPanel(panel, options = {}) {
             try {
                 return calculateFromPanel(panel, options);
