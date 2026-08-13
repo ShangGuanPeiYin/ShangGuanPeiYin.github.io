@@ -136,6 +136,13 @@
    - 低于 110 级且已经承音的真实装备直接参与，计入真实“承音”而非“需承音”；110级装备继续沿用原有按词条质量生成原装/需承音候选的规则。
    - 缺少等级的旧数据继续按 105 级处理，因此在最佳配装中必须承音。现有 `maxNeedChengyin` 剪枝、结果标记、物理装备互斥、Top20 去重及仅110级可转律规则保持不变。
 
+### 2026-08-13 新增定制
+
+1. **装备卡片流派标签填充样式**
+   - 装备卡片最下方的「可用流派」标签从「边框 + 彩色文字」改为「系列色填充背景 + 1px 同色边框 + 白色文字」，见 `app.min.js` 的 `buildClassPillsHtml`（系列合并分支与单职业分支）。
+   - 系列色固定：鸣金蓝 `#42a5f5`、破竹紫 `#ab47bc`、裂石棕 `#b08968`、牵丝绿 `#4caf50`，语义与 `CLASS_SERIES_MAP` 保持一致。
+   - 无流派限制的「全流派」标签使用灰底 `#6b7280`（`style.css` 的 `.class-pill-all`），与鸣金蓝明确区分；不得退回上游的蓝底 `#2196f3` 或任何与鸣金系列相近的蓝色。
+
 ### 跨文件依赖与同步顺序
 
 以下功能不能只保留单个关键词，必须作为一组同步：
@@ -152,7 +159,7 @@
 
 同步完成后必须运行 `check_tiaolv_customizations.sh`；若任何一组只恢复了一部分，即使JavaScript语法和Hugo构建成功，也视为同步失败。
 
-主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`normalizeManualStatCorrections`、`applyManualStatCorrections`、`grad-manual-stat-corrections`、`grad-manual-stat-correction-select`、`isTransmutableEquip`、`BEST_BUILD_MAX_EQUIPMENT_LEVEL`、`isBelowBestBuildMaxEquipmentLevel`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`equip-modal-content`、`equip-modal-header`、`equip-name-header-field`、`available-classes-container.options-list.show`、`zhuanlv-target-checkboxes`、`#modal :disabled`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`。
+主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`normalizeManualStatCorrections`、`applyManualStatCorrections`、`grad-manual-stat-corrections`、`grad-manual-stat-correction-select`、`isTransmutableEquip`、`BEST_BUILD_MAX_EQUIPMENT_LEVEL`、`isBelowBestBuildMaxEquipmentLevel`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`equip-modal-content`、`equip-modal-header`、`equip-name-header-field`、`available-classes-container.options-list.show`、`zhuanlv-target-checkboxes`、`#modal :disabled`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`、`buildClassPillsHtml`、`class-pill-all`。
 
 云备份保护标记：`backup_latest`、`backup_snapshots`、`data_hash`、`server_updated_at`、`client_updated_at`、`tiaolv_cloud_` 前缀（`dirty` / `baseline_<userId>` / `owner` / `pending_<userId>` / `auto_<userId>` / `snapshot_at_<userId>` / `last_success_<userId>`）、`device_override`、`before_restore`、`remote_changed`、`owner_mismatch`、`first_connect`。`cloud-backup.js` 当前版本号 `?v=202608031609`，同步上游时必须保留该文件、Supabase UMD SDK 引用及其相对加载顺序。
 
@@ -209,6 +216,7 @@
 | 装备自动命名 | `auto-name-btn`、`handleAutoName`、`STAT_ABBR`、`isNameManuallyEdited` | 在装备录入/修改弹窗名称栏右侧新增「自动命名」按钮。点击后按当前主词条+副词条生成缩写名并写入名称框，置 `isNameManuallyEdited = !0` 防止后续换部位/武器时被“我的XX”默认值覆盖。缩写规则：最大/最小外功攻击→大外/小外；全武学增效→全增；各武学增效→XX增（剑增…横刀增、拳增、鼓增）；无相/鸣金/裂石/牵丝/破竹攻击→大X/小X；劲/敏/势原样；精准率→精准、会心率→会心、会意率→会意；对首领单位增伤→首领；对玩家单位增效→玩家；单体/群体类奇术增伤→单奇/群奇；生存类词条/生存向→生存；未知词条原样保留。排序固定：三率（精准/会心/会意）→ 敏势劲 → 攻击 → 生存 → 全部增效（全增/各武学增/首领/玩家/单奇/群奇）置于最后；相同词条出现多次时前缀数量（如两条大外 → `2大外`）。定音类穿透词条（外穿/属穿/无相穿/技伤）不在主副词条内，不会进入名字。命名核心抽取为 `buildAutoNameFromStats(statTypes)` 供弹窗按钮、批量重命名、保存默认名、OCR 保存四处复用。`index.html` 中需保留 `<button id="auto-name-btn">` 及 `app.min.js` 中 `handleAutoName` 调用链。 |
 | 一键全部重命名 | `rename-all-btn`、`handleRenameAllEquips` | 在「当前角色」下拉框左侧新增「全部重命名」按钮。点击后二次确认（两次 `confirm`），遍历当前角色全部装备，用 `buildAutoNameFromStats([mainStat.type, ...subStats.map(s=>s.type)])` 重命名为缩写名（无词条装备保留原名），保存后同步 `AppState.equippedItems` 引用、重渲染装备库与模拟器、清除转律/最佳配装缓存并 `updateStats`/`saveSimulatorState`。`index.html` 中需保留 `<button id="rename-all-btn">` 及 `app.min.js` 中 `handleRenameAllEquips` 绑定链。 |
 | 新增/OCR装备默认自动命名 | `handleSaveEquip`、`saveOcrResultsToAccount`、`isNameManuallyEdited` | 手动录入新增装备（编辑 ID 为空）且未手动输入名称时，保存前用 `buildAutoNameFromStats` 按表单当前主副词条自动命名（替换“我的XX”默认值）；手动输入过的名称不被覆盖。批量 OCR 保存的装备名称同样由 `我的${槽位名}` 改为 `buildAutoNameFromStats([主词条, ...副词条])` 的缩写名，无词条时回退“我的XX”。定音词条不参与命名。 |
+| 装备卡片流派标签填充样式 | `buildClassPillsHtml`、`CLASS_SERIES_MAP`、`.class-pill-all` | 装备卡片最下方的「可用流派」标签使用「系列色填充背景 + 1px 同色边框 + 白色文字」；无流派限制的「全流派」标签使用灰底 `#6b7280`，与鸣金蓝 `#42a5f5` 明确区分。系列色固定：鸣金蓝 `#42a5f5`、破竹紫 `#ab47bc`、裂石棕 `#b08968`、牵丝绿 `#4caf50`。 |
 
 ## 数值参考同步建议
 
