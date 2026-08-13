@@ -2,7 +2,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const root = new URL("../", import.meta.url);
-const assistantPath = new URL("../../study/yysls-assistant.cn/assets/index-C5SFDSbW.js", root);
+const assistantPath = new URL("../../study/assistant/seed/yysls-assistant.cn/assets/index-C5SFDSbW.js", root);
 const stringsPath = new URL("../../static/tools/yysls-tiaolv/assets/js/generated-calc-strings.js", root);
 const outputPath = new URL("src/panel_v2_generated.rs", root);
 

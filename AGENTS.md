@@ -33,11 +33,13 @@ The script:
 
 The live tool has two isolated calculator engines that are mutually independent: the **Q7 original** engine references `yysls.leoq7.com`, while the separately selectable **Assistant** engine (used for testing the new version) references `yysls-assistant.cn`. `yysls.leoq7.com` is the complete upstream for the default **Q7 original** engine: Panel values, formulas, combined WASM, DPS, RDPS, graduation rates, workbook versions, templates, and best-build scoring. The sole local Q7 numeric override is season resistance `2.45` instead of upstream `2.15`. `yysls-assistant.cn` remains the Panel numeric reference for the separately selectable **Assistant** engine.
 
-The `study/` directory holds numeric-reference snapshots:
+The `study/` directory holds numeric-reference snapshots, organized by engine:
 
-- `study/new/yysls-assistant.cn/` — latest validated numeric snapshot;
-- `study/old/yysls-assistant.cn/` — previous validated numeric snapshot;
-- `study/yysls-assistant.cn/` — frozen seed snapshot retained until the first successful rotation.
+- `study/assistant/seed/yysls-assistant.cn/` — frozen seed snapshot retained until the first successful rotation;
+- `study/assistant/new/yysls-assistant.cn/` — latest validated numeric snapshot;
+- `study/assistant/old/yysls-assistant.cn/` — previous validated numeric snapshot;
+- `study/q7/new/yysls.leoq7.com/` — latest Q7 snapshot;
+- `study/q7/old/yysls.leoq7.com/` — previous Q7 snapshot.
 
 Q7 production snapshots are namespaced under `static/tools/yysls-tiaolv/assets/engines/q7/`, `assets/wasm/q7/`, and `excels/q7/`. Update them only with `skills/tiaolv-q7-engine-update/`; never overwrite the Assistant engine.
 

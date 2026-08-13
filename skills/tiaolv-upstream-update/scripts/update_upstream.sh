@@ -3,11 +3,12 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 STUDY="$REPO/study"
+ENGINE_DIR="$STUDY/assistant"
 SITE="yysls-assistant.cn"
 BASE_URL="https://$SITE"
-NEW_DIR="$STUDY/new/$SITE"
-OLD_DIR="$STUDY/old/$SITE"
-SEED_DIR="$STUDY/$SITE"
+NEW_DIR="$ENGINE_DIR/new/$SITE"
+OLD_DIR="$ENGINE_DIR/old/$SITE"
+SEED_DIR="$ENGINE_DIR/seed/$SITE"
 WORK_DIR="$(mktemp -d "$STUDY/.assistant-update.XXXXXX")"
 DOWNLOAD_DIR="$WORK_DIR/$SITE"
 
@@ -84,7 +85,7 @@ FETCHED_AT="$(date '+%Y-%m-%d %H:%M:%S %z')"
     find "$DOWNLOAD_DIR" -type f -print0 | sort -z | xargs -0 sha256sum
 } > "$DOWNLOAD_DIR/SNAPSHOT-MANIFEST.txt"
 
-mkdir -p "$STUDY/new" "$STUDY/old"
+mkdir -p "$ENGINE_DIR/new" "$ENGINE_DIR/old"
 if [ -d "$OLD_DIR" ]; then
     rm -rf "$OLD_DIR"
 fi

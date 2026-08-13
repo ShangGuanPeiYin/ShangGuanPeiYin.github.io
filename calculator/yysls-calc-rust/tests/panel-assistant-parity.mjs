@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repo = path.resolve(root, "../..");
-const assistantSource = fs.readFileSync(path.join(repo, "study/yysls-assistant.cn/assets/index-C5SFDSbW.js"), "utf8");
+const assistantSource = fs.readFileSync(path.join(repo, "study/assistant/seed/yysls-assistant.cn/assets/index-C5SFDSbW.js"), "utf8");
 const stringsSource = fs.readFileSync(path.join(repo, "static/tools/yysls-tiaolv/assets/js/generated-calc-strings.js"), "utf8");
 const wasmPath = process.env.YYSLS_PANEL_WASM || path.join(root, "dist/yysls_panel.wasm");
 const randomCases = Number(process.env.YYSLS_PANEL_CASES || 1_000_000);

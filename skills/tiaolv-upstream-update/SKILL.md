@@ -11,9 +11,10 @@ Fetches the latest application bundle from `yysls-assistant.cn` solely so its Pa
 
 ```
 study/
-  old/yysls-assistant.cn/   ← previous validated numeric snapshot
-  new/yysls-assistant.cn/   ← latest validated numeric snapshot
-  yysls-assistant.cn/       ← frozen seed snapshot before first rotation
+  assistant/
+    seed/yysls-assistant.cn/  ← frozen seed snapshot before first rotation
+    new/yysls-assistant.cn/   ← latest validated numeric snapshot
+    old/yysls-assistant.cn/   ← previous validated numeric snapshot
 ```
 
 ## Workflow
@@ -39,8 +40,8 @@ It does not download or replace the live `app.min.js`, Panel WASM, Excel WASM, H
 Compare the validated snapshots to identify numeric changes:
 
 ```bash
-diff -ru study/old/yysls-assistant.cn/assets \
-         study/new/yysls-assistant.cn/assets
+diff -ru study/assistant/old/yysls-assistant.cn/assets \
+         study/assistant/new/yysls-assistant.cn/assets
 ```
 
 Then follow `skills/tiaolv-sync/SKILL.md`. A changed bundle is evidence to review, not permission to copy code into the live site.

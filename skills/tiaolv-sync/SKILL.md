@@ -1,6 +1,6 @@
 ---
 name: tiaolv-sync
-description: Use when reviewing or synchronizing Tiaolv Panel numeric changes from study/new/yysls-assistant.cn, or when checking Tiaolv edits while preserving all local UI and behavior.
+description: Use when reviewing or synchronizing Tiaolv Panel numeric changes from study/assistant/new/yysls-assistant.cn, or when checking Tiaolv edits while preserving all local UI and behavior.
 ---
 
 # Tiaolv Numeric Sync
@@ -18,8 +18,8 @@ doc/调率站代码实现说明.md
 
 ## Source boundaries
 
-- Numeric reference: `study/new/yysls-assistant.cn/`.
-- Previous numeric reference: `study/old/yysls-assistant.cn/`.
+- Numeric reference: `study/assistant/new/yysls-assistant.cn/`.
+- Previous numeric reference: `study/assistant/old/yysls-assistant.cn/`.
 - Live application: `static/tools/yysls-tiaolv/`.
 - Locally maintained Panel source: `calculator/yysls-calc-rust/`.
 - Q7 assets are outside this skill's scope and must remain byte-for-byte unchanged during Assistant updates.
