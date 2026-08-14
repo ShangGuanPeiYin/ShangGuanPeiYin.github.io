@@ -2658,6 +2658,20 @@
         // 监听 modal 显隐
         var modal = document.getElementById("modal");
         if (modal) {
+            if (!modal.getAttribute("data-equip-backdrop-save-prompt")) {
+                modal.setAttribute("data-equip-backdrop-save-prompt", "1");
+                modal.addEventListener("click", function(event) {
+                    if (event.target !== modal || modal.classList.contains("hidden")) return;
+                    var shouldSave = window.confirm("装备还没有保存，是否保存？");
+                    if (shouldSave && typeof UIManager !== "undefined"
+                        && UIManager && typeof UIManager.saveEquip === "function") {
+                        UIManager.saveEquip({ preventDefault: function() {} });
+                    } else if (!shouldSave && typeof UIManager !== "undefined"
+                        && UIManager && typeof UIManager.closeModal === "function") {
+                        UIManager.closeModal();
+                    }
+                });
+            }
             new MutationObserver(function(mutations) {
                 mutations.forEach(function(m) {
                     if (m.attributeName === "class") {
