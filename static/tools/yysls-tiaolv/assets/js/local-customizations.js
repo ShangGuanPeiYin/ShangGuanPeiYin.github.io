@@ -2193,6 +2193,29 @@
         return { subStats: subStats, level: 110, isTransmutable: true };
     }
 
+    var WEAPON_TRANSMUTATION_REMOVED_STATS = [
+        "最大鸣金攻击", "最大裂石攻击", "最大牵丝攻击", "最大破竹攻击"
+    ];
+    var WEAPON_TRANSMUTATION_ADDED_STAT = "最大无相攻击";
+
+    function isWeaponTransmutationEquip(equip) {
+        return !!equip && ("1" === String(equip.slotId)
+            || "weapon1" === equip.slotKey || "weapon2" === equip.slotKey);
+    }
+
+    function filterTransmutationTargetsForEquip(equip, targets) {
+        var result = Array.from(new Set(targets || []));
+        if (!isWeaponTransmutationEquip(equip)) return result;
+
+        result = result.filter(function(stat) {
+            return WEAPON_TRANSMUTATION_REMOVED_STATS.indexOf(stat) < 0;
+        });
+        if (result.indexOf(WEAPON_TRANSMUTATION_ADDED_STAT) < 0) {
+            result.push(WEAPON_TRANSMUTATION_ADDED_STAT);
+        }
+        return result;
+    }
+
     function updateZhuanlvTargetList() {
         var targetList = document.getElementById("zhuanlv-target-list");
         var checkboxes = document.getElementById("zhuanlv-target-checkboxes");
@@ -2242,6 +2265,7 @@
                 if (!seen[stat]) { seen[stat] = true; allTargets.push(stat); }
             });
         });
+        allTargets = filterTransmutationTargetsForEquip(equip, allTargets);
 
         // 分析不可选原因：当前槽位自身类型 + 其他槽位已有的副词条类型
         var ownType = equip.subStats[subStatIndex] && equip.subStats[subStatIndex].type;
@@ -2930,6 +2954,43 @@
 
         GradModal.getTransmutationVariants = function(equip, className, subStatIndex, useAllPools) {
             var variants = _originalGetVariants.call(this, equip, className, subStatIndex, useAllPools);
+
+            if (isWeaponTransmutationEquip(equip)) {
+                variants = variants.filter(function(item) {
+                    return WEAPON_TRANSMUTATION_REMOVED_STATS.indexOf(item.toStat) < 0;
+                });
+
+                // 兜底补齐武器专属的“大无相”候选，避免上游词库缺失时无法使用。
+                var indexes = Number.isInteger(subStatIndex)
+                    ? [subStatIndex]
+                    : Array.from({ length: (equip.subStats || []).length }, function(_, index) { return index; });
+                indexes.forEach(function(index) {
+                    var original = equip.subStats && equip.subStats[index];
+                    if (!original || !original.type) return;
+                    var otherTypes = new Set((equip.subStats || []).filter(function(_, otherIndex) {
+                        return otherIndex !== index;
+                    }).map(function(stat) { return stat && stat.type; }));
+                    if (original.type === WEAPON_TRANSMUTATION_ADDED_STAT
+                        || otherTypes.has(WEAPON_TRANSMUTATION_ADDED_STAT)
+                        || variants.some(function(item) {
+                            return item.subIndex === index && item.toStat === WEAPON_TRANSMUTATION_ADDED_STAT;
+                        })) return;
+
+                    var variant = JSON.parse(JSON.stringify(equip));
+                    variant.id = equip.id + "_trans_" + index + "_" + WEAPON_TRANSMUTATION_ADDED_STAT;
+                    variant.subStats[index] = {
+                        type: WEAPON_TRANSMUTATION_ADDED_STAT,
+                        value: getChengyinValue(WEAPON_TRANSMUTATION_ADDED_STAT),
+                        isPercent: CommonData.PERCENT_STATS.includes(WEAPON_TRANSMUTATION_ADDED_STAT)
+                    };
+                    variants.push({
+                        variant: variant,
+                        subIndex: index,
+                        fromStat: original.type,
+                        toStat: WEAPON_TRANSMUTATION_ADDED_STAT
+                    });
+                });
+            }
 
             var equipId = "function" === typeof getOriginalEquipId
                 ? getOriginalEquipId(equip)
