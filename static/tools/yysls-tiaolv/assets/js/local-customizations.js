@@ -2197,6 +2197,9 @@
         "最大鸣金攻击", "最大裂石攻击", "最大牵丝攻击", "最大破竹攻击"
     ];
     var WEAPON_TRANSMUTATION_ADDED_STAT = "最大无相攻击";
+    var DEFAULT_EXCLUDED_TRANSMUTATION_STATS = WEAPON_TRANSMUTATION_REMOVED_STATS.concat([
+        "最大无相攻击", "会意率"
+    ]);
 
     function isWeaponTransmutationEquip(equip) {
         return !!equip && ("1" === String(equip.slotId)
@@ -2298,6 +2301,11 @@
             if (status && Array.isArray(status.excludedTargets)) {
                 storedExcluded = status.excludedTargets;
             }
+        }
+        if (!storedExcluded) {
+            currentExcluded = DEFAULT_EXCLUDED_TRANSMUTATION_STATS.filter(function(stat) {
+                return allTargets.indexOf(stat) >= 0;
+            });
         }
         if (storedExcluded && storedExcluded.length > 0) {
             currentExcluded = storedExcluded.filter(function(t) {
