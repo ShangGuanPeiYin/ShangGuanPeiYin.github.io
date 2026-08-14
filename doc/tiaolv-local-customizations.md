@@ -143,6 +143,14 @@
    - 系列色固定：鸣金蓝 `#42a5f5`、破竹紫 `#ab47bc`、裂石棕 `#b08968`、牵丝绿 `#4caf50`，语义与 `CLASS_SERIES_MAP` 保持一致。
    - 无流派限制的「全流派」标签使用灰底 `#6b7280`（`style.css` 的 `.class-pill-all`），与鸣金蓝明确区分；不得退回上游的蓝底 `#2196f3` 或任何与鸣金系列相近的蓝色。
 
+### 2026-08-14 新增定制
+
+1. **装备弹窗遮罩点击保存提示**
+   - 点击装备编辑弹窗内容区域外的遮罩空白处时，提示“装备还没有保存，是否保存？”。
+   - 选择“是”复用 `UIManager.saveEquip` 原保存流程，继续执行表单校验、重复装备提示、转律状态提交和保存后的刷新。
+   - 选择“否”关闭弹窗并放弃本次草稿；点击弹窗内容区域、关闭按钮或取消按钮的既有行为不改变。
+   - 监听必须只绑定一次，并限定为 `#modal` 的直接遮罩区域，不得影响其他弹窗或页面空白区域。
+
 ### 跨文件依赖与同步顺序
 
 以下功能不能只保留单个关键词，必须作为一组同步：
@@ -154,12 +162,12 @@
 | 词条数量模式 | 数量输入UI、真实分配器、词条组合存储、独立结果节点、最终面板、弓箭同步、贷款定音环境和完整备份中的手动数据 |
 | 转律资格 | `index.html` 的“可转律”控件、装备字段 `isTransmutable`、`zhuanlv_status_<account>` 槽位记录、迁移函数、卡片徽标和110级显示规则 |
 | 最佳配装自动转律 | 三模式选择器、候选生成、物理ID互斥、转律元数据、Top20去重、方案覆盖层、主页计算、备份白名单和方案提示节点 |
-| 编辑装备弹窗改版 | `index.html` 的 `.equip-modal-content` / `.equip-modal-header` / 原 `#equip-name` 节点，`style.css` 的弹窗宽度、滚动条、词条宽度、流派网格和禁用光标规则，`local-customizations.js` 的转律目标网格及动态等级控件 |
+| 编辑装备弹窗改版 | `index.html` 的 `.equip-modal-content` / `.equip-modal-header` / 原 `#equip-name` 节点，`style.css` 的弹窗宽度、滚动条、词条宽度、流派网格和禁用光标规则，`local-customizations.js` 的转律目标网格、动态等级控件及遮罩点击保存提示 |
 | 已删除转律CD | 页面入口、运行时、存储、备份字段均保持不存在，同时保留一次性历史数据清理迁移 |
 
 同步完成后必须运行 `check_tiaolv_customizations.sh`；若任何一组只恢复了一部分，即使JavaScript语法和Hugo构建成功，也视为同步失败。
 
-主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`normalizeManualStatCorrections`、`applyManualStatCorrections`、`grad-manual-stat-corrections`、`grad-manual-stat-correction-select`、`isTransmutableEquip`、`BEST_BUILD_MAX_EQUIPMENT_LEVEL`、`isBelowBestBuildMaxEquipmentLevel`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`equip-modal-content`、`equip-modal-header`、`equip-name-header-field`、`available-classes-container.options-list.show`、`zhuanlv-target-checkboxes`、`#modal :disabled`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`、`buildClassPillsHtml`、`class-pill-all`。
+主要保护标记：`FULL_BACKUP_KIND`、`MANUAL_STAT_COUNT_CONFIG_KEY`、`allocateManualStatCounts`、`runManualStatMinCostFlow`、`normalizeManualStatCorrections`、`applyManualStatCorrections`、`grad-manual-stat-corrections`、`grad-manual-stat-correction-select`、`isTransmutableEquip`、`BEST_BUILD_MAX_EQUIPMENT_LEVEL`、`isBelowBestBuildMaxEquipmentLevel`、`TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER`、`TRANSMUTATION_STATUS_MODEL_VERSION`、`is-transmutable`、`transmutable-checkbox-wrapper`、`equip-modal-content`、`equip-modal-header`、`equip-name-header-field`、`data-equip-backdrop-save-prompt`、`available-classes-container.options-list.show`、`zhuanlv-target-checkboxes`、`#modal :disabled`、`grad-manual-main-count-total`、`grad-manual-sub-count-total`、`grad-manual-stat-preset-select`、`grad-manual-stat-count-result`、`writeManualPanelInputs(container, panel, false)`、`buildClassPillsHtml`、`class-pill-all`。
 
 云备份保护标记：`backup_latest`、`backup_snapshots`、`data_hash`、`server_updated_at`、`client_updated_at`、`tiaolv_cloud_` 前缀（`dirty` / `baseline_<userId>` / `owner` / `pending_<userId>` / `auto_<userId>` / `snapshot_at_<userId>` / `last_success_<userId>`）、`device_override`、`before_restore`、`remote_changed`、`owner_mismatch`、`first_connect`。`cloud-backup.js` 当前版本号 `?v=202608031609`，同步上游时必须保留该文件、Supabase UMD SDK 引用及其相对加载顺序。
 
