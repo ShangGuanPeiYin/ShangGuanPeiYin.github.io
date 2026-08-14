@@ -311,6 +311,25 @@ body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-off {
     background: var(--cc-deck);
 }
 
+body.ui-codex-command-classic #filter-container .filter-segment {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--cc-line);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+body.ui-codex-command-classic #filter-container .filter-segment .filter-btn,
+body.ui-codex-command-classic #filter-container .filter-segment .filter-toggle-btn {
+    border: none;
+    border-radius: 0;
+}
+
+body.ui-codex-command-classic #filter-container .filter-segment .filter-btn + .filter-btn,
+body.ui-codex-command-classic #filter-container .filter-segment .filter-toggle-btn + .filter-toggle-btn {
+    border-left: 1px solid var(--cc-line);
+}
+
 body.ui-codex-command-classic #sort-select {
     width: 120px !important;
     height: 34px !important;
