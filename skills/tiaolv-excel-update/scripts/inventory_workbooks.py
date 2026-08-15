@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 
 ROOT = Path(__file__).resolve().parents[3]
 EXCEL_DIR = ROOT / "static/tools/yysls-tiaolv/excels"
-EXPECTED = {"牵丝玉": 1, "牵丝翊": 2, "牵丝霖": 1, "破竹尘": 1, "破竹风": 1, "破竹鸢": 1, "裂石威": 1, "裂石钧": 1, "鸣金虹": 1, "鸣金影": 1}
+EXPECTED = {"牵丝玉": 1, "牵丝翊": 2, "牵丝霖": 1, "破竹尘": 1, "破竹风": 1, "破竹鸢": 1, "破竹樽": 1, "裂石威": 1, "裂石钧": 1, "鸣金虹": 1, "鸣金影": 1}
 ERRORS = {"#REF!", "#DIV/0!", "#VALUE!", "#NAME?", "#N/A", "#NUM!", "#NULL!"}
 
 files = sorted(EXCEL_DIR.glob("*.xlsx"))
@@ -39,8 +39,8 @@ for path in files:
     formulas.close()
     cached.close()
 
-if len(files) != 11:
-    problems.append(f"工作簿数量应为11，实际为{len(files)}")
+if len(files) != 12:
+    problems.append(f"工作簿数量应为12，实际为{len(files)}")
 for flow, expected in EXPECTED.items():
     if counts[flow] != expected:
         problems.append(f"{flow}应有{expected}份，实际为{counts[flow]}")

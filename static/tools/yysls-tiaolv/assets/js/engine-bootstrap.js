@@ -23,8 +23,8 @@
             "assets/engines/q7/q7-app-config.js?v=84d042ea",
             "assets/engines/q7/excel-runtime.js?v=21aa2e62"
         ] : [
-            "assets/js/generated-calc-strings.js?v=202608110029",
-            "assets/js/generated-calc-metadata.js?v=202608140801",
+            "assets/js/generated-calc-strings.js?v=202608151735",
+            "assets/js/generated-calc-metadata.js?v=202608151735",
             "assets/js/excel-runtime.js?v=202608121302"
         ];
         document.write(scripts.map(src => `<script src="${src}"><\/script>`).join(""));

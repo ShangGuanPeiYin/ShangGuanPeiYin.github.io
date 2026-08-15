@@ -64,7 +64,7 @@ for (const [rowStart, value, outputIndex] of [[152, 0.098, 32], [160, 0.154, 33]
   if (Object.is(panel[outputIndex], expected) === false) throw new Error(`benefit resistance rounding ${outputIndex}: ${panel[outputIndex]} != ${expected}`);
 }
 
-const flows = ["鸣金虹", "鸣金影", "破竹尘", "破竹风", "破竹鸢", "裂石威", "裂石钧", "牵丝玉", "牵丝翊", "牵丝霖"];
+const flows = ["鸣金虹", "鸣金影", "破竹尘", "破竹风", "破竹鸢", "破竹樽", "裂石威", "裂石钧", "牵丝玉", "牵丝翊", "牵丝霖"];
 for (const flow of flows) {
   const panel = calculate(input => { input[95] = id(flow); });
   if (panel.length !== 36 || panel.some(value => !Number.isFinite(value))) throw new Error(`invalid panel: ${flow}`);
@@ -72,8 +72,8 @@ for (const flow of flows) {
 
 const appSource = fs.readFileSync(path.join(repo, "static/tools/yysls-tiaolv/assets/js/app.min.js"), "utf8");
 const readList = name => JSON.parse(appSource.match(new RegExp(`${name}: (\\[[^\\n]+?\\])`))?.[1] || "null");
-if (JSON.stringify(readList("CLASSES")) !== JSON.stringify(flows)) throw new Error("main calculable class list is not the expected 10 PVE flows");
-if (JSON.stringify(readList("AVAILABLE_CLASSES")) !== JSON.stringify([...flows, "pvp"])) throw new Error("equipment available-class list must contain 10 PVE flows plus pvp");
+if (JSON.stringify(readList("CLASSES")) !== JSON.stringify(flows)) throw new Error("main calculable class list is not the expected 11 PVE flows");
+if (JSON.stringify(readList("AVAILABLE_CLASSES")) !== JSON.stringify([...flows, "pvp"])) throw new Error("equipment available-class list must contain 11 PVE flows plus pvp");
 if (!appSource.includes('AppState.allClassLoadouts["裂石钧（纯唐）"]') || !appSource.includes('? "裂石钧" : n.currentClass')) {
   throw new Error("legacy pure-Tang save migration is missing");
 }

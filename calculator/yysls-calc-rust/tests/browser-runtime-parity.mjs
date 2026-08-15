@@ -111,14 +111,16 @@ try {
   if (expectedEngine === "assistant" && result.initiallyLoaded.length !== 0) {
     throw new Error(`Excel modules loaded before demand: ${JSON.stringify(result.initiallyLoaded)}`);
   }
-  const expectedFlowCount = expectedEngine === "q7" ? 10 : 11;
+  const expectedFlowCount = expectedEngine === "q7" ? 10 : 12;
   if (result.loadedFlows.length !== expectedFlowCount) {
-    throw new Error(`unexpected loaded Excel module count: ${JSON.stringify(result.loadedFlows)}`);
+    throw new Error(`unexpected flow count ${result.loadedFlows.length} (engine=${result.engine})`);
   }
-  if (result.mainClasses.includes("pvp") || result.mainClasses.includes("裂石钧（纯唐）") || result.mainClasses.length !== 10) {
+  const expectedMainClasses = expectedEngine === "q7" ? 10 : 11;
+  const expectedAvailableClasses = expectedEngine === "q7" ? 11 : 12;
+  if (result.mainClasses.includes("pvp") || result.mainClasses.includes("裂石钧（纯唐）") || result.mainClasses.length !== expectedMainClasses) {
     throw new Error(`unexpected main classes: ${JSON.stringify(result.mainClasses)}`);
   }
-  if (!result.availableClasses.includes("pvp") || result.availableClasses.length !== 11) {
+  if (!result.availableClasses.includes("pvp") || result.availableClasses.length !== expectedAvailableClasses) {
     throw new Error(`unexpected equipment available classes: ${JSON.stringify(result.availableClasses)}`);
   }
   if (result.engine !== expectedEngine || result.compiled !== (expectedEngine === "assistant")) throw new Error(`engine isolation failed: ${JSON.stringify(result)}`);

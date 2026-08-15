@@ -26,8 +26,9 @@ DIRECT_SOURCE_DIR = ROOT / "calculator/yysls-calc-rust/target/generated-excel-di
 MANIFEST_PATH = ROOT / "calculator/yysls-calc-rust/excel-sources.json"
 
 SUPPORTED_FUNCTIONS = {"IF", "IFERROR", "VLOOKUP", "XLOOKUP", "OR", "MIN", "MAX", "SUM"}
-FLOW_ORDER = ["牵丝玉", "牵丝翊", "破竹尘", "破竹风", "破竹鸢", "裂石威", "裂石钧", "鸣金虹", "鸣金影", "牵丝霖"]
-FLOW_SLUGS = {"牵丝玉": "qsyu", "牵丝翊": "qsyi", "破竹尘": "pzchen", "破竹风": "pzfeng", "破竹鸢": "pzyuan", "裂石威": "lswei", "裂石钧": "lsjun", "鸣金虹": "mjhong", "鸣金影": "mjying", "牵丝霖": "qslin"}
+FLOW_ORDER = ["牵丝玉", "牵丝翊", "破竹尘", "破竹风", "破竹鸢", "破竹樽", "裂石威", "裂石钧", "鸣金虹", "鸣金影", "牵丝霖"]
+FLOW_SLUGS = {"牵丝玉": "qsyu", "牵丝翊": "qsyi", "破竹尘": "pzchen", "破竹风": "pzfeng", "破竹鸢": "pzyuan", "破竹樽": "pzzun", "裂石威": "lswei", "裂石钧": "lsjun", "鸣金虹": "mjhong", "鸣金影": "mjying", "牵丝霖": "qslin"}
+BASE_KEY_FALLBACK = {"破竹樽": "破竹鸢"}
 INPUT_LEN = 40
 
 
@@ -947,8 +948,8 @@ def workbook_specs():
             version = version_match.group(1)
             flow_name = f"{class_name}@{version}" if class_name == "牵丝翊" else class_name
             specs.append((class_name, flow_name, version, path))
-    if len(specs) != 11:
-        raise ValueError(f"必须恰好有11份Excel，实际为{len(specs)}")
+    if len(specs) != 12:
+        raise ValueError(f"必须恰好有12份Excel，实际为{len(specs)}")
     return specs
 
 
@@ -958,15 +959,24 @@ DIRECT_SOURCE_DIR.mkdir(parents=True, exist_ok=True)
 for generated_source in DIRECT_SOURCE_DIR.glob("excel_*.rs"):
     generated_source.unlink()
 for class_name, flow_name, version, path in specs:
-    base_key = class_name if class_name in source_metadata["flowClassFields"] else next(
-        key for key, mapped in source_metadata.get("flowClassNames", {}).items() if mapped == class_name
-    )
+    if class_name in BASE_KEY_FALLBACK:
+        base_key = BASE_KEY_FALLBACK[class_name]
+    elif class_name in source_metadata["flowClassFields"]:
+        base_key = class_name
+    else:
+        base_key = next(
+            key for key, mapped in source_metadata.get("flowClassNames", {}).items() if mapped == class_name
+        )
     base_fields = source_metadata["flowClassFields"][base_key]
     base_kinds = source_metadata["flowClassKinds"][base_key]
     base_cells = list(source_metadata["flowClassCells"][base_key])
     # 破竹鸢 2.4 将第三、第四心法输入由 C22/C24 移到了 E22/E24。
     # 字段名称保持公开 API 兼容，但单元格位置必须以当前工作簿为准。
     if class_name == "破竹鸢" and version == "2.4":
+        base_cells[base_fields.index("third_xinfa")] = "期望!E22"
+        base_cells[base_fields.index("fourth_xinfa")] = "期望!E24"
+    # 破竹樽 复用破竹鸢基线（两工作簿结构一致，心法同样位于 E22/E24）。
+    if class_name == "破竹樽":
         base_cells[base_fields.index("third_xinfa")] = "期望!E22"
         base_cells[base_fields.index("fourth_xinfa")] = "期望!E24"
     compiler = WorkbookCompiler(path, flow_name, class_name, base_cells, base_kinds)
