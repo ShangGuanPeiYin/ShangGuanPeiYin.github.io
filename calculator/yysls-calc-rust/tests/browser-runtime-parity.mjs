@@ -111,12 +111,12 @@ try {
   if (expectedEngine === "assistant" && result.initiallyLoaded.length !== 0) {
     throw new Error(`Excel modules loaded before demand: ${JSON.stringify(result.initiallyLoaded)}`);
   }
-  const expectedFlowCount = expectedEngine === "q7" ? 10 : 12;
+  const expectedFlowCount = expectedEngine === "q7" ? 11 : 12;
   if (result.loadedFlows.length !== expectedFlowCount) {
     throw new Error(`unexpected flow count ${result.loadedFlows.length} (engine=${result.engine})`);
   }
-  const expectedMainClasses = expectedEngine === "q7" ? 10 : 11;
-  const expectedAvailableClasses = expectedEngine === "q7" ? 11 : 12;
+  const expectedMainClasses = expectedEngine === "q7" ? 11 : 11;
+  const expectedAvailableClasses = expectedEngine === "q7" ? 12 : 12;
   if (result.mainClasses.includes("pvp") || result.mainClasses.includes("裂石钧（纯唐）") || result.mainClasses.length !== expectedMainClasses) {
     throw new Error(`unexpected main classes: ${JSON.stringify(result.mainClasses)}`);
   }

@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "5194ba0c";
+    const ASSET_VERSION = "7108595d";
     const WASM_URL = `assets/wasm/q7/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -98,6 +98,7 @@
         "牵丝玉": "九重春色·特殊技增伤",
         "裂石威": "嗟夫刀法·蓄力技增伤",
         "破竹鸢": "天志垂象·蓄力技增伤",
+        "破竹樽": "酩酊技定音",
         "牵丝翊": "鼓特殊技",
         "牵丝霖": "明川药典·治疗技增疗"
     };
