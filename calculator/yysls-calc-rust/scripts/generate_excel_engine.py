@@ -173,6 +173,12 @@ class WorkbookCompiler:
                         self.cells[(ws.title, cell.coordinate)] = len(self.cell_values)
                         self.cell_names.append(f"{ws.title}!{cell.coordinate}")
                         self.cell_values.append(cell.value.text if isinstance(cell.value, ArrayFormula) else cell.value)
+        for cell, kind in zip(input_cells, input_kinds):
+            if self.resolve_single(cell, "期望") is None:
+                sheet, address = self.split_ref(cell, "期望")
+                self.cells[(sheet, address)] = len(self.cell_values)
+                self.cell_names.append(f"{sheet}!{address}")
+                self.cell_values.append("" if kind == "str" else 0.0)
         self.input_ids = [self.resolve_single(cell, "期望") for cell in input_cells]
         self.input_kinds = input_kinds
         wanted = set(input_cells) | {"期望!I8", "期望!I10", "期望!I12", "期望!I14", "RD!I14"}
@@ -971,9 +977,16 @@ for class_name, flow_name, version, path in specs:
     # 当前 2.6 版直接使用基线单元格，无需覆盖。
     # 字段名称保持公开 API 兼容，但单元格位置必须以当前工作簿为准。
     # 破竹樽 复用破竹鸢基线（两工作簿结构一致，心法位于 E22/E24）。
+    # 破竹樽 工作簿将第四心法固定为常量（E24=易水歌，被公式引用），
+    # 不作为输入字段暴露，与 Q7 一致（39 字段）。
     if class_name == "破竹樽":
+        base_fields = list(base_fields)
+        base_kinds = list(base_kinds)
+        fourth = base_fields.index("fourth_xinfa")
+        del base_fields[fourth]
+        del base_kinds[fourth]
+        del base_cells[fourth]
         base_cells[base_fields.index("third_xinfa")] = "期望!E22"
-        base_cells[base_fields.index("fourth_xinfa")] = "期望!E24"
     compiler = WorkbookCompiler(path, flow_name, class_name, base_cells, base_kinds)
     module_name = f"excel_{FLOW_SLUGS[class_name]}_{version.replace('.', '_')}.wasm"
     (DIRECT_SOURCE_DIR / module_name.replace(".wasm", ".rs")).write_text(compiler.standalone_rust(), encoding="utf-8")
@@ -991,6 +1004,10 @@ for key in ("flowIds", "flowKeys", "flowClassNames", "flowClassFields", "flowCla
 metadata["flowNames"] = []
 metadata["classTableVersions"] = {}
 metadata["flowExcelModules"] = {}
+if "classXinfaInputs" in metadata:
+    pzzun = metadata["classXinfaInputs"].get("破竹樽")
+    if isinstance(pzzun, list):
+        metadata["classXinfaInputs"]["破竹樽"] = [entry for entry in pzzun if entry.get("field") != "fourth_xinfa"]
 
 manifest = {"inputLength": INPUT_LEN, "outputLength": 5, "workbooks": []}
 for index, record in enumerate(records):

@@ -25,8 +25,12 @@ These contracts cover the **Assistant** engine only. `excels/q7/`,
   module name; a brand-new class must be added to both (and to
   `scripts/inventory_workbooks.py` `EXPECTED`).
 - 破竹樽 reuses 破竹鸢's cell structure via `BASE_KEY_FALLBACK`; the per-version cell
-  coordinate overrides in the generator remain authoritative for 破竹樽 (third/fourth
-  xinfa at `期望!E22`/`期望!E24`).
+  coordinate overrides in the generator remain authoritative for 破竹樽. Its workbook
+  fixes the fourth xinfa as a constant cell (`期望!E24`=`易水歌`, referenced by formulas),
+  so 破竹樽 exposes only `third_xinfa` at `期望!E22` as an input — `fourth_xinfa` is
+  dropped from `flowClassFields`/`flowClassKinds`/`flowClassCells` and pruned from
+  `classXinfaInputs`, keeping 39 fields aligned with Q7. `期望!E24` stays a compiled
+  constant inside the module.
 - A changed workbook content with the same filename, or a new version-numbered file,
   both count as an update. The generator emits module artifacts for every indexed
   workbook and `finalize_excel_modules.py` deletes stale `excel_*.wasm` not in the set.
