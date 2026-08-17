@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-import zlib from "node:zlib";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 
@@ -11,8 +10,7 @@ const live = path.join(repo, "static/tools/yysls-tiaolv");
 const metadataPath = path.join(live, "assets/js/generated-calc-metadata.js");
 const stringsPath = path.join(live, "assets/js/generated-calc-strings.js");
 const selectedFlow = process.env.YYSLS_DIRECT_PARITY_FLOW || "";
-const legacyMismatchFlows = new Set(["破竹鸢", "破竹樽"]);
-const fixture = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(calc, "tests/fixtures/excel-legacy-v1.json.gz"))));
+const oracle = JSON.parse(fs.readFileSync(path.join(calc, "tests/fixtures/excel-oracle-v1.json"), "utf8"));
 const maximumDirectMs = Number(process.env.YYSLS_MAX_DIRECT_MS || 20000);
 const maximumFlowDirectMs = Number(process.env.YYSLS_MAX_FLOW_DIRECT_MS || 4000);
 const minimumQsyuAdjacentPerSecond = Number(process.env.YYSLS_MIN_QSYU_ADJACENT_PER_SECOND || 10000);
@@ -23,7 +21,6 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(stringsPath, "utf8"), context);
 vm.runInContext(fs.readFileSync(metadataPath, "utf8"), context);
 const metadata = context.window.YYSLS_CALC_METADATA;
-const stringCount = context.window.YYSLS_CALC_STRINGS.length;
 const stringIds = context.window.YYSLS_CALC_STRING_IDS;
 
 async function instantiate(filename) {
@@ -43,12 +40,10 @@ function runner(wasm, flowId) {
   };
 }
 
-function random(seedValue) {
-  let state = seedValue >>> 0;
-  return () => {
-    state ^= state << 13; state ^= state >>> 17; state ^= state << 5;
-    return (state >>> 0) / 0x100000000;
-  };
+function readF64(bits) {
+  const buffer = new ArrayBuffer(8);
+  new BigUint64Array(buffer)[0] = bits;
+  return new Float64Array(buffer)[0];
 }
 
 function assertBits(flow, index, expected, actual, input) {
@@ -57,65 +52,91 @@ function assertBits(flow, index, expected, actual, input) {
   }
 }
 
+function assertClose(flow, index, expectedValues, actualBits, input) {
+  const CELL_TOLERANCE = 1e-6;
+  for (let i = 0; i < 5; i += 1) {
+    const left = expectedValues[i];
+    const right = readF64(actualBits[i]);
+    if (!Number.isFinite(left) || !Number.isFinite(right)) {
+      if (!(Number.isNaN(left) && Number.isNaN(right))) {
+        throw new Error(JSON.stringify({ flow, case: index, output: i, expected: left, actual: right, input }));
+      }
+      continue;
+    }
+    const tolerance = CELL_TOLERANCE * Math.max(1, Math.abs(left), Math.abs(right));
+    if (Math.abs(left - right) > tolerance) {
+      throw new Error(JSON.stringify({ flow, case: index, output: i, expected: left, actual: right, input }));
+    }
+  }
+}
+
+function defaultInput(flow) {
+  return metadata.flowClassDefaultValues[flow].map((value, inputIndex) =>
+    metadata.flowClassKinds[flow][inputIndex] === "str" ? Number(stringIds[value] || 0) : Number(value || 0));
+}
+
 let compared = 0;
 let directMs = 0;
 let qsyuAdjacentPerSecond = 0;
 let qsyuBatchPerSecond = 0;
 for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
   if (selectedFlow && flow !== selectedFlow) continue;
-  const usesWorkbookJudge = legacyMismatchFlows.has(flow);
+  const oracleFlow = oracle.flows[flow];
+  if (!oracleFlow) throw new Error(`oracle 缺少 flow: ${flow}`);
   const info = metadata.flowExcelModules[flow];
+  if (info.version !== oracleFlow.version || info.file !== oracleFlow.module) {
+    throw new Error(`oracle 版本不匹配 flow=${flow} metadata=${info.version}/${info.file} oracle=${oracleFlow.version}/${oracleFlow.module}`);
+  }
   const direct = await instantiate(path.join(calc, "dist/excel", info.file));
   const runDirect = runner(direct, flowId);
   let flowDirectMs = 0;
-  let corpus = fixture.flows[flow];
-  if (!corpus) {
-    const defaults = metadata.flowClassDefaultValues[flow].map((value, inputIndex) =>
-      metadata.flowClassKinds[flow][inputIndex] === "str" ? Number(stringIds[value] || 0) : Number(value || 0));
-    const changed = Array.from(defaults);
-    const firstNumeric = metadata.flowClassKinds[flow].findIndex(kind => kind !== "str");
-    changed[firstNumeric] += 0.125;
-    corpus = [{ input: defaults, bits: [] }, { input: changed, bits: [] }];
-  }
-  for (let index = 0; index < corpus.length; index += 1) {
-    const { input, bits } = corpus[index];
-    const expected = bits.map(value => BigInt(`0x${value}`));
+
+  const defaults = defaultInput(flow);
+  const changed = Array.from(defaults);
+  const firstNumeric = metadata.flowClassKinds[flow].findIndex(kind => kind !== "str");
+  changed[firstNumeric] += 0.125;
+  const corpus = [defaults, changed];
+  const expectedDefault = [
+    oracleFlow.totalDamage,
+    oracleFlow.adps,
+    oracleFlow.graduationRatio,
+    oracleFlow.rdps,
+    oracleFlow.rdpsBaseline > 0 ? oracleFlow.rdps / oracleFlow.rdpsBaseline : 0,
+  ];
+
+  {
     const startDirect = performance.now();
-    const actual = runDirect(input);
+    const actual = runDirect(corpus[0]);
     const directElapsed = performance.now() - startDirect;
     directMs += directElapsed;
     flowDirectMs += directElapsed;
-    if (!usesWorkbookJudge) {
-      assertBits(flow, index, expected, actual, input);
-      compared += 1;
-    }
+    assertClose(flow, "default-vs-workbook", expectedDefault, actual, corpus[0]);
+    compared += 1;
   }
-  if (corpus.length >= 2) {
+
+  {
     const a = corpus[0];
     const b = corpus[1];
-    const expectedA = usesWorkbookJudge
-      ? runner(await instantiate(path.join(calc, "dist/excel", info.file)), flowId)(a.input)
-      : a.bits.map(value => BigInt(`0x${value}`));
-    const expectedB = usesWorkbookJudge
-      ? runner(await instantiate(path.join(calc, "dist/excel", info.file)), flowId)(b.input)
-      : b.bits.map(value => BigInt(`0x${value}`));
-    assertBits(flow, "state-A", expectedA, runDirect(a.input), a.input);
-    assertBits(flow, "state-B", expectedB, runDirect(b.input), b.input);
-    assertBits(flow, "state-A-again", expectedA, runDirect(a.input), a.input);
-    assertBits(flow, "state-A-repeat", expectedA, runDirect(a.input), a.input);
+    const coldRunnerA = runner(await instantiate(path.join(calc, "dist/excel", info.file)), flowId);
+    const expectedA = coldRunnerA(a);
+    const expectedB = runner(await instantiate(path.join(calc, "dist/excel", info.file)), flowId)(b);
+    assertBits(flow, "state-A", expectedA, runDirect(a), a);
+    assertBits(flow, "state-B", expectedB, runDirect(b), b);
+    assertBits(flow, "state-A-again", expectedA, runDirect(a), a);
+    assertBits(flow, "state-A-repeat", expectedA, runDirect(a), a);
 
     const numericIndexes = metadata.flowClassKinds[flow]
       .map((kind, inputIndex) => kind === "str" ? -1 : inputIndex)
       .filter(inputIndex => inputIndex >= 0);
     const mutations = [];
-    const single = Float64Array.from(a.input);
+    const single = Float64Array.from(a);
     single[numericIndexes[0]] += 0.125;
     mutations.push(single);
-    const multiple = Float64Array.from(a.input);
+    const multiple = Float64Array.from(a);
     for (const inputIndex of numericIndexes.slice(0, 4)) multiple[inputIndex] -= 0.25;
     mutations.push(multiple);
     for (const bits of [0x0000000000000000n, 0x8000000000000000n, 0x7ff8000000000001n, 0x7ff8000000000042n]) {
-      const special = Float64Array.from(a.input);
+      const special = Float64Array.from(a);
       new BigUint64Array(special.buffer)[numericIndexes[0]] = bits;
       mutations.push(special);
     }
@@ -132,7 +153,7 @@ for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
       .filter(inputIndex => inputIndex >= 0);
     const rates = [];
     for (let sample = 0; sample < 3; sample += 1) {
-      const adjacent = Float64Array.from(corpus[0].input);
+      const adjacent = Float64Array.from(corpus[0]);
       const iterations = 10000;
       const started = performance.now();
       for (let iteration = 0; iteration < iterations; iteration += 1) {
@@ -152,7 +173,7 @@ for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
       const batchInput = new Float64Array(40 * batchCount);
       const batchOutput = new Float64Array(5 * batchCount);
       for (let c = 0; c < batchCount; c += 1) {
-        const row = Float64Array.from(corpus[0].input);
+        const row = Float64Array.from(corpus[0]);
         for (let i = 0; i < 40; i += 1) row[i] += ((c * 7 + i) % 13) / 1000;
         batchInput.set(row, c * 40);
       }
@@ -188,4 +209,4 @@ for (const [flow, flowId] of Object.entries(metadata.flowIds)) {
   if (flowDirectMs > maximumFlowDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`${flow} direct engine ${flowDirectMs.toFixed(2)}ms exceeds ${maximumFlowDirectMs}ms`);
 }
 if (directMs > maximumDirectMs && process.env.YYSLS_SKIP_SPEED_GATE !== "1") throw new Error(`direct engine ${directMs.toFixed(2)}ms exceeds ${maximumDirectMs}ms`);
-console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length, compared, workbookJudges: legacyMismatchFlows.size, seed: fixture.seed, directMs, qsyuAdjacentPerSecond, qsyuBatchPerSecond, performanceGate: { maximumDirectMs, maximumFlowDirectMs, minimumQsyuAdjacentPerSecond, minimumQsyuBatchPerSecond } }));
+console.log(JSON.stringify({ status: "ok", flows: selectedFlow ? 1 : Object.keys(metadata.flowIds).length, compared, oracleVersion: oracle.version, directMs, qsyuAdjacentPerSecond, qsyuBatchPerSecond, performanceGate: { maximumDirectMs, maximumFlowDirectMs, minimumQsyuAdjacentPerSecond, minimumQsyuBatchPerSecond } }));

@@ -23,14 +23,14 @@ File naming is the registration mechanism — there is no manual manifest to edi
 
 - `excel-sources.json`, `generated-calc-metadata.js` and `generated-calc-strings.js`
   are all **generated outputs** of `calculator/yysls-calc-rust/scripts/generate_excel_engine.py`, and are committed together with the build.
-- Expected: 11 classes / 12 workbooks in the root `excels/` directory, name pattern
-  `<类名>110阶...计算器<版本>.xlsx`. 牵丝翊 has independent 1.2 and 2.0 copies (default 2.0).
+- Expected: 11 classes / 11 workbooks in the root `excels/` directory, name pattern
+  `<类名>110阶...计算器<版本>.xlsx`, aligned with the Q7 engine's versions. 牵丝翊 ships a single 2.2 copy.
 - Each workbook maps to one module `excel_<slug>_<版本>.wasm`, keyed by
   `FLOW_ORDER` + `FLOW_SLUGS` in `generate_excel_engine.py`.
 - A new version number for an existing class simply appears as a new workbook file;
   the generator emits a new module and `finalize_excel_modules.py` deletes the stale module.
-- Only 牵丝翊 supports multiple simultaneously shipped versions. Other classes ship exactly
-  one current workbook; do not add a second version file unless explicitly requested.
+- Exactly one workbook version per class is shipped for the Assistant engine
+  (`classTableVersions` stays empty). Do not add a second version file unless explicitly requested.
 
 ## Workflow
 
@@ -41,12 +41,12 @@ File naming is the registration mechanism — there is no manual manifest to edi
 2. Place the new/changed workbook(s) into `static/tools/yysls-tiaolv/excels/`,
    overwriting the previous file or adding a new version-numbered file.
 3. Run `scripts/inventory_workbooks.py`. Stop on missing/duplicate flows, external
-   links, cached formula errors or a workbook count other than 12.
+   links, cached formula errors or a workbook count other than 11.
 4. Inspect the formula functions used by the new workbooks. Extend the compiler and
    its tests for every new function; never silently return zero, copy cached outputs
    as formulas, or skip unsupported cells.
 5. Run `scripts/rebuild_excel_modules.sh`. It regenerates direct Rust formulas,
-   builds the 12 flow-version WASMs, verifies the known large module is reproducible,
+   builds the 11 flow WASMs, verifies the known large module is reproducible,
    finalizes hashes into metadata, and runs parity/performance/customization/Hugo checks.
 6. Confirm the Panel WASM hash is unchanged and the 36-output / 40-input, 5-output
    contract still holds.
@@ -66,7 +66,7 @@ Same as above plus code registration:
 - If the new workbook reuses another class' cell structure, extend
   `BASE_KEY_FALLBACK` (e.g. 破竹樽 → 破竹鸢) and, if needed, the per-version cell
   coordinate overrides near it in the generator.
-- Keep the total at 12 workbooks (11 classes present this way). Update
+- Keep the total at 11 workbooks (11 classes present this way). Update
   `references/contracts.md` expected set if the class set itself changes.
 
 ## Frontend version surface (must-sync on every change)
@@ -121,10 +121,10 @@ YYSLS_ENGINE="assistant" \
 ## Hard gates
 
 - Require 40 inputs and 5 outputs for every Excel module.
-- Compare all five outputs against the migration oracle by Float64 bit pattern for the
-  fixed corpus. 破竹鸢2.4 is the documented exception: the retired interpreter disagrees
-  with the current workbook, so validate its default outputs against the workbook cache
-  and keep the generated direct-formula tests.
+- Compare all five outputs against the current-workbook cached outputs for the default
+  input, and verify state/mutation consistency by Float64 bit pattern. 破竹鸢2.6 is a
+  documented workbook-cache oracle flow; ensure its default outputs match the cached
+  `期望` cells and keep the generated direct-formula tests.
 - Require every module gzip size at most 1 MB and the fixed corpus to complete within
   20 seconds overall / 4 seconds per flow (the old interpreter and its 3.5×/1.8× ratios
   are gone; do not reintroduce them).

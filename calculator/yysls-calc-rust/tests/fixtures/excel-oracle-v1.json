@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "flows": {
+    "牵丝玉": {
+      "workbook": "牵丝玉110阶竞速轴属性毕业率进阶计算器1.4.xlsx",
+      "version": "1.4",
+      "module": "excel_qsyu_1_4.wasm",
+      "totalDamage": 15127585.9560326,
+      "adps": 137523.508691205,
+      "graduationRatio": 0.999999990483118,
+      "rdps": 117772.709602175,
+      "rdpsBaseline": 117772.709602175
+    },
+    "牵丝翊": {
+      "workbook": "牵丝翊110阶竞速轴属性毕业率进阶计算器2.2.xlsx",
+      "version": "2.2",
+      "module": "excel_qsyi_2_2.wasm",
+      "totalDamage": 10763814.2343509,
+      "adps": 106783.871372529,
+      "graduationRatio": 1.00000001285334,
+      "rdps": 136299.310846696,
+      "rdpsBaseline": 136299.310846696
+    },
+    "破竹尘": {
+      "workbook": "破竹尘110阶竞速轴属性毕业率进阶计算器2.2.xlsx",
+      "version": "2.2",
+      "module": "excel_pzchen_2_2.wasm",
+      "totalDamage": 13394742.0408693,
+      "adps": 132621.208325439,
+      "graduationRatio": 0.999999987373354,
+      "rdps": 129307.921624983,
+      "rdpsBaseline": 129307.921624983
+    },
+    "破竹风": {
+      "workbook": "破竹风110阶竞速轴属性毕业率进阶计算器1.1.xlsx",
+      "version": "1.1",
+      "module": "excel_pzfeng_1_1.wasm",
+      "totalDamage": 14311682.0898318,
+      "adps": 131059.359796995,
+      "graduationRatio": 0.999999998451044,
+      "rdps": 113449.333451235,
+      "rdpsBaseline": 113449.333451235
+    },
+    "破竹鸢": {
+      "workbook": "破竹鸢110阶竞速轴属性毕业率进阶计算器2.6.xlsx",
+      "version": "2.6",
+      "module": "excel_pzyuan_2_6.wasm",
+      "totalDamage": 14482689.1885858,
+      "adps": 143677.472108986,
+      "graduationRatio": 1.00000001467861,
+      "rdps": 123739.725801888,
+      "rdpsBaseline": 123739.725801888
+    },
+    "破竹樽": {
+      "workbook": "破竹樽110阶竞速轴属性毕业率进阶计算器0.4.xlsx",
+      "version": "0.4",
+      "module": "excel_pzzun_0_4.wasm",
+      "totalDamage": 14970844.1491157,
+      "adps": 148520.2792571,
+      "graduationRatio": 0.999999994997989,
+      "rdps": 136674.564187065,
+      "rdpsBaseline": 136674.564187065
+    },
+    "裂石威": {
+      "workbook": "裂石威110阶竞速轴属性毕业率进阶计算器2.4.xlsx",
+      "version": "2.4",
+      "module": "excel_lswei_2_4.wasm",
+      "totalDamage": 14350166.0127175,
+      "adps": 141520.374878871,
+      "graduationRatio": 1.00000003447469,
+      "rdps": 147359.579642219,
+      "rdpsBaseline": 147359.579642219
+    },
+    "裂石钧": {
+      "workbook": "裂石钧110阶竞速轴属性毕业率进阶计算器2.2.xlsx",
+      "version": "2.2",
+      "module": "excel_lsjun_2_2.wasm",
+      "totalDamage": 13645385.5619188,
+      "adps": 134172.916046399,
+      "graduationRatio": 0.999999970533541,
+      "rdps": 127643.783226154,
+      "rdpsBaseline": 127643.783226154
+    },
+    "鸣金虹": {
+      "workbook": "鸣金虹110阶竞速轴属性毕业率进阶计算器1.3.xlsx",
+      "version": "1.3",
+      "module": "excel_mjhong_1_3.wasm",
+      "totalDamage": 13164651.53971,
+      "adps": 120665.916954263,
+      "graduationRatio": 0.999999974758929,
+      "rdps": 118443.09556252,
+      "rdpsBaseline": 118443.09556252
+    },
+    "鸣金影": {
+      "workbook": "鸣金影110阶竞速轴属性毕业率进阶计算器1.5.xlsx",
+      "version": "1.5",
+      "module": "excel_mjying_1_5.wasm",
+      "totalDamage": 15082270.840045,
+      "adps": 136862.711797141,
+      "graduationRatio": 1.00000001313098,
+      "rdps": 122289.847193263,
+      "rdpsBaseline": 122289.847193263
+    },
+    "牵丝霖": {
+      "workbook": "牵丝霖110阶竞速轴属性毕业率进阶计算器1.1.xlsx",
+      "version": "1.1",
+      "module": "excel_qslin_1_1.wasm",
+      "totalDamage": 1519700.0225165,
+      "adps": 101313.334834433,
+      "graduationRatio": 1.00000004771764,
+      "rdps": 108515.748299029,
+      "rdpsBaseline": 108515.748299029
+    }
+  }
+}

@@ -46,5 +46,5 @@ and 200–201 record the two weapon types. These additions are internal to
 Rust crates and are built by `scripts/build_excel_modules.sh`, preventing accidental
 recreation of a combined production module.
 
-There are 10 user-facing PVE classes and 11 internal Excel versions. 牵丝翊 maps to
-independent 1.2 and 2.0 formula sections; 2.0 is the default.
+There are 11 user-facing PVE classes, each mapping to exactly one workbook version
+(current class workbook); 牵丝翊 ships a single 2.2 version.

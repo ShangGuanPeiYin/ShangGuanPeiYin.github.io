@@ -76,7 +76,7 @@ check_contains "$EXCEL_EXPORT" 'await runtime.ensureExcel(exportOptions.flowName
 check_not_contains "$APP" 'useExcel = !0' "retired calculation fallback flag"
 
 mapfile -t excel_wasm_files < <(find "$EXCEL_WASM_DIR" -maxdepth 1 -type f -name '*.wasm' -print | sort)
-[[ ${#excel_wasm_files[@]} -eq 12 ]] || fail "Expected 12 Excel WASM modules, found ${#excel_wasm_files[@]}"
+[[ ${#excel_wasm_files[@]} -eq 11 ]] || fail "Expected 11 Excel WASM modules, found ${#excel_wasm_files[@]}"
 
 for wasm_file in "$PANEL_WASM" "${excel_wasm_files[@]}"; do
   wasm_magic="$(xxd -l 4 "$wasm_file" | awk '{print $2$3}' | head -1)"
@@ -84,7 +84,7 @@ for wasm_file in "$PANEL_WASM" "${excel_wasm_files[@]}"; do
     fail "$wasm_file is not a valid WebAssembly binary (bad magic number: $wasm_magic)"
   fi
 done
-echo "OK: panel and 12 Excel WASM magic numbers valid"
+echo "OK: panel and 11 Excel WASM magic numbers valid"
 
 check_contains "$INDEX" "assets/js/local-customizations.js" "local customizations script tag"
 check_contains "$INDEX" "@supabase/supabase-js@2.57.4" "fixed Supabase SDK version"

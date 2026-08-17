@@ -1,0 +1,5 @@
+This is a Hugo + Blowfish static blog. Default to publishing after successful code or content edits in this project, unless the user explicitly says not to publish, asks only for analysis, or validation fails. Use:
+
+./skills/auto-site-publish/scripts/publish_site.sh "commit message" path/to/changed-file path/to/changed-dir
+
+Pass only task-related paths when unrelated changes exist. Do not reset or discard user changes.

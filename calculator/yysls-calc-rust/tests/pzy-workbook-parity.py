@@ -10,8 +10,8 @@ from openpyxl import load_workbook
 ROOT = Path(__file__).resolve().parents[3]
 CALC = ROOT / "calculator/yysls-calc-rust"
 LIVE = ROOT / "static/tools/yysls-tiaolv"
-WORKBOOK = next((LIVE / "excels").glob("破竹鸢*2.4.xlsx"))
-MODULE = LIVE / "assets/wasm/excel/excel_pzyuan_2_4.wasm"
+WORKBOOK = next((LIVE / "excels").glob("破竹鸢*2.6.xlsx"))
+MODULE = LIVE / "assets/wasm/excel/excel_pzyuan_2_6.wasm"
 
 def generated_json(path):
     return json.loads(path.read_text(encoding="utf-8").split("=", 1)[1].split(";", 1)[0])

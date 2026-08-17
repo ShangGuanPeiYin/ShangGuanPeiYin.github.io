@@ -937,8 +937,6 @@ def workbook_specs():
     specs = []
     for class_name in FLOW_ORDER:
         matches = [path for path in files if path.name.startswith(class_name + "110阶")]
-        if class_name == "牵丝翊":
-            matches.sort(key=lambda path: ("2.0" not in path.stem, path.name))
         if not matches:
             raise ValueError(f"缺少流派Excel：{class_name}")
         for path in matches:
@@ -946,10 +944,9 @@ def workbook_specs():
             if not version_match:
                 raise ValueError(f"文件名缺少版本号：{path.name}")
             version = version_match.group(1)
-            flow_name = f"{class_name}@{version}" if class_name == "牵丝翊" else class_name
-            specs.append((class_name, flow_name, version, path))
-    if len(specs) != 12:
-        raise ValueError(f"必须恰好有12份Excel，实际为{len(specs)}")
+            specs.append((class_name, class_name, version, path))
+    if len(specs) != 11:
+        raise ValueError(f"必须恰好有11份Excel，实际为{len(specs)}")
     return specs
 
 
@@ -970,12 +967,10 @@ for class_name, flow_name, version, path in specs:
     base_fields = source_metadata["flowClassFields"][base_key]
     base_kinds = source_metadata["flowClassKinds"][base_key]
     base_cells = list(source_metadata["flowClassCells"][base_key])
-    # 破竹鸢 2.4 将第三、第四心法输入由 C22/C24 移到了 E22/E24。
+    # 破竹鸢 2.4 曾将第三、第四心法输入由 C22/C24 移到 E22/E24；
+    # 当前 2.6 版直接使用基线单元格，无需覆盖。
     # 字段名称保持公开 API 兼容，但单元格位置必须以当前工作簿为准。
-    if class_name == "破竹鸢" and version == "2.4":
-        base_cells[base_fields.index("third_xinfa")] = "期望!E22"
-        base_cells[base_fields.index("fourth_xinfa")] = "期望!E24"
-    # 破竹樽 复用破竹鸢基线（两工作簿结构一致，心法同样位于 E22/E24）。
+    # 破竹樽 复用破竹鸢基线（两工作簿结构一致，心法位于 E22/E24）。
     if class_name == "破竹樽":
         base_cells[base_fields.index("third_xinfa")] = "期望!E22"
         base_cells[base_fields.index("fourth_xinfa")] = "期望!E24"
@@ -994,7 +989,7 @@ for class_name, flow_name, version, path in specs:
 for key in ("flowIds", "flowKeys", "flowClassNames", "flowClassFields", "flowClassKinds", "flowClassCells", "flowClassDefaultValues", "flowGraduationProfiles", "classRotationStats"):
     metadata[key] = {}
 metadata["flowNames"] = []
-metadata["classTableVersions"] = {"牵丝翊": []}
+metadata["classTableVersions"] = {}
 metadata["flowExcelModules"] = {}
 
 manifest = {"inputLength": INPUT_LEN, "outputLength": 5, "workbooks": []}
@@ -1019,12 +1014,7 @@ for index, record in enumerate(records):
         "useTime": use_time, "dps": baseline_dps, "baselineDps": baseline_dps,
         "baselineRdps": baseline_rdps, "version": path.stem, "updateTime": update_time,
     }
-    if class_name != "牵丝翊":
-        metadata["classRotationStats"][class_name] = metadata["classRotationStats"][flow_name]
-    else:
-        metadata["classTableVersions"][class_name].append({
-            "key": version, "label": version, "flowName": flow_name, "default": version == "2.0"
-        })
+    metadata["classRotationStats"][class_name] = metadata["classRotationStats"][flow_name]
     manifest["workbooks"].append({
         "id": index, "className": class_name, "flowName": flow_name, "version": version,
         "file": path.name, "module": module_name, "inputs": len(fields), "baselineTotal": baseline_total,
@@ -1032,7 +1022,6 @@ for index, record in enumerate(records):
     })
 
 metadata["classDefaultValues"] = {name: metadata["flowClassDefaultValues"][name] for name in FLOW_ORDER if name in metadata["flowClassDefaultValues"]}
-metadata["classDefaultValues"]["牵丝翊"] = metadata["flowClassDefaultValues"]["牵丝翊@2.0"]
 if site_update_time := os.environ.get("YYSLS_SITE_UPDATE_TIME"):
     metadata["siteUpdateTime"] = site_update_time
 METADATA_PATH.write_text("// Generated from calculator workbooks. Do not edit by hand.\nwindow.YYSLS_CALC_METADATA=" + json.dumps(metadata, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")

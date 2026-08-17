@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --git-dir=/home/xxs/myboke/.gitrepo show 0413d5a -- static/tools/yysls-tiaolv/assets/js/excel-runtime.js)"
+    ]
+  }
+}

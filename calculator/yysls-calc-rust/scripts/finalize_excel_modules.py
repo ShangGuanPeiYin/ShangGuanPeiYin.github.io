@@ -19,8 +19,8 @@ if not match:
     raise SystemExit("无法解析 generated-calc-metadata.js")
 metadata = json.loads(match.group(1))
 modules = metadata.get("flowExcelModules") or {}
-if len(modules) != 12:
-    raise SystemExit(f"必须有12个Excel模块，实际为{len(modules)}")
+if len(modules) != 11:
+    raise SystemExit(f"必须有11个Excel模块，实际为{len(modules)}")
 
 LIVE.mkdir(parents=True, exist_ok=True)
 expected = set()

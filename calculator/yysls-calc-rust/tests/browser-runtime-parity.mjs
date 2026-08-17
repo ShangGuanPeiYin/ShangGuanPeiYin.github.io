@@ -111,7 +111,7 @@ try {
   if (expectedEngine === "assistant" && result.initiallyLoaded.length !== 0) {
     throw new Error(`Excel modules loaded before demand: ${JSON.stringify(result.initiallyLoaded)}`);
   }
-  const expectedFlowCount = expectedEngine === "q7" ? 11 : 12;
+  const expectedFlowCount = 11;
   if (result.loadedFlows.length !== expectedFlowCount) {
     throw new Error(`unexpected flow count ${result.loadedFlows.length} (engine=${result.engine})`);
   }
