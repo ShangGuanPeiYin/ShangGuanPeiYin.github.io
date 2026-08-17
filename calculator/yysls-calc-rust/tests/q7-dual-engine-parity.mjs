@@ -12,7 +12,7 @@ const upstreamBytes = Buffer.from(await fetch("https://yysls.leoq7.com/assets/wa
   return response.arrayBuffer();
 }));
 const sha256 = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
-const expectedHash = "7108595dc2b4f5bb9ea117bf7e6f6cef3e9201e76c8cba2d650822e0928028f3";
+const expectedHash = "128e69cb2d7db9c8e4c05de16515d7af384fda31fdce2af30cb0f5504250801f";
 if (sha256(localBytes) !== expectedHash || sha256(upstreamBytes) !== expectedHash || !localBytes.equals(upstreamBytes)) throw new Error("Q7 WASM snapshot differs from upstream");
 for (const filename of ["generated-calc-strings.js", "generated-calc-metadata.js", "excel-runtime.js"]) {
   const upstream = await fetch(`https://yysls.leoq7.com/assets/js/${filename}`).then(async response => {
@@ -38,7 +38,7 @@ async function makeRunner(bytes) {
   const wasm = (await WebAssembly.instantiate(bytes, {})).instance.exports;
   const diyLen = wasm.yysls_diy_input_len(), panelLen = wasm.yysls_panel_len();
   const classLen = wasm.yysls_class_input_len(), outputLen = wasm.yysls_class_output_len();
-  if (diyLen !== 184 || panelLen !== 36 || classLen !== 40 || outputLen !== 5) throw new Error(`Q7 ABI mismatch ${diyLen}/${panelLen}/${classLen}/${outputLen}`);
+  if (diyLen !== 184 || panelLen !== 37 || classLen !== 40 || outputLen !== 5) throw new Error(`Q7 ABI mismatch ${diyLen}/${panelLen}/${classLen}/${outputLen}`);
   const diyPtr = wasm.yysls_alloc_f64(diyLen), panelPtr = wasm.yysls_alloc_f64(panelLen);
   const classPtr = wasm.yysls_alloc_f64(classLen), outputPtr = wasm.yysls_alloc_f64(outputLen);
   return {

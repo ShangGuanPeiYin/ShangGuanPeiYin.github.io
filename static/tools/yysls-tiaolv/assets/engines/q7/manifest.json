@@ -3,7 +3,7 @@
   "localOverrides": {
     "seasonResistance": 2.45
   },
-  "siteUpdateTime": "2026年8月15日 17:42:05",
+  "siteUpdateTime": "2026年8月16日 17:57:46",
   "flows": [
     "牵丝玉",
     "牵丝翊",
@@ -19,25 +19,25 @@
   ],
   "assets": {
     "generated-calc-strings.js": {
-      "sha256": "d4754495d2f283e464f4ce3bd8eba9adfabc07b3b67b6c96ddc0a8a8a359e7dc",
-      "size": 17570
+      "sha256": "d11f9b8e79836ab951c4c621e26b92ae8f1483196a82d7cd0ff48b123638be59",
+      "size": 17993
     },
     "generated-calc-metadata.js": {
-      "sha256": "184c242c5092c9f66d3640b0b604c44fe5466c6a9984feb99c3a44bb56ff6975",
-      "size": 27472
+      "sha256": "c14eeeed0a5f1ed7f34a493be1548a3f19f01eaed4c264f17d414897d1738cf2",
+      "size": 27665
     },
     "excel-runtime.js": {
-      "sha256": "d6862bc389bef7ca4b4aa639018ddde8864ab27eefe800869634f4a048bc1980",
-      "size": 42178
+      "sha256": "93badaacf5dbb25a32d68ff3ef9c757a88882fbe1ee0a22910bb8ac1a98e4aa6",
+      "size": 42217
     },
     "app.min.js": {
-      "sha256": "724f0df3c4e0066ead3f0bcf899e6a11258ab2147909cba6fdb824cbca640d3a",
-      "size": 415060
+      "sha256": "491a4e994f9fe87bea723f38e48f8d06f0a1149d293e8d11f41276bf7672830e",
+      "size": 415925
     }
   },
   "wasm": {
-    "sha256": "7108595dc2b4f5bb9ea117bf7e6f6cef3e9201e76c8cba2d650822e0928028f3",
-    "size": 1000349
+    "sha256": "128e69cb2d7db9c8e4c05de16515d7af384fda31fdce2af30cb0f5504250801f",
+    "size": 1007974
   },
   "workbooks": {
     "牵丝玉110阶竞速轴属性毕业率进阶计算器1.4.xlsx": {
@@ -76,9 +76,9 @@
       "sha256": "0cbcda453af74add7a8e04cc9f0078d6c615f6bad1c175d96f819f9f56292295",
       "size": 786699
     },
-    "牵丝霖110阶竞速轴属性毕业率进阶计算器1.1.xlsx": {
-      "sha256": "f2de65322df802c9a8ae09dab162c753e98862addae7ef0414e65d0285a93934",
-      "size": 242102
+    "牵丝霖110阶竞速轴属性毕业率进阶计算器2.1.xlsx": {
+      "sha256": "392d4087d03e97f125db8eab7f1775a88a9c2d2aa66f790aef3cf9ef939df5a0",
+      "size": 244406
     },
     "破竹樽110阶竞速轴属性毕业率进阶计算器0.4.xlsx": {
       "sha256": "c53c782f7d97f4f94c8fa276b0b31a209dd67d413fb56c47c37207436faaef3d",

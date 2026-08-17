@@ -19,7 +19,7 @@ Read `references/contracts.md` and `doc/tiaolv-local-customizations.md` before c
 ## Hard gates
 
 - Q7 uses the pinned original single WASM for Panel and five class outputs; never substitute Assistant output or silently fall back.
-- Compare 36 Panel fields and five class outputs by Float64 bit pattern across ten flows, a fixed matrix, and at least 1,000,000 fixed-seed cases.
+- Compare 37 Panel fields and five class outputs by Float64 bit pattern across ten flows, a fixed matrix, and at least 1,000,000 fixed-seed cases.
 - Q7 best-build candidates use generic original-WASM scoring. Assistant alone may use the compiled direct-module fast path.
 - Cache keys and workbook paths include the engine ID. Q7 exposes only its ten current workbook versions; Assistant retains its own versions.
 - Switching engines persists globally and reloads the page. First use defaults to `q7`.

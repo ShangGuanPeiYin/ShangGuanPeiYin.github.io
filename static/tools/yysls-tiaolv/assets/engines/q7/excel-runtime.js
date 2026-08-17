@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "7108595d";
+    const ASSET_VERSION = "128e69cb";
     const WASM_URL = `assets/wasm/q7/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -389,6 +389,7 @@
             "最大破竹攻击": byRow(20),
             "最小无相攻击": byRow(21),
             "最大无相攻击": byRow(22),
+            "无相穿透": byRow(36),
             "外功穿透": byRow(26),
             "外功伤害加成": byRow(27) * 100,
             "鸣金穿透": byRow(28),
@@ -399,11 +400,11 @@
             "牵丝伤害加成": byRow(33) * 100,
             "破竹穿透": byRow(34),
             "破竹伤害加成": byRow(35) * 100,
-            "指定武学增效": byRow(36) * 100,
-            "单体类奇术增伤": byRow(37) * 100,
-            "群体类奇术增伤": byRow(37) * 100,
-            "对首领单位增伤": byRow(38) * 100,
-            "全武学增效": byRow(39) * 100,
+            "指定武学增效": byRow(37) * 100,
+            "单体类奇术增伤": byRow(38) * 100,
+            "群体类奇术增伤": byRow(38) * 100,
+            "对首领单位增伤": byRow(39) * 100,
+            "全武学增效": byRow(40) * 100,
             "_白字精准率": 65 + (actualPrecision - 65) * resistance,
             "_白字会心率": actualCrit * resistance,
             "_白字会意率": actualIntent * resistance
