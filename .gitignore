@@ -5,3 +5,5 @@ public/
 resources/
 z_local_cal/
 .aider*
+__pycache__/
+*.pyc
