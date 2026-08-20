@@ -987,6 +987,18 @@ for class_name, flow_name, version, path in specs:
         del base_kinds[fourth]
         del base_cells[fourth]
         base_cells[base_fields.index("third_xinfa")] = "期望!E22"
+    # 牵丝霖 2.1 引入第三心法输入并调整第四心法位置，与 Q7 契约一致：
+    # third_xinfa -> 期望!E20（默认 易水歌），fourth_xinfa -> 期望!E22（默认 征人归）。
+    if class_name == "牵丝霖":
+        base_fields = list(base_fields)
+        base_kinds = list(base_kinds)
+        base_cells = list(base_cells)
+        if "third_xinfa" not in base_fields:
+            insert_at = base_fields.index("e25")
+            base_fields.insert(insert_at, "third_xinfa")
+            base_kinds.insert(insert_at, "str")
+            base_cells.insert(insert_at, "期望!E20")
+        base_cells[base_fields.index("fourth_xinfa")] = "期望!E22"
     compiler = WorkbookCompiler(path, flow_name, class_name, base_cells, base_kinds)
     module_name = f"excel_{FLOW_SLUGS[class_name]}_{version.replace('.', '_')}.wasm"
     (DIRECT_SOURCE_DIR / module_name.replace(".wasm", ".rs")).write_text(compiler.standalone_rust(), encoding="utf-8")
@@ -1039,6 +1051,12 @@ for index, record in enumerate(records):
     })
 
 metadata["classDefaultValues"] = {name: metadata["flowClassDefaultValues"][name] for name in FLOW_ORDER if name in metadata["flowClassDefaultValues"]}
+# 牵丝霖 2.1 引入第三心法输入并调整第四心法默认值，与 Q7 契约一致。
+if "classXinfaInputs" in metadata and "牵丝霖" in metadata["flowExcelModules"]:
+    metadata["classXinfaInputs"]["牵丝霖"] = [
+        {"field": "third_xinfa", "label": "第三心法", "default": "易水歌", "mode": "dropdown", "candidates": ["易水歌", "征人归"]},
+        {"field": "fourth_xinfa", "label": "第四心法", "default": "征人归", "mode": "dropdown", "candidates": ["四时无常", "大卷微身", "征人归"]},
+    ]
 if site_update_time := os.environ.get("YYSLS_SITE_UPDATE_TIME"):
     metadata["siteUpdateTime"] = site_update_time
 METADATA_PATH.write_text("// Generated from calculator workbooks. Do not edit by hand.\nwindow.YYSLS_CALC_METADATA=" + json.dumps(metadata, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")

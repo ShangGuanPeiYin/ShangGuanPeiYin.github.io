@@ -2,6 +2,17 @@
 
 本文记录调率站必须长期保留的本站功能。本站前端与存储自主维护；默认Q7原版引擎跟随 `yysls.leoq7.com` 的WASM、DPS、RDPS、毕业率和最佳配装评分，仅将三率赛季抗性固定覆盖为 `2.45`；Assistant引擎继续使用 `yysls-assistant.cn` Panel口径与本站Excel模块。任何上游同步都不得覆盖本清单功能，也不得在两套引擎之间混用数据。
 
+## Assistant 引擎 vs Q7 引擎 计算器层 parity（文档化例外）
+
+`calculator/yysls-calc-rust/tests/assistant-q7-parity.mjs` 校验助理（新版）引擎与 Q7 引擎在相同 40 长度 class 输入下的输出一致性。比较范围与例外：
+
+1. **output[4] 语义不同，一律排除**：助理 `output[4] = rdps/rdpsBaseline`（`RD!I14`，默认 1.0）；Q7 `output[4] = rdpsGraduationRatio`（占位，恒为 0.0）。
+2. **浮点结合序容差**：两引擎由独立编译器生成，长 SUM/除法链可能出现 ≤1 ULP（约 1e-15 相对）差异（牵丝玉/破竹尘/破竹风/破竹鸢/裂石钧）。outputs[0..3] 按 `REL_TOL = 1e-12` 相对容差比较（实测最坏约 8e-16，4 个数量级以上余量）；真实分叉（如选错武学路径、约 1e-1 相对）会突破门禁。
+3. **牵丝翊 / 破竹尘 / 裂石钧 xinfa 输入不敏感（保留）**：助理工作簿 `期望!I10 = SUM(L:L)` 无 xinfa 行选择器（`C22`/`C24`/`E22` 等仅为残留标签），编译模块忽略 `third_xinfa`/`fourth_xinfa`；Q7 WASM 内嵌选择器（由旧版含选择器的工作簿编译）。默认构建（Q7 默认 xinfa）两引擎一致；非默认 xinfa 下助理输出恒定而 Q7 变化。parity 测试断言：默认一致、助理对全部候选 xinfa 输出不变（故意属性）、Q7 变化记录为已知差异。以源工作簿为准，不修改工作簿。
+4. **鸣金虹 output[2] 用户工作簿差异（保留）**：用户提供的助理工作簿 class 槽 2 为 `6339.5`，Q7 为 `6332.4`。outputs[0,1,3] 一致；output[2]（毕业率）因 `期望!I16` 基线常数不同相差约 7.9e-4（相对），按 0.5% 文档化容差断言。以源工作簿为准。
+
+同步上游或重建 Excel 模块后必须重新运行该 parity 测试。
+
 ## 外置扩展脚本
 
 文件：`static/tools/yysls-tiaolv/assets/js/local-customizations.js`

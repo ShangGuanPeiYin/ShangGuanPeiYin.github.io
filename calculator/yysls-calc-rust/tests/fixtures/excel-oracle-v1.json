@@ -12,14 +12,14 @@
       "rdpsBaseline": 117772.709602175
     },
     "牵丝翊": {
-      "workbook": "牵丝翊110阶竞速轴属性毕业率进阶计算器2.2.xlsx",
-      "version": "2.2",
-      "module": "excel_qsyi_2_2.wasm",
-      "totalDamage": 10763814.2343509,
-      "adps": 106783.871372529,
-      "graduationRatio": 1.00000001285334,
-      "rdps": 136299.310846696,
-      "rdpsBaseline": 136299.310846696
+      "workbook": "牵丝翊110阶竞速轴属性毕业率进阶计算器2.3.xlsx",
+      "version": "2.3",
+      "module": "excel_qsyi_2_3.wasm",
+      "totalDamage": 10669560.2296604,
+      "adps": 105848.811802186,
+      "graduationRatio": 1.00000001702604,
+      "rdps": 135411.800398312,
+      "rdpsBaseline": 135411.800398312
     },
     "破竹尘": {
       "workbook": "破竹尘110阶竞速轴属性毕业率进阶计算器2.2.xlsx",
@@ -102,14 +102,14 @@
       "rdpsBaseline": 122289.847193263
     },
     "牵丝霖": {
-      "workbook": "牵丝霖110阶竞速轴属性毕业率进阶计算器1.1.xlsx",
-      "version": "1.1",
-      "module": "excel_qslin_1_1.wasm",
-      "totalDamage": 1519700.0225165,
-      "adps": 101313.334834433,
-      "graduationRatio": 1.00000004771764,
-      "rdps": 108515.748299029,
-      "rdpsBaseline": 108515.748299029
+      "workbook": "牵丝霖110阶竞速轴属性毕业率进阶计算器2.1.xlsx",
+      "version": "2.1",
+      "module": "excel_qslin_2_1.wasm",
+      "totalDamage": 1652171.48177157,
+      "adps": 110144.765451438,
+      "graduationRatio": 0.999999958703785,
+      "rdps": 107415.013961088,
+      "rdpsBaseline": 107415.013961088
     }
   }
 }

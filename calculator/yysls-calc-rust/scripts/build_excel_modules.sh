@@ -13,7 +13,7 @@ compile_one() {
   local output="$DIST_DIR/$(basename "${source%.rs}.wasm")"
   local opt_level=3
   local codegen_units=8
-  if [[ "$(basename "$source")" == "excel_qslin_1_1.rs" ]]; then
+  if [[ "$(basename "$source")" == "excel_qslin_2_1.rs" ]]; then
     opt_level=2
     # This large module produced different section ordering across cold builds
     # with parallel codegen. A single unit keeps the published hash reproducible.
