@@ -52,6 +52,12 @@ const localConfig = JSON.parse(fs.readFileSync(q7("q7-app-config.js"), "utf8")
   .match(/YYSLS_Q7_APP_CONFIG=(\{.*\})/s)[1]);
 const upstreamConfig = extractAppConfig(upstream.app.toString("utf8"));
 
+// YYSLS_Q7_NORMALIZE_SEASON=1: align local season resistance to upstream so any
+// remaining diff is a genuine inconsistency rather than the documented override.
+if (process.env.YYSLS_Q7_NORMALIZE_SEASON === "1") {
+  localConfig.CommonData.SEASON_STATS["赛季抗性"] = upstreamConfig.CommonData.SEASON_STATS["赛季抗性"];
+}
+
 // --- runtime environment factory ----------------------------------------------
 async function makeSite(label, { wasm, strings, metadata, runtime, config }) {
   const ctx = { window: {}, console, setTimeout, clearTimeout };
