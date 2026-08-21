@@ -300,9 +300,10 @@ body.ui-codex-command-classic #filter-container .filter-btn.active {
 }
 
 body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-on {
-    color: var(--cc-void);
-    border-color: var(--cc-lime);
-    background: var(--cc-lime);
+    color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .12);
+    box-shadow: 0 0 10px rgba(88, 213, 208, .25),
+        inset 0 0 0 1px rgba(88, 213, 208, .6);
 }
 
 body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-off {
