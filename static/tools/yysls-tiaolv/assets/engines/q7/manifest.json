@@ -3,7 +3,7 @@
   "localOverrides": {
     "seasonResistance": 2.45
   },
-  "siteUpdateTime": "2026年8月17日 15:31:28",
+  "siteUpdateTime": "2026年8月19日 19:54:59",
   "flows": [
     "牵丝玉",
     "牵丝翊",
@@ -19,25 +19,25 @@
   ],
   "assets": {
     "generated-calc-strings.js": {
-      "sha256": "8dcbad8a98192f55ef67bbb8502cbcb77b78acc1b22456bf4bfb16620053d774",
-      "size": 18020
+      "sha256": "db15c879f882ea76783d804497d20faf1753586b4aaa77bae8c5f75ec127c3e6",
+      "size": 18296
     },
     "generated-calc-metadata.js": {
-      "sha256": "8b38e5a51d4a2f434a44dc2c6176bda61f4fd2af6244496fa16d676063f39632",
-      "size": 27665
+      "sha256": "2a54243c41c4502cff13e20d289158ef64488985e6eb164b8ae968a221b39976",
+      "size": 27669
     },
     "excel-runtime.js": {
-      "sha256": "e21afcd8960790131ce1c7ecf1e0459ac4168f654f86eb5a76df752bbdc5604e",
+      "sha256": "dbc200f8c312bea6bf1503894f4c29444fe08337a4e32db443e6022fdc9427ec",
       "size": 42217
     },
     "app.min.js": {
-      "sha256": "bc1d7dbef178530c9785c418ab973dc4110797cb7907a26a5011ca99b0a4ebad",
+      "sha256": "2c62e5f3f46be62b15d851fc4740fca4e4540b954df75b851f6d8a67e3fbe52a",
       "size": 415925
     }
   },
   "wasm": {
-    "sha256": "24e9b52924a8eaf6268622ac33f4da9de487a77e4d0f805fb4fbcd0c2a60105a",
-    "size": 1008006
+    "sha256": "b90950eb4250d14efea0b5b3e18b048bdc6b6b15de08b8e22db3c519f660e082",
+    "size": 1017655
   },
   "workbooks": {
     "牵丝玉110阶竞速轴属性毕业率进阶计算器1.4.xlsx": {
@@ -80,9 +80,9 @@
       "sha256": "392d4087d03e97f125db8eab7f1775a88a9c2d2aa66f790aef3cf9ef939df5a0",
       "size": 244406
     },
-    "破竹樽110阶竞速轴属性毕业率进阶计算器0.4.xlsx": {
-      "sha256": "c53c782f7d97f4f94c8fa276b0b31a209dd67d413fb56c47c37207436faaef3d",
-      "size": 385703
+    "破竹樽110阶竞速轴属性毕业率进阶计算器0.5.xlsx": {
+      "sha256": "297fb3940eb2586fc1b266845ab98804e20ce4f4e1c6a9de7ac9cbfb8730154e",
+      "size": 388970
     }
   }
 }
