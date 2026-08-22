@@ -2514,6 +2514,7 @@
         "最大裂石攻击": "裂石",
         "最大牵丝攻击": "牵丝",
         "最大破竹攻击": "破竹",
+        "最大无相攻击": "无相",
         "会心率": "会心",
         "会意率": "会意"
     };
@@ -2556,7 +2557,7 @@
             .forEach(function(el) { el.parentNode && el.parentNode.removeChild(el); });
         cardEl.querySelectorAll(".zhuanlv-substat-highlight")
             .forEach(function(el) {
-                el.querySelectorAll(".sub-stat").forEach(function(span) {
+                el.querySelectorAll(".sub-stat, .val").forEach(function(span) {
                     span.style.fontWeight = "";
                     span.style.color = "";
                     span.style.flexShrink = "";
