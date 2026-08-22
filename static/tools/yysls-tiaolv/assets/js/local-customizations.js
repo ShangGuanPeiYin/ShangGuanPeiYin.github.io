@@ -2507,6 +2507,40 @@
 
     // ── 卡片徽标注入 ──────────────────────────────
 
+    var ZHUANLV_STAT_ABBR = {
+        "最大外功攻击": "大外",
+        "最小外功攻击": "小外",
+        "最大鸣金攻击": "鸣金",
+        "最大裂石攻击": "裂石",
+        "最大牵丝攻击": "牵丝",
+        "最大破竹攻击": "破竹",
+        "会心率": "会心",
+        "会意率": "会意"
+    };
+
+    function buildZhuanlvTargetHint(equip, subStatIndex) {
+        if (typeof CommonData === "undefined" || !CommonData.TRANSMUTATION_POOLS) return "";
+        var merged = [], seen = {};
+        Object.keys(CommonData.TRANSMUTATION_POOLS).forEach(function(key) {
+            (CommonData.TRANSMUTATION_POOLS[key] || []).forEach(function(stat) {
+                if (!seen[stat]) { seen[stat] = true; merged.push(stat); }
+            });
+        });
+        var targets = typeof filterTransmutationTargetsForEquip === "function"
+            ? filterTransmutationTargetsForEquip(equip, merged) : merged;
+        var taken = {};
+        equip.subStats.forEach(function(stat, idx) {
+            if (stat && stat.type && idx !== subStatIndex) taken[stat.type] = true;
+        });
+        var ownType = equip.subStats[subStatIndex] && equip.subStats[subStatIndex].type;
+        if (ownType) taken[ownType] = true;
+        var abbrs = [];
+        targets.forEach(function(stat) {
+            if (!taken[stat]) abbrs.push(ZHUANLV_STAT_ABBR[stat] || stat);
+        });
+        return abbrs.length ? "（" + abbrs.join("/") + "）" : "";
+    }
+
     function buildZhuanlvTag(text, color) {
         return '<span class="zhuanlv-badge" style="'
             + 'font-size:0.72rem;border:1px solid ' + color + ';color:' + color + ';'
@@ -2516,15 +2550,16 @@
             + text + '</span>';
     }
 
-    function renderZhuanlvBadgeOnCard(cardEl, status, isEligible) {
+    function renderZhuanlvBadgeOnCard(cardEl, status, isEligible, equip) {
         // 移除旧的注入元素
-        cardEl.querySelectorAll(".zhuanlv-badge,.zhuanlv-substat-marker")
+        cardEl.querySelectorAll(".zhuanlv-badge,.zhuanlv-substat-marker,.zhuanlv-targets-hint")
             .forEach(function(el) { el.parentNode && el.parentNode.removeChild(el); });
         cardEl.querySelectorAll(".zhuanlv-substat-highlight")
             .forEach(function(el) {
                 el.querySelectorAll(".sub-stat").forEach(function(span) {
                     span.style.fontWeight = "";
                     span.style.color = "";
+                    span.style.flexShrink = "";
                 });
                 el.classList.remove("zhuanlv-substat-highlight");
                 el.style.background = "";
@@ -2594,6 +2629,22 @@
                         subStatSpan.insertBefore(marker, subStatSpan.firstChild);
                     }
                 }
+                var valSpan = targetRow.querySelector(".val");
+                if (subStatSpan) subStatSpan.style.flexShrink = "0";
+                if (valSpan) valSpan.style.flexShrink = "0";
+                if (equip && equip.subStats && equip.subStats[idx]) {
+                    var hintText = buildZhuanlvTargetHint(equip, idx);
+                    if (hintText) {
+                        var hintSpan = document.createElement("span");
+                        hintSpan.className = "zhuanlv-targets-hint";
+                        hintSpan.style.cssText = "font-size:0.72rem;color:rgba(240,165,0,.75);"
+                            + "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+                            + "min-width:0;flex:0 1 auto;margin:0 8px;line-height:1.4;";
+                        hintSpan.textContent = hintText;
+                        if (valSpan) targetRow.insertBefore(hintSpan, valSpan);
+                        else targetRow.appendChild(hintSpan);
+                    }
+                }
             }
 
         }
@@ -2650,7 +2701,7 @@
             var equip = equipById.get(String(id));
             var eligible = isTransmutableEquip(equip);
             var status = eligible ? cleanMap[String(id)] || null : null;
-            renderZhuanlvBadgeOnCard(card, status, eligible);
+            renderZhuanlvBadgeOnCard(card, status, eligible, equip);
         });
     }
 
