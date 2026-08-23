@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "21652c0c";
+    const ASSET_VERSION = "65e727fa";
     const WASM_URL = `assets/wasm/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -98,6 +98,7 @@
         "牵丝玉": "九重春色·特殊技增伤",
         "裂石威": "嗟夫刀法·蓄力技增伤",
         "破竹鸢": "天志垂象·蓄力技增伤",
+        "破竹樽": "酩酊技定音",
         "牵丝翊": "鼓特殊技",
         "牵丝霖": "明川药典·治疗技增疗"
     };
@@ -388,6 +389,7 @@
             "最大破竹攻击": byRow(20),
             "最小无相攻击": byRow(21),
             "最大无相攻击": byRow(22),
+            "无相穿透": byRow(36),
             "外功穿透": byRow(26),
             "外功伤害加成": byRow(27) * 100,
             "鸣金穿透": byRow(28),
@@ -398,11 +400,11 @@
             "牵丝伤害加成": byRow(33) * 100,
             "破竹穿透": byRow(34),
             "破竹伤害加成": byRow(35) * 100,
-            "指定武学增效": byRow(36) * 100,
-            "单体类奇术增伤": byRow(37) * 100,
-            "群体类奇术增伤": byRow(37) * 100,
-            "对首领单位增伤": byRow(38) * 100,
-            "全武学增效": byRow(39) * 100,
+            "指定武学增效": byRow(37) * 100,
+            "单体类奇术增伤": byRow(38) * 100,
+            "群体类奇术增伤": byRow(38) * 100,
+            "对首领单位增伤": byRow(39) * 100,
+            "全武学增效": byRow(40) * 100,
             "_白字精准率": 65 + (actualPrecision - 65) * resistance,
             "_白字会心率": actualCrit * resistance,
             "_白字会意率": actualIntent * resistance
@@ -421,17 +423,6 @@
                 adjusted[stat] = Math.max(0, num(adjusted[stat]) - value);
             });
         });
-        return adjusted;
-    }
-
-    function applyClassPanelRules(panel, className) {
-        if (!panel) return panel;
-        const adjusted = { ...panel };
-        if (className === "牵丝玉" || className === "牵丝翊" || className === "牵丝霖") {
-            const minTsAttack = num(adjusted["最小牵丝攻击"]);
-            adjusted["牵丝穿透"] = minTsAttack >= 441 ? 29.6 : 29;
-            adjusted["牵丝伤害加成"] = minTsAttack >= 441 ? 14.8 : 14.5;
-        }
         return adjusted;
     }
 
@@ -517,7 +508,7 @@
         const panel = panelFromArray(readF64(panelPtr, wasm.yysls_panel_len()));
         const withPurplePenalty = applyPurpleBaseAttackPenalty(panel, options.equippedItems);
         return markPanelDamageBonusState(
-            applyRateOverflow(applyClassPanelRules(withPurplePenalty, options.className), options),
+            applyRateOverflow(withPurplePenalty, options),
             {
                 commonEffective: true,
                 genericWeaponEffective: true,
@@ -765,7 +756,7 @@
             dingyinEffective: true
         };
         const element = META.classElements && (META.classElements[flowName] || META.classElements[className]) || "";
-        const normalizedPanel = applyClassPanelRules(normalizePanelAliases(panel, originalClassName || className), className);
+        const normalizedPanel = normalizePanelAliases(panel, originalClassName || className);
         const adjustedPanel = applyPanelBonuses(normalizedPanel, options.bonuses || {}, element, {
             hasExplicitBonuses,
             damageState: inputDamageBonusState,

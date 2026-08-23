@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "b90950eb";
+    const ASSET_VERSION = "65e727fa";
     const WASM_URL = `assets/wasm/q7/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -426,17 +426,6 @@
         return adjusted;
     }
 
-    function applyClassPanelRules(panel, className) {
-        if (!panel) return panel;
-        const adjusted = { ...panel };
-        if (className === "牵丝玉" || className === "牵丝翊" || className === "牵丝霖") {
-            const minTsAttack = num(adjusted["最小牵丝攻击"]);
-            adjusted["牵丝穿透"] = minTsAttack >= 441 ? 29.6 : 29;
-            adjusted["牵丝伤害加成"] = minTsAttack >= 441 ? 14.8 : 14.5;
-        }
-        return adjusted;
-    }
-
     function num(value) {
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : 0;
@@ -519,7 +508,7 @@
         const panel = panelFromArray(readF64(panelPtr, wasm.yysls_panel_len()));
         const withPurplePenalty = applyPurpleBaseAttackPenalty(panel, options.equippedItems);
         return markPanelDamageBonusState(
-            applyRateOverflow(applyClassPanelRules(withPurplePenalty, options.className), options),
+            applyRateOverflow(withPurplePenalty, options),
             {
                 commonEffective: true,
                 genericWeaponEffective: true,
@@ -767,7 +756,7 @@
             dingyinEffective: true
         };
         const element = META.classElements && (META.classElements[flowName] || META.classElements[className]) || "";
-        const normalizedPanel = applyClassPanelRules(normalizePanelAliases(panel, originalClassName || className), className);
+        const normalizedPanel = normalizePanelAliases(panel, originalClassName || className);
         const adjustedPanel = applyPanelBonuses(normalizedPanel, options.bonuses || {}, element, {
             hasExplicitBonuses,
             damageState: inputDamageBonusState,
