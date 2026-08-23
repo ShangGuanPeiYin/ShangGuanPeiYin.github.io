@@ -2638,9 +2638,9 @@
                     if (hintText) {
                         var hintSpan = document.createElement("span");
                         hintSpan.className = "zhuanlv-targets-hint";
-                        hintSpan.style.cssText = "font-size:0.72rem;color:rgba(240,165,0,.75);"
+                        hintSpan.style.cssText = "font-size:inherit;color:rgba(240,165,0,.75);"
                             + "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-                            + "min-width:0;flex:0 1 auto;margin:0 8px;line-height:1.4;";
+                            + "min-width:0;flex:0 1 auto;margin-left:4px;margin-right:auto;";
                         hintSpan.textContent = hintText;
                         if (valSpan) targetRow.insertBefore(hintSpan, valSpan);
                         else targetRow.appendChild(hintSpan);
