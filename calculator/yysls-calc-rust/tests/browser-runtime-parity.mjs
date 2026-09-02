@@ -42,8 +42,12 @@ async function evaluate(client, expression) {
   return response.result.value;
 }
 
-const client = await openPage(`${baseUrl}/`);
+const client = await openPage(`${baseUrl}/?test=${Date.now()}`);
 try {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if ((await evaluate(client, "location.href")).startsWith(baseUrl)) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
   await evaluate(client, `(() => {
     const expected = ${JSON.stringify(expectedEngine)};
     if (localStorage.getItem("yysls_calculator_engine") !== expected) {
@@ -63,6 +67,33 @@ try {
   client.exceptions.length = 0;
   const result = await evaluate(client, `(async () => {
     await window.YYSLSExcelRuntime.ready;
+    const editId = document.getElementById("edit-id");
+    const slotSelect = document.getElementById("slot-select");
+    const levelSelect = document.getElementById("level-select");
+    const transmutableCheck = document.getElementById("is-transmutable");
+    if (!editId || !slotSelect || !levelSelect || !transmutableCheck) throw new Error("equipment form is incomplete");
+    document.getElementById("modal").classList.remove("hidden");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    editId.value = "";
+    slotSelect.value = "1";
+    slotSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    levelSelect.value = "110";
+    levelSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    transmutableCheck.checked = true;
+    transmutableCheck.dispatchEvent(new Event("change", { bubbles: true }));
+    const subStatSelect = document.querySelector("#sub-stats-container .sub-stat-select");
+    if (!subStatSelect) throw new Error("equipment sub-stat select is missing");
+    subStatSelect.value = "最大外功攻击";
+    subStatSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    const transmutationRadio = document.querySelector('.zhuanlv-slot-radio[data-index="0"]');
+    if (!transmutationRadio) throw new Error("transmutation slot selector is missing");
+    transmutationRadio.checked = true;
+    transmutationRadio.dispatchEvent(new Event("change", { bubbles: true }));
+    const transmutationTargets = Array.from(document.querySelectorAll("#zhuanlv-target-checkboxes .zhuanlv-target-name"), node => node.textContent.trim());
+    const invalidWeaponTargets = ["最大鸣金攻击", "最大裂石攻击", "最大牵丝攻击", "最大破竹攻击"].filter(stat => transmutationTargets.includes(stat));
+    if (invalidWeaponTargets.length || !transmutationTargets.includes("最大无相攻击")) {
+      throw new Error("new weapon has invalid transmutation targets: " + JSON.stringify({ transmutationTargets, slotId: slotSelect.value }));
+    }
     const runtime = window.YYSLSExcelRuntime;
     const initiallyLoaded = runtime.loadedExcelFlows();
     const flowNames = Object.keys(window.YYSLS_CALC_METADATA.flowIds);

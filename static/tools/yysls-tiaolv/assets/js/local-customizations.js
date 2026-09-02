@@ -2180,6 +2180,7 @@
 
     function readEquipFromForm() {
         var subStats = [];
+        var slotSelect = document.getElementById("slot-select");
         var selects = document.querySelectorAll("#sub-stats-container .sub-stat-select");
         var inputs = document.querySelectorAll("#sub-stats-container .stat-input");
         selects.forEach(function(sel, i) {
@@ -2192,7 +2193,12 @@
                 subStats.push({ type: sel.value, value: 0 });
             }
         });
-        return { subStats: subStats, level: 110, isTransmutable: true };
+        return {
+            slotId: slotSelect ? slotSelect.value : "",
+            subStats: subStats,
+            level: 110,
+            isTransmutable: true
+        };
     }
 
     var WEAPON_TRANSMUTATION_REMOVED_STATS = [
