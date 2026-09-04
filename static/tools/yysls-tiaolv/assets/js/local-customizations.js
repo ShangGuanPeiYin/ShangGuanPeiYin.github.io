@@ -214,7 +214,7 @@
     }
 
     var FULL_BACKUP_KIND = "yysls-tiaolv-full-backup";
-    var FULL_BACKUP_SCHEMA_VERSION = 2;
+    var FULL_BACKUP_SCHEMA_VERSION = 3;
     var EQUIP_SLOT_KEYS = ["weapon1", "weapon2", "head", "chest", "ring", "pendant", "legs", "hands"];
     var SCHEME_FIELDS = [
         "name", "bowType", "setType", "flowVersion", "xinfa", "earlySeasonBonus",
@@ -299,7 +299,8 @@
             level: Number(equip.level) || 105,
             availableClasses: Array.isArray(equip.availableClasses) ? equip.availableClasses.map(String) : [],
             mainStat: sanitizeStat(equip.mainStat),
-            subStats: Array.isArray(equip.subStats) ? equip.subStats.map(sanitizeStat) : []
+            subStats: Array.isArray(equip.subStats) ? equip.subStats.map(sanitizeStat) : [],
+            flowType: "string" == typeof equip.flowType ? equip.flowType : "大外流"
         };
         if (equip.dingyinStat) result.dingyinStat = sanitizeStat(equip.dingyinStat);
         return result;
@@ -482,7 +483,7 @@
 
     function validateFullBackup(payload) {
         if (!isPlainObject(payload) || payload.kind !== FULL_BACKUP_KIND) throw new Error("这不是调率站完整备份文件");
-        if (Number(payload.schemaVersion) !== FULL_BACKUP_SCHEMA_VERSION) {
+        if (Number(payload.schemaVersion) !== FULL_BACKUP_SCHEMA_VERSION && Number(payload.schemaVersion) !== 2) {
             throw new Error("不支持的完整备份版本：" + payload.schemaVersion);
         }
         if (!Array.isArray(payload.accounts) || !payload.accounts.length) throw new Error("完整备份中没有角色数据");
