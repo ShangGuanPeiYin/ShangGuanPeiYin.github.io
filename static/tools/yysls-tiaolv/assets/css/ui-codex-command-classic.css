@@ -248,15 +248,15 @@ body.ui-codex-command-classic #main-content {
 
 body.ui-codex-command-classic #filter-bar {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
     justify-content: stretch;
     align-items: center;
     gap: 10px;
-    border-color: var(--cc-line-hot);
-    border-radius: 0;
-    background: rgba(11, 23, 30, .97);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
-    backdrop-filter: blur(10px);
+    margin-bottom: 15px;
+    padding: 15px 20px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
 }
 
 body.ui-codex-command-classic #filter-container {
@@ -338,7 +338,7 @@ body.ui-codex-command-classic #sort-select {
 
 @media (max-width: 768px) {
     body.ui-codex-command-classic #filter-bar {
-        grid-template-columns: auto 1fr;
+        grid-template-columns: 1fr auto auto;
     }
 
     body.ui-codex-command-classic #filter-container {
