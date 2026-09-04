@@ -248,7 +248,7 @@ body.ui-codex-command-classic #main-content {
 
 body.ui-codex-command-classic #filter-bar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     justify-content: stretch;
     align-items: center;
     gap: 10px;
@@ -338,7 +338,7 @@ body.ui-codex-command-classic #sort-select {
 
 @media (max-width: 768px) {
     body.ui-codex-command-classic #filter-bar {
-        grid-template-columns: 1fr;
+        grid-template-columns: auto 1fr;
     }
 
     body.ui-codex-command-classic #filter-container {
