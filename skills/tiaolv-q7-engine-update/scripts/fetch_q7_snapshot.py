@@ -73,8 +73,8 @@ def main() -> None:
 
         metadata = load_metadata(tmp / "generated-calc-metadata.js")
         rotations = metadata.get("classRotationStats", {})
-        if len(rotations) != 11:
-            raise RuntimeError(f"expected 11 Q7 flows, got {len(rotations)}")
+        if len(rotations) < 11:
+            raise RuntimeError(f"expected at least 11 Q7 flows, got {len(rotations)}")
         workbook_dir = tmp / "excels"
         workbook_dir.mkdir()
         workbook_names = []
