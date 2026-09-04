@@ -262,7 +262,7 @@ body.ui-codex-command-classic #filter-bar {
 body.ui-codex-command-classic #filter-container {
     min-width: 0;
     max-width: 100%;
-    justify-self: center;
+    justify-self: start;
     border-color: transparent;
     border-radius: 0;
     background: transparent;
