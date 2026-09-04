@@ -249,7 +249,7 @@ body.ui-codex-command-classic #main-content {
 body.ui-codex-command-classic #filter-bar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto auto auto;
-    justify-content: stretch;
+    justify-content: center;
     align-items: center;
     gap: 10px;
     margin-bottom: 15px;
@@ -262,7 +262,7 @@ body.ui-codex-command-classic #filter-bar {
 body.ui-codex-command-classic #filter-container {
     min-width: 0;
     max-width: 100%;
-    justify-self: start;
+    justify-self: center;
     border-color: transparent;
     border-radius: 0;
     background: transparent;
