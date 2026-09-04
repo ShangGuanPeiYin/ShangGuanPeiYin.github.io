@@ -278,8 +278,7 @@ body.ui-codex-command-classic #add-btn:hover {
     transform: none !important;
 }
 
-body.ui-codex-command-classic #filter-container .filter-btn,
-body.ui-codex-command-classic #filter-container .filter-toggle-btn {
+body.ui-codex-command-classic #filter-container .filter-btn {
     color: var(--cc-muted);
     border: 1px solid var(--cc-line);
     border-radius: 0;
@@ -299,36 +298,31 @@ body.ui-codex-command-classic #filter-container .filter-btn.active {
     background: var(--cc-cyan);
 }
 
-body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-on {
-    color: var(--cc-cyan);
-    background: rgba(88, 213, 208, .12);
-    box-shadow: 0 0 10px rgba(88, 213, 208, .25),
-        inset 0 0 0 1px rgba(88, 213, 208, .6);
+body.ui-codex-command-classic #filter-toggle-group .filter-toggle-btn {
+    color: var(--cc-muted);
+    border: 1px solid var(--cc-line);
+    border-radius: 4px;
+    background: transparent;
+    box-shadow: none;
 }
 
-body.ui-codex-command-classic #filter-container .filter-toggle-btn.toggle-off {
+body.ui-codex-command-classic #filter-toggle-group .filter-toggle-btn:hover {
+    color: var(--cc-cyan);
+    border-color: var(--cc-cyan);
+    background: rgba(88, 213, 208, .05);
+}
+
+body.ui-codex-command-classic #filter-toggle-group .filter-toggle-btn.toggle-on {
+    color: var(--cc-void);
+    border-color: var(--cc-cyan);
+    background: var(--cc-cyan);
+    box-shadow: 0 0 10px rgba(88, 213, 208, .25);
+}
+
+body.ui-codex-command-classic #filter-toggle-group .filter-toggle-btn.toggle-off {
     color: var(--cc-muted);
     border-color: var(--cc-line);
     background: var(--cc-deck);
-}
-
-body.ui-codex-command-classic #filter-container .filter-segment {
-    display: inline-flex;
-    align-items: stretch;
-    border: 1px solid var(--cc-line);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-body.ui-codex-command-classic #filter-container .filter-segment .filter-btn,
-body.ui-codex-command-classic #filter-container .filter-segment .filter-toggle-btn {
-    border: none;
-    border-radius: 0;
-}
-
-body.ui-codex-command-classic #filter-container .filter-segment .filter-btn + .filter-btn,
-body.ui-codex-command-classic #filter-container .filter-segment .filter-toggle-btn + .filter-toggle-btn {
-    border-left: 1px solid var(--cc-line);
 }
 
 body.ui-codex-command-classic #sort-select {
