@@ -24,7 +24,7 @@
             "assets/engines/q7/excel-runtime.js?v=202609041530"
         ] : [
             "assets/js/generated-calc-strings.js?v=202608212157",
-            "assets/js/generated-calc-metadata.js?v=202609071616",
+            "assets/js/generated-calc-metadata.js?v=202609071730",
             "assets/js/excel-runtime.js?v=202608121302"
         ];
         document.write(scripts.map(src => `<script src="${src}"><\/script>`).join(""));
