@@ -29,5 +29,31 @@
         return Array.from(algorithms.values());
     }
 
-    window.YYSLSBestBuildAlgorithms = Object.freeze({ register, get, list });
+    function deduplicateCandidatesByQuality(candidates, getQuality) {
+        const bestByStats = new Map();
+        const isBetter = (candidate, current) => {
+            const qualityDiff = Number(getQuality(candidate)) - Number(getQuality(current));
+            if (qualityDiff) return qualityDiff > 0;
+            const candidateTransmuted = !!candidate.__transmutationMeta;
+            const currentTransmuted = !!current.__transmutationMeta;
+            if (candidateTransmuted !== currentTransmuted) return !candidateTransmuted;
+            const candidateNeedsChengyin = String(candidate.id || "").includes("_chengyin");
+            const currentNeedsChengyin = String(current.id || "").includes("_chengyin");
+            return candidateNeedsChengyin !== currentNeedsChengyin && !candidateNeedsChengyin;
+        };
+        (candidates || []).forEach(candidate => {
+            if (!candidate) return;
+            const key = [
+                candidate.slotId || "",
+                candidate.weaponTypeId || "",
+                candidate.mainStat && candidate.mainStat.type || "",
+                (candidate.subStats || []).map(stat => stat && stat.type || "").sort().join("\u0001")
+            ].join("\u0002");
+            const current = bestByStats.get(key);
+            if (!current || isBetter(candidate, current)) bestByStats.set(key, candidate);
+        });
+        return Array.from(bestByStats.values());
+    }
+
+    window.YYSLSBestBuildAlgorithms = Object.freeze({ register, get, list, deduplicateCandidatesByQuality });
 }());
