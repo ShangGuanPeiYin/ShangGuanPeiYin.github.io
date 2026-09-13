@@ -213,6 +213,9 @@ check_contains "$APP" 'o.dataset.equipId = String(e.id)' "stable equipment-card 
 check_contains "$APP" 'normalizeBestBuildBowTypes' "best-build bow selection normalizer"
 check_contains "$APP" 'bestbuild-bow-type-check' "best-build bow type multi-select"
 check_contains "$APP" 'formatBestBuildEta' "best-build progress ETA"
+check_contains "$LOCAL_JS" "buildZhuanlvTargetView" "transmutation target view from live form"
+check_contains "$LOCAL_JS" "resolveZhuanlvExcludedTargets" "per-slot transmutation exclusion memory"
+check_contains "$LOCAL_JS" "readSubStatsByRow" "row-indexed sub-stat snapshot"
 check_contains "$LOCAL_JS" "commitZhuanlvFromModal" "transactional transmutation slot save"
 check_not_contains "$LOCAL_JS" "setZhuanlvForEquip(_currentEditEquipId, readZhuanlvFromForm())" "no transmutation write before equipment save"
 

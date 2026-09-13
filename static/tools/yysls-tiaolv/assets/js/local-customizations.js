@@ -1953,7 +1953,8 @@
 
     var _pendingZhuanlv = null;   // 新装备保存时暂存的转律状态
     var _currentEditEquipId = null; // 当前弹窗正在编辑的装备 ID（0 = 新建）
-    var _restoringZhuanlvExcluded = null; // 编辑已保存装备时，用于保留 excludedTargets
+    var _zhuanlvExcludedBySlot = {}; // 弹窗会话内各副词条槽位各自记住的目标勾选
+    var _zhuanlvRenderedSlotIndex = null; // 当前目标列表正在展示的槽位下标
 
     function getZhuanlvStorageKey() {
         try {
@@ -2163,6 +2164,8 @@
     }
 
     function onZhuanlvRadioChange(targetRadio) {
+        // 切换槽位前先记住当前槽位的目标勾选
+        rememberZhuanlvExcludedForRenderedSlot();
         // 浏览器已切换 checked 状态：true=选中，false=取消选中
         if (targetRadio.checked) {
             // 选中此方框 → 取消所有其他方框（radio 行为）
@@ -2177,29 +2180,6 @@
         }
         updateZhuanlvTargetList();
         autoSaveZhuanlv();
-    }
-
-    function readEquipFromForm() {
-        var subStats = [];
-        var slotSelect = document.getElementById("slot-select");
-        var selects = document.querySelectorAll("#sub-stats-container .sub-stat-select");
-        var inputs = document.querySelectorAll("#sub-stats-container .stat-input");
-        selects.forEach(function(sel, i) {
-            if (sel.value && "生存类词条" !== sel.value && "生存向" !== sel.value) {
-                subStats.push({
-                    type: sel.value,
-                    value: inputs[i] ? parseFloat(inputs[i].value || 0) : 0
-                });
-            } else if (sel.value) {
-                subStats.push({ type: sel.value, value: 0 });
-            }
-        });
-        return {
-            slotId: slotSelect ? slotSelect.value : "",
-            subStats: subStats,
-            level: 110,
-            isTransmutable: true
-        };
     }
 
     var WEAPON_TRANSMUTATION_REMOVED_STATS = [
@@ -2228,6 +2208,64 @@
         return result;
     }
 
+    // 按 .stat-row 顺序读取副词条，空行或生存类占位为 null，保证下标与 data-index 一致。
+    function readSubStatsByRow() {
+        var rows = document.querySelectorAll("#sub-stats-container .stat-row");
+        return Array.prototype.map.call(rows, function(row) {
+            var sel = row.querySelector(".sub-stat-select");
+            var input = row.querySelector(".stat-input");
+            var type = sel ? sel.value : "";
+            if (!type || "生存类词条" === type || "生存向" === type) return null;
+            return { type: type, value: input ? parseFloat(input.value || 0) : 0 };
+        });
+    }
+
+    // 纯函数：根据当前副词条与选中槽位计算可选目标及禁用原因。
+    function buildZhuanlvTargetView(subStats, subStatIndex, targets) {
+        var disabledReasons = {};
+        var ownType = subStats && subStats[subStatIndex] && subStats[subStatIndex].type;
+        (subStats || []).forEach(function(stat, idx) {
+            if (idx !== subStatIndex && stat && stat.type) {
+                disabledReasons[stat.type] = "与第" + (idx + 1) + "条（" + stat.type + "）重复";
+            }
+        });
+        if (ownType) disabledReasons[ownType] = "自身词条，无需转律";
+        var sorted = Array.from(new Set(targets || [])).sort(function(a, b) {
+            var aDisabled = disabledReasons[a] ? 1 : 0;
+            var bDisabled = disabledReasons[b] ? 1 : 0;
+            if (aDisabled !== bDisabled) return aDisabled - bDisabled;
+            return a.localeCompare(b, "zh-CN");
+        });
+        return { targets: sorted, disabledReasons: disabledReasons };
+    }
+
+    // 纯函数：解析某槽位的排除目标，优先级：槽位草稿 > 匹配槽位的存档 > 默认排除集。
+    function resolveZhuanlvExcludedTargets(slotIndex, perSlotDraft, savedStatus, defaultExcluded, availableTargets) {
+        var excluded = null;
+        if (perSlotDraft && Array.isArray(perSlotDraft[slotIndex])) {
+            excluded = perSlotDraft[slotIndex];
+        }
+        if (!excluded && savedStatus && "active" === savedStatus.state
+            && Number(savedStatus.subStatIndex) === Number(slotIndex)
+            && Array.isArray(savedStatus.excludedTargets)) {
+            excluded = savedStatus.excludedTargets;
+        }
+        if (!excluded) excluded = defaultExcluded || [];
+        return excluded.filter(function(target) {
+            return (availableTargets || []).indexOf(target) >= 0;
+        });
+    }
+
+    // 把当前渲染槽位的未勾选目标记入草稿，供切换槽位后恢复。
+    function rememberZhuanlvExcludedForRenderedSlot() {
+        if (!Number.isInteger(_zhuanlvRenderedSlotIndex) || _zhuanlvRenderedSlotIndex < 0) return;
+        var excluded = [];
+        document.querySelectorAll(".zhuanlv-target-check:not(:checked):not([disabled])").forEach(function(cb) {
+            if (cb.value) excluded.push(cb.value);
+        });
+        _zhuanlvExcludedBySlot[_zhuanlvRenderedSlotIndex] = excluded;
+    }
+
     function updateZhuanlvTargetList() {
         var targetList = document.getElementById("zhuanlv-target-list");
         var checkboxes = document.getElementById("zhuanlv-target-checkboxes");
@@ -2244,24 +2282,19 @@
             return;
         }
 
-        // 获取当前编辑的装备
-        var editId = document.getElementById("edit-id");
-        var equipId = editId ? parseInt(editId.value) : 0;
-        var equip = null;
-        if (equipId && "function" === typeof getDB) {
-            equip = getDB().find(function(e) { return String(e.id) === String(equipId); }) || null;
-        }
-        if (!equip) equip = readEquipFromForm();
-        if (!equip || !Array.isArray(equip.subStats) || !equip.subStats[subStatIndex]) {
+        // 当前表单的快照（按行索引），编辑已有装备时也必须反映未保存的改动
+        var slotSelect = document.getElementById("slot-select");
+        var formEquip = {
+            slotId: slotSelect ? slotSelect.value : "",
+            subStats: readSubStatsByRow(),
+            level: 110,
+            isTransmutable: true
+        };
+        if (!formEquip.subStats[subStatIndex]) {
             targetList.style.display = "none";
+            _zhuanlvRenderedSlotIndex = null;
             return;
         }
-
-        // 获取流派
-        var classSelect = (typeof UIManager !== "undefined" && UIManager.dom && UIManager.dom.classSelect)
-            ? UIManager.dom.classSelect : null;
-        var className = classSelect ? classSelect.value : "";
-        if (!className) className = "鸣金虹";
 
         // 获取武库
         var pools = (typeof CommonData !== "undefined" && CommonData.TRANSMUTATION_POOLS)
@@ -2277,55 +2310,23 @@
                 if (!seen[stat]) { seen[stat] = true; allTargets.push(stat); }
             });
         });
-        allTargets = filterTransmutationTargetsForEquip(equip, allTargets);
+        allTargets = filterTransmutationTargetsForEquip(formEquip, allTargets);
 
-        // 分析不可选原因：当前槽位自身类型 + 其他槽位已有的副词条类型
-        var ownType = equip.subStats[subStatIndex] && equip.subStats[subStatIndex].type;
-        var duplicateReasons = {};  // stat -> "自身" 或 "与第N条(XXX)重复"
-        var otherTypes = {};
-        equip.subStats.forEach(function(stat, idx) {
-            if (idx !== subStatIndex && stat && stat.type) {
-                otherTypes[stat.type] = true;
-                duplicateReasons[stat.type] = "与第" + (idx + 1) + "条（" + stat.type + "）重复";
-            }
-        });
-        if (ownType) {
-            duplicateReasons[ownType] = "自身词条，无需转律";
-        }
+        var view = buildZhuanlvTargetView(formEquip.subStats, subStatIndex, allTargets);
+        var duplicateReasons = view.disabledReasons;
 
-        allTargets.sort(function(a, b) {
-            // 不可选的排到后面
-            var aDisabled = !!duplicateReasons[a] ? 1 : 0;
-            var bDisabled = !!duplicateReasons[b] ? 1 : 0;
-            if (aDisabled !== bDisabled) return aDisabled - bDisabled;
-            return a.localeCompare(b, "zh-CN");
-        });
-
-        // 读取当前的排除列表（只对可选目标有效）
-        var currentExcluded = [];
-        var storedExcluded = _restoringZhuanlvExcluded;
-        if (!storedExcluded) {
-            var rawStatus = equipId ? getZhuanlvForEquip(equipId) : null;
-            var status = _pendingZhuanlv || rawStatus;
-            if (status && Array.isArray(status.excludedTargets)) {
-                storedExcluded = status.excludedTargets;
-            }
-        }
-        if (!storedExcluded) {
-            currentExcluded = DEFAULT_EXCLUDED_TRANSMUTATION_STATS.filter(function(stat) {
-                return allTargets.indexOf(stat) >= 0;
-            });
-        }
-        if (storedExcluded && storedExcluded.length > 0) {
-            currentExcluded = storedExcluded.filter(function(t) {
-                return allTargets.indexOf(t) >= 0;
-            });
-        }
+        // 读取当前槽位的排除列表（槽位草稿优先，其次匹配槽位的存档，最后默认）
+        var editId = document.getElementById("edit-id");
+        var equipId = editId ? parseInt(editId.value) : 0;
+        var savedStatus = equipId ? getZhuanlvForEquip(equipId) : null;
+        var currentExcluded = resolveZhuanlvExcludedTargets(
+            subStatIndex, _zhuanlvExcludedBySlot, savedStatus, DEFAULT_EXCLUDED_TRANSMUTATION_STATS, view.targets
+        );
         var excludedSet = {};
         currentExcluded.forEach(function(t) { excludedSet[t] = true; });
 
         // 渲染复选框
-        var html = allTargets.map(function(target) {
+        var html = view.targets.map(function(target) {
             var isDisabled = !!duplicateReasons[target];
             var reason = duplicateReasons[target] || "";
             if (isDisabled) {
@@ -2344,8 +2345,8 @@
         }).join("");
 
         checkboxes.innerHTML = html;
-        targetList.style.display = allTargets.length > 0 ? "block" : "none";
-        _restoringZhuanlvExcluded = null;
+        targetList.style.display = view.targets.length > 0 ? "block" : "none";
+        _zhuanlvRenderedSlotIndex = subStatIndex;
     }
 
     // 向 modal 注入转律状态 section（幂等）
@@ -2380,6 +2381,7 @@
                 return;
             }
             if (e.target.classList.contains("sub-stat-select")) {
+                rememberZhuanlvExcludedForRenderedSlot();
                 syncZhuanlvSubStatRadios();
                 updateZhuanlvTargetList();
                 autoSaveZhuanlv();
@@ -2447,31 +2449,24 @@
 
         // 只有已勾选可转律时才注入 radio 并回填状态
         if (transmutableCheck.checked) {
+            _zhuanlvExcludedBySlot = {};
+            _zhuanlvRenderedSlotIndex = null;
             injectZhuanlvSubStatRadios();
             syncZhuanlvSubStatRadios();
             clearAllZhuanlvRadios();
 
-            // 回填选中的 radio
+            // 回填选中的 radio，并把该槽位的排除项写入会话草稿
             if (status && status.state === "active") {
                 var targetRadio = document.querySelector('.zhuanlv-slot-radio[data-index="' + status.subStatIndex + '"]');
                 if (targetRadio && !targetRadio.disabled) {
                     targetRadio.checked = true;
-                    _restoringZhuanlvExcluded = status.excludedTargets || [];
+                    _zhuanlvExcludedBySlot[status.subStatIndex] = status.excludedTargets || [];
                 }
             }
 
             // 延迟刷新 target 列表（等 DOM 稳定）
             setTimeout(function() {
                 updateZhuanlvTargetList();
-                // 应用存储的排除项
-                if (_restoringZhuanlvExcluded && _restoringZhuanlvExcluded.length > 0) {
-                    var excludeSet = {};
-                    _restoringZhuanlvExcluded.forEach(function(t) { excludeSet[t] = true; });
-                    document.querySelectorAll(".zhuanlv-target-check").forEach(function(cb) {
-                        if (excludeSet[cb.value]) cb.checked = false;
-                    });
-                    _restoringZhuanlvExcluded = null;
-                }
             }, 60);
         }
     }
@@ -2506,7 +2501,8 @@
 
         if (!enabled) {
             _pendingZhuanlv = null;
-            _restoringZhuanlvExcluded = null;
+            _zhuanlvExcludedBySlot = {};
+            _zhuanlvRenderedSlotIndex = null;
             var targetList = document.getElementById("zhuanlv-target-list");
             if (targetList) targetList.style.display = "none";
         }
@@ -2752,6 +2748,8 @@
                         } else {
                             _currentEditEquipId = null;
                             _pendingZhuanlv = null;
+                            _zhuanlvExcludedBySlot = {};
+                            _zhuanlvRenderedSlotIndex = null;
                         }
                     }
                 });
