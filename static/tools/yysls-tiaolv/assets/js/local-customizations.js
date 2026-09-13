@@ -2526,7 +2526,7 @@
         "会意率": "会意"
     };
 
-    function buildZhuanlvTargetHint(equip, subStatIndex) {
+    function buildZhuanlvTargetHint(equip, subStatIndex, status) {
         if (typeof CommonData === "undefined" || !CommonData.TRANSMUTATION_POOLS) return "";
         var merged = [], seen = {};
         Object.keys(CommonData.TRANSMUTATION_POOLS).forEach(function(key) {
@@ -2542,9 +2542,10 @@
         });
         var ownType = equip.subStats[subStatIndex] && equip.subStats[subStatIndex].type;
         if (ownType) taken[ownType] = true;
+        var excluded = new Set(status && status.excludedTargets || []);
         var abbrs = [];
         targets.forEach(function(stat) {
-            if (!taken[stat]) abbrs.push(ZHUANLV_STAT_ABBR[stat] || stat);
+            if (!taken[stat] && !excluded.has(stat)) abbrs.push(ZHUANLV_STAT_ABBR[stat] || stat);
         });
         return abbrs.length ? "（" + abbrs.join("/") + "）" : "";
     }
@@ -2641,7 +2642,7 @@
                 if (subStatSpan) subStatSpan.style.flexShrink = "0";
                 if (valSpan) valSpan.style.flexShrink = "0";
                 if (equip && equip.subStats && equip.subStats[idx]) {
-                    var hintText = buildZhuanlvTargetHint(equip, idx);
+                    var hintText = buildZhuanlvTargetHint(equip, idx, status);
                     if (hintText) {
                         var hintSpan = document.createElement("span");
                         hintSpan.className = "zhuanlv-targets-hint";
