@@ -212,6 +212,7 @@ check_contains "$APP" 'f.findIndex(e => K(e) === n)' "Top20 candidate-stage base
 check_contains "$APP" 'o.dataset.equipId = String(e.id)' "stable equipment-card transmutation identity"
 check_contains "$APP" 'normalizeBestBuildBowTypes' "best-build bow selection normalizer"
 check_contains "$APP" 'bestbuild-bow-type-check' "best-build bow type multi-select"
+check_contains "$APP" 'formatBestBuildEta' "best-build progress ETA"
 check_contains "$LOCAL_JS" "commitZhuanlvFromModal" "transactional transmutation slot save"
 check_not_contains "$LOCAL_JS" "setZhuanlvForEquip(_currentEditEquipId, readZhuanlvFromForm())" "no transmutation write before equipment save"
 
