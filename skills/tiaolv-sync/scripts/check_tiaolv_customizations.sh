@@ -214,6 +214,8 @@ check_contains "$APP" 'normalizeBestBuildBowTypes' "best-build bow selection nor
 check_contains "$APP" 'bestbuild-bow-type-check' "best-build bow type multi-select"
 check_contains "$APP" 'formatBestBuildEta' "best-build progress ETA"
 check_contains "$APP" 'buildFlowTypeTagHtml' "both-usable flow type card tag"
+check_contains "$APP" 'resolveEquipFlowType' "both-usable flow type retention"
+check_contains "$APP" 'matchesFlowTypeFilter' "library flow filter includes both-usable"
 check_contains "$LOCAL_JS" "buildZhuanlvTargetView" "transmutation target view from live form"
 check_contains "$LOCAL_JS" "resolveZhuanlvExcludedTargets" "per-slot transmutation exclusion memory"
 check_contains "$LOCAL_JS" "readSubStatsByRow" "row-indexed sub-stat snapshot"
