@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tiaolv mobile panel dropdown regression</title>
+<div id="result">RUNNING</div>
+<iframe id="app" src="../static/tools/yysls-tiaolv/index.html"></iframe>
+<script>
+  const result = document.getElementById("result");
+  const app = document.getElementById("app");
+
+  app.addEventListener("load", () => {
+    const panel = app.contentDocument.getElementById("simulator-panel");
+    const dropdown = app.contentDocument.getElementById("class-select");
+    panel.classList.add("expanded");
+    dropdown.click();
+    result.textContent = panel.classList.contains("expanded") ? "PASS" : "FAIL";
+  });
+</script>
