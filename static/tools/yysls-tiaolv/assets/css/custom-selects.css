@@ -1,0 +1,119 @@
+.tiaolv-native-select {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    clip-path: inset(50%) !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    white-space: nowrap !important;
+}
+
+.tiaolv-select {
+    position: relative;
+    display: inline-block;
+    min-width: 0;
+    color: var(--cc-text, var(--text-main));
+    font-family: var(--cc-mono, inherit);
+}
+
+.tiaolv-select-button,
+.tiaolv-select-option {
+    font: inherit;
+    text-align: left;
+}
+
+.tiaolv-select-button {
+    display: block;
+    width: 100%;
+    min-height: 34px;
+    padding: 6px 30px 6px 9px;
+    overflow: hidden;
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border: 1px solid var(--cc-line-hot, var(--border));
+    border-radius: 4px;
+    background: rgba(4, 14, 18, .78) linear-gradient(45deg, transparent 50%, var(--cc-cyan, var(--accent)) 50%) calc(100% - 13px) 50% / 6px 6px no-repeat;
+    cursor: pointer;
+}
+
+.tiaolv-select-button:hover,
+.tiaolv-select-button[aria-expanded="true"] {
+    border-color: var(--cc-cyan, var(--accent));
+}
+
+.tiaolv-select-button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.tiaolv-select-list {
+    position: absolute;
+    z-index: 1200;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    max-width: min(360px, calc(100vw - 24px));
+    max-height: min(320px, calc(100vh - 120px));
+    padding: 4px;
+    overflow-y: auto;
+    border: 1px solid var(--cc-line-hot, var(--border));
+    border-radius: 5px;
+    background: #071015;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .48);
+}
+
+.tiaolv-select-option {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    overflow: hidden;
+    color: var(--cc-text, var(--text-main));
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.tiaolv-select-option:hover,
+.tiaolv-select-option:focus-visible,
+.tiaolv-select-option[aria-selected="true"] {
+    color: var(--cc-void, #071015);
+    background: var(--cc-cyan, var(--accent));
+    outline: 0;
+}
+
+.tiaolv-select-option:disabled {
+    color: var(--cc-muted, var(--text-sub));
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.header-meta-controls .tiaolv-select {
+    min-width: 172px;
+}
+
+.account-select-group .tiaolv-select,
+.scheme-controls .tiaolv-select {
+    flex: 1;
+}
+
+.sim-control-field .tiaolv-select {
+    display: block;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .tiaolv-select-button {
+        min-height: 36px;
+    }
+
+    .header-meta-controls .tiaolv-select {
+        min-width: 158px;
+    }
+}

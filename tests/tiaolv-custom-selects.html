@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tiaolv custom select regression</title>
+<select id="scheme-select">
+  <option value="86">方案 86</option>
+  <option value="87">方案 87</option>
+</select>
+<select id="armory-select">
+  <option value="general">通用</option>
+  <option value="bamboo">破竹</option>
+</select>
+<div id="result">RUNNING</div>
+<script src="../static/tools/yysls-tiaolv/assets/js/custom-selects.js"></script>
+<script>
+  window.addEventListener("load", () => {
+    const select = document.getElementById("scheme-select");
+    const armory = document.getElementById("armory-select");
+    let changeCount = 0;
+    let armoryChangeCount = 0;
+    select.addEventListener("change", () => changeCount++);
+    armory.addEventListener("change", () => armoryChangeCount++);
+
+    setTimeout(() => {
+      const button = document.querySelector("[data-tiaolv-select-for='scheme-select']");
+      button?.click();
+      document.querySelector("[data-tiaolv-option-value='87']")?.click();
+      const armoryButton = document.querySelector("[data-tiaolv-select-for='armory-select']");
+      armoryButton?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+      document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+      document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      const selectedOption = document.querySelector("[data-tiaolv-option-value='87']");
+      document.getElementById("result").textContent = select.value === "87" && changeCount === 1
+        && selectedOption?.getAttribute("aria-selected") === "true"
+        && armory.value === "bamboo" && armoryChangeCount === 1
+        ? "PASS"
+        : "FAIL";
+    }, 50);
+  });
+</script>
