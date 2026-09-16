@@ -59,6 +59,7 @@
         return "game_account_list" === key
             || "last_selected_account" === key
             || 0 === key.indexOf("game_equip_data_")
+            || 0 === key.indexOf("game_equip_recycle_bin_")
             || 0 === key.indexOf("game_sim_data_")
             || 0 === key.indexOf("zhuanlv_status_")
             || 0 === key.indexOf("grad_manual_form_v2_");

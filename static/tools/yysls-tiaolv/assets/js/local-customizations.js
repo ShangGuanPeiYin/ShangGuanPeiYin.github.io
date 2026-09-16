@@ -312,6 +312,13 @@
         });
     }
 
+    function buildFullExportRecycleBinData(accountName) {
+        if (!window.YYSLSEquipRecycleBin) return [];
+        return window.YYSLSEquipRecycleBin.list(localStorage, accountName, Date.now()).map(function(record) {
+            return { equip: sanitizeEquip(record.equip, true), deletedAt: record.deletedAt };
+        });
+    }
+
     function getManualGradOwner(key, accountNames) {
         var base = "grad_manual_form_v2_";
         if (0 !== key.indexOf(base)) return null;
@@ -359,6 +366,7 @@
                 return {
                     name: accountName,
                     equipData: equipData,
+                    recycleBinData: buildFullExportRecycleBinData(accountName),
                     simulatorData: parseStoredObject("game_sim_data_" + accountName),
                     zhuanlvData: filterZhuanlvMapForEquips(parseStoredObject("zhuanlv_status_" + accountName), equipData),
                     manualGradData: collectManualGradData(accountName, accountNames)
@@ -471,6 +479,23 @@
         return filterZhuanlvMapForEquips(map, equipData);
     }
 
+    function sanitizeRecycleBinData(data, activeEquipIds) {
+        if (!Array.isArray(data)) return [];
+        var deletedEquipIds = new Set();
+        return data.reduce(function(result, record) {
+            if (!isPlainObject(record) || !Number.isFinite(record.deletedAt)) throw new Error("回收站装备数据格式错误");
+            var equip = sanitizeEquip(record.equip, true);
+            var id = String(equip.id);
+            if (deletedEquipIds.has(id)) throw new Error("回收站存在重复装备 ID");
+            deletedEquipIds.add(id);
+            var deletedAt = Math.min(record.deletedAt, Date.now());
+            if (!window.YYSLSEquipRecycleBin || Date.now() - deletedAt < window.YYSLSEquipRecycleBin.RETENTION_MS) {
+                result.push({ equip: equip, deletedAt: deletedAt });
+            }
+            return result;
+        }, []);
+    }
+
     function sanitizeManualGradData(data) {
         if (!isPlainObject(data)) throw new Error("手动面板数据格式错误");
         var result = {};
@@ -515,6 +540,7 @@
             return {
                 name: name,
                 equipData: equipData,
+                recycleBinData: sanitizeRecycleBinData(account.recycleBinData || [], validEquipIds),
                 simulatorData: sanitizeSimulatorData(account.simulatorData || {}, validEquipIds, warningState),
                 zhuanlvData: sanitizeZhuanlvMap(rawZhuanlvData, equipData),
                 manualGradData: sanitizeManualGradData(account.manualGradData || {})
@@ -587,6 +613,7 @@
         try {
             validated.accounts.forEach(function(account) {
                 setValue("game_equip_data_" + account.name, JSON.stringify(account.equipData));
+                setValue(window.YYSLSEquipRecycleBin.keyFor(account.name), JSON.stringify(account.recycleBinData));
                 setValue("game_sim_data_" + account.name, JSON.stringify(account.simulatorData));
                 setValue("zhuanlv_status_" + account.name, JSON.stringify(account.zhuanlvData));
                 removeManualGradKeys(account.name, mergedAccounts, setValue);
