@@ -133,16 +133,14 @@
     function initRecycleBinUi() {
         if (document.getElementById("recycle-bin-btn") || "undefined" == typeof AppState || "undefined" == typeof UIManager) return;
 
-        var filterBar = document.getElementById("filter-bar");
-        var addButton = document.getElementById("add-btn");
-        if (!filterBar || !addButton) return;
+        var renameAllButton = document.getElementById("rename-all-btn");
+        if (!renameAllButton) return;
 
         var button = document.createElement("button");
         button.id = "recycle-bin-btn";
         button.className = "secondary-btn";
         button.type = "button";
-        button.style.marginRight = "8px";
-        addButton.parentNode.insertBefore(button, addButton);
+        renameAllButton.parentNode.insertBefore(button, renameAllButton);
 
         var modal = document.createElement("div");
         modal.id = "recycle-bin-modal";
