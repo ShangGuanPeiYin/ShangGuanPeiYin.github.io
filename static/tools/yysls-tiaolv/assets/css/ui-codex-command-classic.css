@@ -248,7 +248,7 @@ body.ui-codex-command-classic #main-content {
 
 body.ui-codex-command-classic #filter-bar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto auto;
     justify-content: center;
     align-items: center;
     gap: 10px;
