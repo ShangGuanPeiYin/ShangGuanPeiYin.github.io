@@ -66,3 +66,13 @@ test("labels the disabled flow filter as 全流派 after persisting tiaolv_class
 
     assert.equal(rendered.text, "全流派");
 });
+
+test("renders the recycle bin button immediately before #rename-all-btn on the real page", () => {
+    const rendered = renderWithClassFilter(null);
+
+    assert.match(
+        rendered.dom,
+        /<button id="recycle-bin-btn"[^>]*>回收站<\/button>\s*<button id="rename-all-btn"/,
+        "the real page should mount #recycle-bin-btn directly before #rename-all-btn"
+    );
+});
