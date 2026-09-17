@@ -2,6 +2,7 @@
 public/
 .tools/
 .gitrepo/
+.worktrees/
 resources/
 z_local_cal/
 .aider*
