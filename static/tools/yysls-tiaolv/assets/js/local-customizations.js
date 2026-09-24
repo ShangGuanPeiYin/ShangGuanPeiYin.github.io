@@ -146,7 +146,7 @@
 
         const wrapper = document.createElement("div");
         wrapper.className = "form-group flex-08";
-        wrapper.innerHTML = '<label>装备等级</label> <select id="level-select"><option value="110" selected="selected">110级</option><option value="105">105级</option><option value="100">100级</option><option value="96">96级</option></select>';
+        wrapper.innerHTML = '<label>装备等级</label> <select id="level-select"><option value="115" selected="selected">115级</option><option value="110">110级</option><option value="105">105级</option><option value="100">100级</option><option value="96">96级</option></select>';
         insertAfter(weaponTypeGroup, wrapper);
     }
 
@@ -2171,7 +2171,7 @@
     function syncZhuanlvSubStatRadios() {
         var transmutableCheck = document.getElementById("is-transmutable");
         var levelSel = document.getElementById("level-select");
-        var allowLevel = levelSel ? parseInt(levelSel.value) === 110 : false;
+        var allowLevel = levelSel ? parseInt(levelSel.value) >= 110 : false;
         var enabled = allowLevel && !!(transmutableCheck && transmutableCheck.checked);
         var rows = document.querySelectorAll("#sub-stats-container .stat-row");
         var selectedIndex = -1;
@@ -2498,14 +2498,14 @@
         }
     }
 
-    // 非110级不显示"可转律"，并清除资格与指定槽位。
+    // 低于110级不显示"可转律"，并清除资格与指定槽位。
     function syncZhuanlvSectionVisibility() {
         var section = document.getElementById("zhuanlv-section");
         var levelSel = document.getElementById("level-select");
         var level = levelSel ? parseInt(levelSel.value) : 105;
         var wrapper = document.getElementById("transmutable-checkbox-wrapper");
         var transmutableCheck = document.getElementById("is-transmutable");
-        var allowLevel = level === 110;
+        var allowLevel = level >= 110;
         var enabled = allowLevel && !!(transmutableCheck && transmutableCheck.checked);
 
         if (wrapper) wrapper.style.display = allowLevel ? "" : "none";
@@ -2518,7 +2518,7 @@
             syncZhuanlvSubStatRadios();
             if (!enabled) clearAllZhuanlvRadios();
         } else {
-            // 非110级：移除残留的 radio 方框
+            // 低于110级：移除残留的 radio 方框
             var radios = document.querySelectorAll(".zhuanlv-slot-radio");
             radios.forEach(function(r) { r.parentNode && r.parentNode.removeChild(r); });
             document.querySelectorAll(".stat-row.has-zhuanlv-radio").forEach(function(row) {
@@ -2885,7 +2885,7 @@
                 return;
             }
             if (!isTransmutableEquip(equip)) {
-                container.innerHTML = '<p style="color:#ff9800;text-align:center;margin-top:30px;">该装备不可转律，请选择已勾选"可转律"的110级装备</p>'
+                container.innerHTML = '<p style="color:#ff9800;text-align:center;margin-top:30px;">该装备不可转律，请选择已勾选"可转律"的110级及以上装备</p>'
                     + '<div style="text-align:center;margin-top:16px;"><button class="primary-btn" id="transmute-pick-btn">选择可转律装备</button></div>'
                     + '<div id="transmute-result-area" style="margin-top:14px;"></div>';
                 document.getElementById("transmute-pick-btn").addEventListener("click", function() {
@@ -2936,7 +2936,7 @@
                 return;
             }
             if (!isTransmutableEquip(equip)) {
-                resultElement.innerHTML = '<p class="error-text">只有已勾选"可转律"的110级装备可以计算转律建议</p>';
+                resultElement.innerHTML = '<p class="error-text">只有已勾选"可转律"的110级及以上装备可以计算转律建议</p>';
                 return;
             }
             var className = UIManager.dom.classSelect.value;
