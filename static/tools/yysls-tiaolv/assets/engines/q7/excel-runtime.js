@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "80f323a8";
+    const ASSET_VERSION = "5aa72ddc";
     const WASM_URL = `assets/wasm/q7/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -87,7 +87,8 @@
         "拳甲": "拳甲武学增效",
         "鼓": "鼓武学增效"
     };
-    const damageBonusResistance = 1.15;
+    const damageBonusResistance = 1.3225;
+    const penetrationResistance = 1.3225;
     const classSkillLabels = {
         "鸣金影": "积矩九剑·流血增伤",
         "鸣金虹": "无名剑法·蓄力技增伤",
@@ -447,7 +448,6 @@
         const adjusted = { ...panel };
         const resistance = seasonResistance();
         const className = options.originalClassName || options.className || adjusted["当前流派"] || adjusted.currentClass || "";
-        const setName = options.setName || adjusted["套装"] || "";
 
         const rawPrecision = num(adjusted["实际精准率"] !== undefined ? adjusted["实际精准率"] : adjusted["精准率"]);
         const rawCrit = num(adjusted["实际会心率"] !== undefined ? adjusted["实际会心率"] : adjusted["会心率"]);
@@ -457,7 +457,6 @@
 
         let critCapBonus = 0;
         if (className === "裂石威") critCapBonus += 24;
-        if (setName === "浣花") critCapBonus += 5;
 
         let actualCrit = rawCrit;
         let critOverflow = 0;
@@ -533,7 +532,7 @@
 
     function effectivePenetration(value) {
         const number = Number(value) || 0;
-        return number ? number / damageBonusResistance : 0;
+        return number ? number / penetrationResistance : 0;
     }
 
     function displayDamageBonus(value, alreadyEffective) {
