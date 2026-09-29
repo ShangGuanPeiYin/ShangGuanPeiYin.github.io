@@ -2701,18 +2701,25 @@
         });
     }
 
-    // 把卡片头部「武器 (承音)」里的 (承音) 改为绿色
+    // 把卡片头部「武器 (承音)」里的 (承音) 改为绿色；「(需承音)」改为橙色
     function colorChengyinOnCards() {
         document.querySelectorAll("#equipment-grid .equip-card").forEach(function(card) {
             if (card.getAttribute("data-chengyin-colored")) return;
             var slotSpan = card.querySelector(".card-header .card-title div span:first-child");
             if (!slotSpan) return;
             var text = slotSpan.textContent;
-            var mark = " (承音)";
-            if (text.indexOf(mark) === -1) return;
-            var slotName = text.replace(mark, "");
-            slotSpan.innerHTML = slotName + ' <span style="color:#4caf50;">(承音)</span>';
-            card.setAttribute("data-chengyin-colored", "1");
+            var marks = [
+                { mark: " (需承音)", color: "#ffa726" },
+                { mark: " (承音)", color: "#4caf50" }
+            ];
+            for (var index = 0; index < marks.length; index++) {
+                var mark = marks[index].mark;
+                if (text.indexOf(mark) === -1) continue;
+                var slotName = text.replace(mark, "");
+                slotSpan.innerHTML = slotName + ' <span style="color:' + marks[index].color + ';">' + mark.trim() + '</span>';
+                card.setAttribute("data-chengyin-colored", "1");
+                return;
+            }
         });
     }
 

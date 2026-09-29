@@ -31,7 +31,7 @@
 | 最佳配装词条汇总渲染 | 提供 `api.renderBuildStatsSummary(equippedItems)` 函数，统计 8 件装备的主词条+副词条分布（不含定音），按四行固定分类显示：三率（精准率/会心率/会意率）、五维（劲/敏/势）、攻击（各系最小/最大攻击）、神力（全武学增效/对首领单位增伤/对玩家单位增效/单体类奇术增伤/群体类奇术增伤/各武器武学增效）。每行只显示 count > 0 的词条，整行为空则隐藏。由 `app.min.js` 的最佳配装模板调用（见下方主脚本定制表）。 |
 | 主页词条数量汇总 | 在主页毕业数值面板下方使用 `#home-stat-count-summary` 展示当前八件装备的全部主、副词条数量及普通词条 `N/40`，不区分首副、不累计数值、不含定音。统计读取方案转律覆盖后的有效装备；常用输出词条按三率、五维、攻击、神力排列，生存类和未知词条进入“其他”，切换装备、方案、角色或转律模拟时随主页计算同步刷新。 |
 | 转律资格与状态追踪 | 110级及以上装备通过与“承音”“紫装”并列的“可转律”复选框显式记录资格，承音装备同样可用；低于110级直接隐藏并清除该资格。未勾选为不可转律，勾选但未指定副词条为待转律，勾选并指定一个真实副词条为已转律。资格保存在装备字段 `isTransmutable`，已转律槽位继续保存在 `zhuanlv_status_${accountName}`；卡片分别不显示标签、显示灰色待转律或琥珀色已转律标签。 |
-| 承音文字绿色显示 | 装备卡片上的「(承音)」文字颜色改为绿色（`#4caf50`），通过 `colorChengyinOnCards()` 在 MutationObserver 触发时逐卡处理，幂等（已处理的卡片加 `data-chengyin-colored` 标记跳过）。 |
+| 承音文字着色显示 | 装备卡片上「(承音)」文字染色为绿色（`#4caf50`），「(需承音)」染色为橙色（`#ffa726`）；通过 `colorChengyinOnCards()` 在 MutationObserver 触发时逐卡处理，幂等（已处理的卡片加 `data-chengyin-colored` 标记跳过）。承音定义：承音把低等级装备升级到高等级，承音装备原本低等级、经承音升上来；115 级且勾选显示「(承音)」，低于 115 级显示「(需承音)」。 |
 
 文件：`static/tools/yysls-tiaolv/assets/js/cloud-backup.js`
 
@@ -238,7 +238,7 @@
 | 词条数量限制与剪枝 | `statCountLimits`、`candidateStatCounts`、`suffixCountMin`、`suffixCountMax` | 高级设置可按主副词条条数设置最少、最多或固定数量；搜索前检查理论可达范围，DFS 中按剩余最少/最多条数提前剪枝，定音不计数，转律按最终副词条计数。 |
 | 最佳配装转律三模式 | `bestBuildTransmutationMode`、`best-build-transmutation-mode`、`transmutationSelections` | 搜索可关闭转律、优化已转律或同时规划待转律；结果按物理装备与承音状态去重，方案用非破坏性覆盖层恢复计算。 |
 | 需承音数量展示 | `needChengyinCount`、`需承音` | 每套最佳方案显示 `需承音：N 件`。 |
-| `(承音)` / `(需承音)` 区分 | `id.toString().includes("_chengyin")` | 原本已有承音显示 `(承音)`，系统模拟的承音版显示 `(需承音)`。 |
+| `(承音)` / `(需承音)` 区分 | `Number(level) < 115`、`id.toString().includes("_chengyin")`、`isChengyin` | 115 级且勾选承音的真实装备显示 `(承音)`；低于 115 级、以及系统模拟的承音版（`_chengyin`）显示 `(需承音)`。承音只由复选框决定，不按数值反推。 |
 | 最佳配装 Top20 | `top10Builds: t.slice(0, 20)` | 上游通常保留前 10 套，本站按基础装备去重后保留前 20 套并支持切换。 |
 | 最佳配装词条汇总调用 | `renderBuildStatsSummary`、`window.TiaolvLocalCustomizations` | 在最佳配装方案模板末尾（`.best-build-equips` 关闭后）插入词条汇总区块，调用 `local-customizations.js` 中的同名函数。 |
 | 统计文字位置调整 | `共检查了`、`border-bottom` | 将"共检查了 N 种装备组合，找到 N 套最佳方案"从横线下方移至横线上方（`border-top` 改为 `border-bottom`），并缩小下方空白（`margin-top: 15px; padding-bottom: 8px`）。 |
