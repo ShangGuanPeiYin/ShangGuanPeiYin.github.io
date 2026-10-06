@@ -12,7 +12,7 @@ const upstreamBytes = Buffer.from(await fetch("https://yysls.leoq7.com/assets/wa
   return response.arrayBuffer();
 }));
 const sha256 = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
-const expectedHash = "5aa72ddc09afef45c0dc894920b513a8846e487a5fe9a37eb0282214b5fd94db";
+const expectedHash = "233623354918f51ff424abb054ae7435d57c585d4bd3a9a9753b3a29441ce07c";
 if (sha256(localBytes) !== expectedHash || sha256(upstreamBytes) !== expectedHash || !localBytes.equals(upstreamBytes)) throw new Error("Q7 WASM snapshot differs from upstream");
 for (const filename of ["generated-calc-strings.js", "generated-calc-metadata.js", "excel-runtime.js"]) {
   const upstream = await fetch(`https://yysls.leoq7.com/assets/js/${filename}`).then(async response => {
@@ -38,10 +38,11 @@ async function makeRunner(bytes) {
   const wasm = (await WebAssembly.instantiate(bytes, {})).instance.exports;
   const diyLen = wasm.yysls_diy_input_len(), panelLen = wasm.yysls_panel_len();
   const classLen = wasm.yysls_class_input_len(), outputLen = wasm.yysls_class_output_len();
-  if (diyLen !== 184 || panelLen !== 37 || classLen !== 40 || outputLen !== 5) throw new Error(`Q7 ABI mismatch ${diyLen}/${panelLen}/${classLen}/${outputLen}`);
+  if (diyLen !== 184 || panelLen !== 37 || classLen < 40 || outputLen !== 5) throw new Error(`Q7 ABI mismatch ${diyLen}/${panelLen}/${classLen}/${outputLen}`);
   const diyPtr = wasm.yysls_alloc_f64(diyLen), panelPtr = wasm.yysls_alloc_f64(panelLen);
   const classPtr = wasm.yysls_alloc_f64(classLen), outputPtr = wasm.yysls_alloc_f64(outputLen);
   return {
+    classLen,
     panel(input) {
       new Float64Array(wasm.memory.buffer, diyPtr, diyLen).set(input);
       wasm.yysls_calc_diy(diyPtr, panelPtr);
@@ -70,11 +71,14 @@ const upstream = await makeRunner(upstreamBytes);
 const local = await makeRunner(localBytes);
 const diyKinds = metadata.diyKinds.slice(0, 184);
 const flowIds = Object.values(metadata.flowIds);
-const diy = new Float64Array(184), classInput = new Float64Array(40);
+const diy = new Float64Array(184), classInput = new Float64Array(local.classLen);
+const flowNames = Object.keys(metadata.flowIds);
 let compared = 0;
 for (let index = 0; index < cases; index += 1) {
   for (let i = 0; i < diy.length; i += 1) diy[i] = diyKinds[i] === "str" ? Math.floor(random() * stringCount) : (random() - 0.1) * 800;
-  for (let i = 0; i < classInput.length; i += 1) classInput[i] = i === 0 || i === 5 || i >= 38 ? Math.floor(random() * stringCount) : (random() - 0.1) * 8;
+  const flowName = flowNames[index % flowNames.length];
+  const classKinds = metadata.flowClassKinds?.[flowName] || metadata.classKinds;
+  for (let i = 0; i < classInput.length; i += 1) classInput[i] = classKinds[i] === "str" ? Math.floor(random() * stringCount) : (random() - 0.1) * 8;
   compare("panel", upstream.panel(diy), local.panel(diy), index);
   compare("class", upstream.outputs(flowIds[index % flowIds.length], classInput), local.outputs(flowIds[index % flowIds.length], classInput), index);
   compared += 41;

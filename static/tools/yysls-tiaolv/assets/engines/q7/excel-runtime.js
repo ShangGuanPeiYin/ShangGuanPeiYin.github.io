@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "5aa72ddc";
+    const ASSET_VERSION = "23362335";
     const WASM_URL = `assets/wasm/q7/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -67,10 +67,12 @@
         "会心伤害加成", "会意伤害加成", "外功伤害加成", "属攻伤害加成",
         "外功治疗加成", "会心治疗加成", "全武学增效", "指定武学增效",
         "对首领单位增伤", "对玩家单位增效", "指定武学技能增伤",
-        "单体类奇术增伤", "群体类奇术增伤", "剑武学增效", "枪武学增效",
+        "全奇术增伤", "单体类奇术增伤", "群体类奇术增伤", "单体奇术增伤", "群体奇术增伤", "全奇数增伤", "剑武学增效", "枪武学增效",
         "伞武学增效", "扇武学增效", "绳标武学增效", "双刀武学增效",
         "陌刀武学增效", "横刀武学增效", "拳甲武学增效", "鼓武学增效"
     ]);
+    const qishuStatTypes = new Set(["全奇术增伤", "单体类奇术增伤", "群体类奇术增伤", "单体奇术增伤", "群体奇术增伤", "全奇数增伤"]);
+    const normalizeStatType = type => qishuStatTypes.has(type) ? "全奇术增伤" : type;
     const weaponStatRows = new Set([
         "剑武学增效", "枪武学增效", "伞武学增效", "扇武学增效",
         "绳标武学增效", "双刀武学增效", "陌刀武学增效", "横刀武学增效", "拳甲武学增效", "鼓武学增效"
@@ -270,19 +272,27 @@
     function getChengyinValue(stat, fallbackValue) {
         if (!stat || !stat.type) return fallbackValue;
         const chengyinValues = META.chengyinValues || {};
-        const excelValue = Number(chengyinValues[stat.type]);
+        const type = normalizeStatType(stat.type);
+        const excelValue = Number(chengyinValues[type]);
         if (Number.isFinite(excelValue) && excelValue > 0) return excelValue;
         const maxValues = {
             ...(window.CommonData && window.CommonData.MAX_VALUES || {}),
             ...(META.maxValues || {})
         };
-        const max = Number(maxValues[stat.type]);
+        const max = Number(maxValues[type]);
         return Number.isFinite(max) && max > 0 ? roundStatValue(max * 0.94) : fallbackValue;
     }
 
     function equipStatValue(equip, stat) {
         if (!stat) return undefined;
         return equip && equip.isChengyin && !equip.ignoreChengyinValue ? getChengyinValue(stat, stat.value) : stat.value;
+    }
+
+    function dingyinStatValue(stat) {
+        if (!stat) return undefined;
+        if (stat.type !== "指定武学技能增伤") return stat.value;
+        const max = Number(window.CommonData && window.CommonData.MAX_VALUES[stat.type]) || 10.58;
+        return Math.min(Number(stat.value), max);
     }
 
     function addInput(raw, slotKey, stat, rawValue) {
@@ -299,7 +309,7 @@
     function statInputRow(type) {
         let row = statRows[type];
         if (weaponStatRows.has(type)) row = 21;
-        if (type === "单体类奇术增伤" || type === "群体类奇术增伤") row = 22;
+        if (qishuStatTypes.has(type)) row = 22;
         return row;
     }
 
@@ -340,7 +350,7 @@
         addInput(raw, slotKey, equip.mainStat, equipStatValue(equip, equip.mainStat));
         (equip.subStats || []).forEach(stat => addInput(raw, slotKey, stat, equipStatValue(equip, stat)));
         if (!loanDingyin && equip.dingyinStat) {
-            addInput(raw, slotKey, equip.dingyinStat, equip.dingyinStat.value);
+            addInput(raw, slotKey, equip.dingyinStat, dingyinStatValue(equip.dingyinStat));
         }
     }
 
@@ -402,8 +412,7 @@
             "破竹穿透": byRow(34),
             "破竹伤害加成": byRow(35) * 100,
             "指定武学增效": byRow(37) * 100,
-            "单体类奇术增伤": byRow(38) * 100,
-            "群体类奇术增伤": byRow(38) * 100,
+            "全奇术增伤": byRow(38) * 100,
             "对首领单位增伤": byRow(39) * 100,
             "全武学增效": byRow(40) * 100,
             "_白字精准率": 65 + (actualPrecision - 65) * resistance,
@@ -520,6 +529,7 @@
 
     function addBonus(bonuses, type, rawValue) {
         if (!type || rawValue === undefined || rawValue === null) return;
+        type = normalizeStatType(type);
         const value = Number(rawValue);
         if (!Number.isFinite(value) || value === 0) return;
         bonuses[type] = (bonuses[type] || 0) + value;
@@ -559,7 +569,8 @@
         const value = Number(modifier.value);
         if (!Number.isFinite(value) || value === 0) return;
         const delta = modifier.operation === "remove" ? -value : value;
-        bonuses[modifier.type] = Math.max(0, (Number(bonuses[modifier.type]) || 0) + delta);
+        const type = normalizeStatType(modifier.type);
+        bonuses[type] = Math.max(0, (Number(bonuses[type]) || 0) + delta);
     }
 
     function collectBonuses(options) {
@@ -569,7 +580,7 @@
             addBonus(bonuses, equip.mainStat && equip.mainStat.type, equipStatValue(equip, equip.mainStat));
             (equip.subStats || []).forEach(stat => addBonus(bonuses, stat.type, equipStatValue(equip, stat)));
             if (!options.loanDingyin && equip.dingyinStat) {
-                addBonus(bonuses, equip.dingyinStat.type, dingyinBonusValue(equip.dingyinStat.type, equip.dingyinStat.value));
+                addBonus(bonuses, equip.dingyinStat.type, dingyinBonusValue(equip.dingyinStat.type, dingyinStatValue(equip.dingyinStat)));
             }
         });
         if (options.loanDingyin) {
@@ -584,6 +595,14 @@
 
     function normalizePanelAliases(panel, className) {
         const adjusted = { ...(panel || {}) };
+        // Legacy panels mirrored DIY's one qishu value into two display fields.
+        if (adjusted["全奇术增伤"] === undefined) {
+            adjusted["全奇术增伤"] = Math.max(0, ...Array.from(qishuStatTypes)
+                .filter(type => type !== "全奇术增伤").map(type => Number(adjusted[type]) || 0));
+        }
+        qishuStatTypes.forEach(type => {
+            if (type !== "全奇术增伤") delete adjusted[type];
+        });
         const skillLabel = classSkillLabels[className];
         if (skillLabel && adjusted["指定武学技能增伤"] === undefined && adjusted[skillLabel] !== undefined) {
             adjusted["指定武学技能增伤"] = adjusted[skillLabel];
@@ -630,11 +649,10 @@
                 : displayDamageBonus(adjusted[statName], damageState.weaponSpecificEffective);
         });
         if (hasExplicitBonuses) {
-            adjusted["单体类奇术增伤"] = effectiveDamageBonus(bonuses["单体类奇术增伤"]);
-            adjusted["群体类奇术增伤"] = effectiveDamageBonus(bonuses["群体类奇术增伤"]);
+            adjusted["全奇术增伤"] = effectiveDamageBonus(Array.from(qishuStatTypes)
+                .reduce((total, type) => total + (Number(bonuses[type]) || 0), 0));
         } else {
-            adjusted["单体类奇术增伤"] = displayDamageBonus(adjusted["单体类奇术增伤"], damageState.qishuEffective);
-            adjusted["群体类奇术增伤"] = displayDamageBonus(adjusted["群体类奇术增伤"], damageState.qishuEffective);
+            adjusted["全奇术增伤"] = displayDamageBonus(adjusted["全奇术增伤"], damageState.qishuEffective);
         }
         return adjusted;
     }
@@ -715,15 +733,24 @@
         if (classValueFields["全武器增伤"]) setRaw(raw, classIndex, classValueFields["全武器增伤"], damagePct(panel["全武学增效"], damageState.commonEffective));
         const bossBonusField = classValueFields["首领增"] || classValueFields["首领增伤"] || classValueFields["对首领单位增伤"];
         if (bossBonusField) setRaw(raw, classIndex, bossBonusField, damagePct(panel["对首领单位增伤"], damageState.commonEffective));
-        if (classValueFields["单体奇术"]) setRaw(raw, classIndex, classValueFields["单体奇术"], damagePct(panel["单体类奇术增伤"], damageState.qishuEffective));
-        if (classValueFields["群体奇术"]) setRaw(raw, classIndex, classValueFields["群体奇术"], damagePct(panel["群体类奇术增伤"], damageState.qishuEffective));
+        if (classValueFields["单体奇术"]) setRaw(raw, classIndex, classValueFields["单体奇术"], damagePct(panel["全奇术增伤"], damageState.qishuEffective));
+        if (classValueFields["群体奇术"]) setRaw(raw, classIndex, classValueFields["群体奇术"], damagePct(panel["全奇术增伤"], damageState.qishuEffective));
         if (panel["指定武学技能增伤"] !== undefined) {
             (META.classSkillDingyinFields && META.classSkillDingyinFields[className] || []).forEach(field => {
                 setRaw(raw, classIndex, field, damagePct(panel["指定武学技能增伤"], damageState.dingyinEffective));
             });
         }
-        Object.entries(options.classInputOverrides || {}).forEach(([field, value]) => {
+        const extraInputs = META.classExtraInputs && META.classExtraInputs[className] || [];
+        const overrides = { ...Object.fromEntries(extraInputs.map(input => [input.field, input.default])),
+            ...options.classInputOverrides };
+        Object.entries(overrides).forEach(([field, value]) => {
             if (!classIndex.has(field)) return;
+            const toggle = extraInputs.find(input => input.field === field && input.kind === "toggle");
+            if (toggle) {
+                const enabled = [true, 1, "1", "true", toggle.trueValue].includes(value);
+                setRawString(raw, classIndex, field, enabled ? toggle.trueValue : toggle.falseValue);
+                return;
+            }
             const number = Number(value);
             if (Number.isFinite(number)) setRaw(raw, classIndex, field, number);
         });
