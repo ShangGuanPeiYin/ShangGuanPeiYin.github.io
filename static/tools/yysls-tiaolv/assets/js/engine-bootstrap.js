@@ -12,19 +12,19 @@
     window.YYSLS_ACTIVE_ENGINE = engine;
     window.YYSLS_ENGINE_STORAGE_KEY = STORAGE_KEY;
     window.YYSLS_ENGINE_MANIFEST = Object.freeze({
-        q7: Object.freeze({ id: "q7", label: "Q7 原版", wasmHash: "233623354918f51ff424abb054ae7435d57c585d4bd3a9a9753b3a29441ce07c" }),
+        q7: Object.freeze({ id: "q7", label: "Q7 原版", wasmHash: "1f6814043a78e25a402f3abb715e8ea22911a2d3f7a5d51cc7bebd1949d90ed7" }),
         assistant: Object.freeze({ id: "assistant", label: "测试新版" })
     });
 
     window.YYSLSWriteEngineScripts = function () {
         const scripts = engine === "q7" ? [
-            "assets/engines/q7/generated-calc-strings.js?v=202610061747",
-            "assets/engines/q7/generated-calc-metadata.js?v=202610061747",
-            "assets/engines/q7/q7-app-config.js?v=202610061747",
-            "assets/engines/q7/excel-runtime.js?v=202610061747"
+            "assets/engines/q7/generated-calc-strings.js?v=202610071303",
+            "assets/engines/q7/generated-calc-metadata.js?v=202610071303",
+            "assets/engines/q7/q7-app-config.js?v=202610071303",
+            "assets/engines/q7/excel-runtime.js?v=202610071303"
         ] : [
             "assets/js/generated-calc-strings.js?v=202608212157",
-            "assets/js/generated-calc-metadata.js?v=202610061747",
+            "assets/js/generated-calc-metadata.js?v=202610071303",
             "assets/js/excel-runtime.js?v=202608121302"
         ];
         document.write(scripts.map(src => `<script src="${src}"><\/script>`).join(""));
