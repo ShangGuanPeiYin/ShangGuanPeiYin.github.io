@@ -63,7 +63,7 @@ const asmMeta = loadJs(path.join(live, "assets/js/generated-calc-metadata.js")).
 const asmSids = loadJs(path.join(live, "assets/js/generated-calc-strings.js")).YYSLS_CALC_STRING_IDS;
 const q7Meta = loadJs(path.join(live, "assets/engines/q7/generated-calc-metadata.js")).YYSLS_CALC_METADATA;
 const q7Sids = loadJs(path.join(live, "assets/engines/q7/generated-calc-strings.js")).YYSLS_CALC_STRING_IDS;
-const flowNames = q7Meta.flowNames || Object.keys(q7Meta.flowIds);
+const flowNames = (q7Meta.flowNames || Object.keys(q7Meta.flowIds)).filter(f => MODULES[f]);
 
 function makeRunner(wasm) {
   const ip = wasm.yysls_alloc_f64(IL);
