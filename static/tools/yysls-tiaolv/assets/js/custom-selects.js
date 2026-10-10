@@ -2,7 +2,6 @@
     "use strict";
 
     const SELECT_IDS = [
-        "engine-source-select",
         "account-select",
         "class-select",
         "flow-version-select",

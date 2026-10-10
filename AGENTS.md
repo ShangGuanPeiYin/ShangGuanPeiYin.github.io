@@ -29,41 +29,17 @@ The script:
 - If unrelated changes already exist, mention them and pass only task-related paths to `skills/auto-site-publish/scripts/publish_site.sh`.
 - If the user explicitly asks not to publish, build or test locally but do not commit or push.
 
-## Tiaolv calculator upstreams
+## Tiaolv calculator engine
 
-The live tool has two isolated calculator engines that are mutually independent: the **Q7 original** engine references `yysls.leoq7.com`, while the separately selectable **Assistant** engine (used for testing the new version) references `yysls-assistant.cn`. `yysls.leoq7.com` is the complete upstream for the default **Q7 original** engine: Panel values, formulas, combined WASM, DPS, RDPS, graduation rates, workbook versions, templates, and best-build scoring. The sole local Q7 numeric override is season resistance `2.45` instead of upstream `2.15`. `yysls-assistant.cn` remains the Panel numeric reference for the separately selectable **Assistant** engine.
+The live tool runs a single calculator engine: the **Q7 original** engine, which references `yysls.leoq7.com`. There is no engine switch and no second/Assistant engine. `yysls.leoq7.com` is the complete upstream: Panel values, formulas, combined WASM, DPS, RDPS, graduation rates, workbook versions, templates, and best-build scoring. The sole local numeric override is season resistance `2.45` instead of upstream `2.15`.
 
-The `study/` directory holds numeric-reference snapshots, organized by engine:
+The `study/q7/` directory holds Q7 numeric-reference snapshots (`new` = latest, `old` = previous).
 
-- `study/assistant/seed/yysls-assistant.cn/` — frozen seed snapshot retained until the first successful rotation;
-- `study/assistant/new/yysls-assistant.cn/` — latest validated numeric snapshot;
-- `study/assistant/old/yysls-assistant.cn/` — previous validated numeric snapshot;
-- `study/q7/new/yysls.leoq7.com/` — latest Q7 snapshot;
-- `study/q7/old/yysls.leoq7.com/` — previous Q7 snapshot.
+Q7 production snapshots are namespaced under `static/tools/yysls-tiaolv/assets/engines/q7/`, `assets/wasm/q7/`, and `excels/q7/`. Update them only with `skills/tiaolv-q7-engine-update/`.
 
-Q7 production snapshots are namespaced under `static/tools/yysls-tiaolv/assets/engines/q7/`, `assets/wasm/q7/`, and `excels/q7/`. Update them only with `skills/tiaolv-q7-engine-update/`; never overwrite the Assistant engine.
+## Local app and customization preservation
 
-To fetch the latest numeric reference (validate first, then rotate old → new):
-
-```bash
-./skills/tiaolv-upstream-update/scripts/update_upstream.sh
-```
-
-## Tiaolv upstream sync
-
-`static/tools/yysls-tiaolv/` is a locally maintained application. Never overwrite its frontend files from either reference site.
-
-For Assistant Panel numeric changes use `skills/tiaolv-sync/`. For any Q7 engine, formula, WASM, metadata, or workbook update use `skills/tiaolv-q7-engine-update/`.
-
-```bash
-skills/tiaolv-sync/
-```
-
-Before and after any sync, read and preserve the local customization inventory:
-
-```bash
-doc/tiaolv-local-customizations.md
-```
+`static/tools/yysls-tiaolv/` is a locally maintained application. Never overwrite its frontend files from the reference site. Before and after any Tiaolv edit, read and preserve the local customization inventory `doc/tiaolv-local-customizations.md`.
 
 Pay special attention to preserving:
 
@@ -73,13 +49,20 @@ Pay special attention to preserving:
 - best-build transmutation integration: three search modes, `getOriginalEquipId` physical-equipment mutual exclusion, transmutation-aware cache digest, Chengyin-state Top20 deduplication, result metadata, and non-destructive `transmutationSelections` scheme overlays.
 - the cross-file transmutation chain: `index.html` mode/summary controls, `app.min.js` search and scheme calculation, `local-customizations.js` backup validation, and reverse guards that keep the removed transmutation-CD feature absent.
 
-Only Panel inputs, constants, formulas, stage ordering, resistance conversion, and rounding rules may be synchronized. `app.min.js`, the UI, and the per-workbook Excel WASM modules remain local. See `skills/tiaolv-sync/SKILL.md` for the numeric extraction and parity workflow.
-
-After syncing or editing the Tiaolv tool, run:
+After editing the Tiaolv tool, run:
 
 ```bash
-./skills/tiaolv-sync/scripts/check_tiaolv_customizations.sh
+./skills/tiaolv-site-checks/scripts/check_tiaolv_customizations.sh
 ```
+
+## Tiaolv tests
+
+- Q7 parity and browser checks live in `tests/q7/`:
+  - `node tests/q7/q7-dual-engine-parity.mjs` — 1,000,000-case Float64 parity against upstream;
+  - `node tests/q7/q7-site-parity.mjs` — site-level runtime parity;
+  - `node tests/q7/browser-runtime-parity.mjs` — headless browser check (requires `YYSLS_BROWSER_URL`);
+  - `tests/q7/check-baseline.sh` — Q7 asset hash baseline.
+- Frontend app regression tests live in `tests/tiaolv/`.
 
 ## Tiaolv JS version tags
 
@@ -92,22 +75,11 @@ After syncing or editing the Tiaolv tool, run:
 
 - `app.min.js`
 - `local-customizations.js`
-- `excel-runtime.js`
-- `generated-calc-metadata.js`
-- `generated-calc-strings.js`
 - `generated-best40-stats.js`
 
+Q7 引擎脚本的版本号在 `static/tools/yysls-tiaolv/assets/js/engine-bootstrap.js` 中维护（`assets/engines/q7/*.js?v=`）。
+
 同一次推送中多次修改同一文件，只需在最终推送时更新一次版本号即可。
-
-## Tiaolv Excel calculator updates
-
-用户替换 `excels/` 中的工作簿，或要求更新、重建 Excel 计算器及增加表格版本时，必须先读取并执行：
-
-```text
-skills/tiaolv-excel-update/SKILL.md
-```
-
-Excel 第二步使用按流派/表格版本独立编译、按需加载的专用 WASM。不得恢复通用 Excel 字节码解释器，也不得在遇到不支持的公式时静默返回 0、复用旧缓存结果或跳过公式。
 
 ## Tiaolv site update time
 
@@ -115,9 +87,10 @@ Excel 第二步使用按流派/表格版本独立编译、按需加载的专用 
 
 发布时间使用实际最终发布时间，格式为 `YYYY年M月D日 HH:mm:ss`。发布前必须同时修改：
 
-1. `static/tools/yysls-tiaolv/assets/js/generated-calc-metadata.js` 中的 `siteUpdateTime`（页面实际显示值）；
-2. `static/tools/yysls-tiaolv/index.html` 中 `#xinli-hint` 的“最后更新时间”占位文字；
-3. `static/tools/yysls-tiaolv/index.html` 中 `generated-calc-metadata.js` 的 `?v=` 时间戳。
+1. `static/tools/yysls-tiaolv/index.html` 中 `#xinli-hint` 的 `data-site-update-time` 属性（页面实际显示值）；
+2. `static/tools/yysls-tiaolv/index.html` 中 `#xinli-hint` 的占位文字。
+
+Q7 引擎文件的 `?v=` 在 `engine-bootstrap.js` 中维护；`engine-bootstrap.js` 自身在 `index.html` 的 `?v=` 需同步更新。
 
 不要修改各流派 `classRotationStats.*.updateTime`，那些字段表示对应 Excel/流派数据本身的更新时间，不是网站发布时间。
 

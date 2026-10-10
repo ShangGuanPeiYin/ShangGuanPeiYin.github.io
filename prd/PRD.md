@@ -67,7 +67,7 @@
 
 ### 1.5 现状盘点（已具备的能力）
 
-- **双计算引擎**：默认 Q7 原版引擎（跟随 `yysls.leoq7.com`，仅赛季抗性本地覆盖为 2.45）；可选 Assistant 引擎（`yysls-assistant.cn` Panel 口径 + 本站 Excel 模块）。引擎隔离，切换刷新页面。
+- **计算引擎**：Q7 原版引擎（跟随 `yysls.leoq7.com`，仅赛季抗性本地覆盖为 2.45）。
 - **装备管理**：多角色、八槽位穿戴、装备等级（110/105/100/96）、承音、紫装、可转律资格、可用流派限制、词条录入。
 - **毕业率分析（六标签）**：手动填写表格（含按词条数量/直接填面板双模式）、最佳配装、词条优先级、培养建议、转律建议、单件装备对比。
 - **方案管理**：每角色每流派每版本最多 50 套命名方案，含转律覆盖层（非破坏性）。
@@ -164,12 +164,12 @@
              赛季/PVP, 贷款定音, classInputOverrides, 转律覆盖后的装备）
   ↓
 YYSLSExcelRuntime.calculate()
-  ├─ calculatePanel()   ← yysls_panel.wasm：配置 → 最终面板（36项）
+  ├─ calculatePanel()   ← Q7 单体 WASM（yysls_calc_diy）：配置 → 最终面板
   └─ collectBonuses()   ← 定音/穿透/武器增效/奇术增伤/临时修正
        ↓
 calculateFromPanel()
   ↓
-当前流派/表格版本的 Excel WASM（11个，40项输入 → 5项输出）
+Q7 单体 WASM（yysls_calc_class_outputs，40项输入 → 5项输出）
   ↓
 totalDamage / DPS / graduationRatio / RDPS / RDPS 毕业率
 ```
@@ -181,9 +181,9 @@ totalDamage / DPS / graduationRatio / RDPS / RDPS 毕业率
 ```text
 页面加载
   ↓
-加载 generated-calc-strings/metadata/best40-stats
+加载 Q7 引擎字符串/元数据/应用配置/运行时与 best40-stats
   ↓
-加载 excel-runtime.js → 后台异步拉取 yysls_panel.wasm
+加载 assets/wasm/q7/yysls_calc.wasm
   ↓
 app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 → updateStats()
   │
@@ -257,16 +257,14 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
   → 恢复/上传前保护快照 → 恢复成功才写入新基线
 ```
 
-### 3.7 引擎切换流程
+### 3.7 计算引擎
 
 ```text
-切换计算数据源（Q7 原版 / 测试新版）
+固定加载 Q7 原版引擎（yysls.leoq7.com）
   ↓
-保存引擎选择（yysls_calculator_engine）
+启动即加载 assets/wasm/q7/yysls_calc.wasm、元数据、字符串与运行时
   ↓
-刷新页面，仅加载所选引擎
-  ↓
-禁止热切换，禁止跨引擎回退/混用
+无引擎切换入口，无跨引擎回退/混用
 ```
 
 ---
@@ -401,8 +399,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 | 功能 | 需求 | 验收标准 |
 | --- | --- | --- |
-| 双引擎 | 必须 | Q7 原版 / 测试新版可切换；选择持久化；切换刷新页面 |
-| 引擎隔离 | 必须 | 禁止跨引擎混用数据；禁止热切换；禁止跨引擎回退 |
+| 单一引擎 | 必须 | 固定 Q7 原版；无切换入口；不加载其它引擎或旧回退路径 |
 | 引擎就绪反馈 | 必须 | WASM 加载期间显示"计算中…"；就绪后自动重算 |
 | 首屏预加载 | 必须 | Panel WASM 就绪并恢复角色后立即预加载当前流派 Excel WASM，不得等首次点击 |
 
@@ -446,7 +443,6 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | `zhuanlv_status_<account>` | 转律状态 |
 | `grad_manual_form_v2_<account>_<class>_<flow>` | 手动毕业率配置 |
 | `last_selected_account` | 最近角色 |
-| `yysls_calculator_engine` | 引擎选择（q7/assistant，首次默认 Q7） |
 
 #### 云备份（Supabase）
 
@@ -462,29 +458,23 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | 上游 | 用途 | 同步方式 |
 | --- | --- | --- |
 | `yysls.leoq7.com` | Q7 原版引擎完整上游（Panel 值、公式、WASM、DPS/RDPS/毕业率、工作簿、最佳配装评分） | `skills/tiaolv-q7-engine-update/` |
-| `yysls-assistant.cn` | Assistant 引擎 Panel 数值参考 | `skills/tiaolv-upstream-update/` + `skills/tiaolv-sync/` |
-| 社区 Excel 工作簿 | 11 份表格版本（技能倍率、时间轴、基准 DPS、毕业率公式） | `skills/tiaolv-excel-update/` |
 
-**数值隔离约束**：
+**数值约束**：
 
-- 两套引擎之间不得混用数据；
-- Q7 模式唯一本地数值覆盖：赛季抗性 `2.45`（上游 `2.15`）；
+- Q7 唯一本地数值覆盖：赛季抗性 `2.45`（上游 `2.15`）；
 - 任何上游同步不得覆盖本地定制层（见 5.4）。
 
 ### 5.3 计算资产清单
 
 | 资产 | 说明 |
 | --- | --- |
-| `assets/wasm/yysls_panel.wasm` | 第一步：配置 → 最终面板（36 项输出） |
-| `assets/wasm/excel/*.wasm` | 第二步：11 个表格版本独立编译，40 项输入 → 5 项输出 |
-| `assets/wasm/q7/yysls_calc.wasm` | Q7 原版单体 WASM（Q7 引擎专用） |
+| `assets/wasm/q7/yysls_calc.wasm` | Q7 原版单体 WASM（面板 + 伤害/毕业率） |
 | `assets/engines/q7/*` | Q7 引擎前端与 manifest（`localOverrides.seasonResistance = 2.45`） |
-| `assets/js/generated-calc-metadata.js` | 流派字段、默认值、基准、最大值、承音值、100% 毕业面板 |
-| `assets/js/generated-calc-strings.js` | 字符串 ID 表 |
+| `assets/engines/q7/generated-calc-metadata.js` | Q7 流派字段、默认值、基准、最大值、承音值、100% 毕业面板 |
+| `assets/engines/q7/generated-calc-strings.js` | Q7 字符串 ID 表 |
 | `assets/js/generated-best40-stats.js` | 培养建议预计算数据 |
-| `excels/*.xlsx` | 11 份社区工作簿（公式源） |
-| `calculator/yysls-calc-rust/` | Rust 与生成器源码、回归测试语料 |
-| `study/` | 上游数值参考快照（new/old 轮换、assistant 种子） |
+| `excels/q7/*.xlsx` | Q7 工作簿（随快照更新） |
+| `study/q7/` | Q7 上游数值参考快照（new/old 轮换） |
 
 ### 5.4 本地定制层（必须长期保留）
 
@@ -525,10 +515,8 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 | 需求 | 要求 | 说明 |
 | --- | --- | --- |
-| 首屏启动 | 只加载 Panel WASM（约 28KB） | Excel WASM（11 个，gzip 均 <1MB）按需/预加载当前流派 |
-| 首屏毕业率 | WASM 就绪前显示"计算中…"，就绪后自动重算 | 不得等首次点击才加载当前流派模块 |
-| Excel 模块加载 | 当前流派/表格版本优先；同版本只实例化一次并复用 | 切换流派时只加载新模块，不下载其余 27MB |
-| 批量搜索 | 固定 5020 组语料整体 ≤20s、单流派 ≤4s | 旧解释器约 3.83 倍速度提升（迁移期实测） |
+| 首屏启动 | 加载 Q7 单体 WASM（约 1.7MB）与引擎元数据 | 单体 WASM 同时承载面板与伤害/毕业率 |
+| 首屏毕业率 | WASM 就绪前显示"计算中…"，就绪后自动重算 | 不得展示零值或旧结果 |
 | 缓存 | 最佳配装缓存摘要必须包含流派环境、弓诀、限制、转律模式、引擎 ID | 条件变化后不得复用旧结果 |
 
 ### 6.2 正确性
@@ -537,7 +525,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | --- | --- |
 | 毕业率口径 | 优先 WASM `graduationRatio × 100`；无结果才回退 `dps ÷ baselineDps × 100` |
 | 一致性 | 所有分析入口复用统一计算链，禁止口径分叉 |
-| 位级一致 | Q7：36 项 Panel 输出与 5 项伤害输出 Float64 位级比对；Assistant：同样验收 |
+| 位级一致 | Q7 Panel 输出与 5 项伤害输出 Float64 位级比对 |
 | 抗性覆盖 | Q7 模式运行时与配置缺省抗性必须均为 2.45，不得回退上游 2.15 |
 | 精度 | 百分比按小数写入；增伤按 damage-state 防重复除以抗性 |
 | 溢出处理 | 三率超上限后按 `溢出白值 = 超限黄值 × 2.45` 换算，不从 DOM 反推；裂石钧会心还需按精准率与直接会心计算动态有效阈值 |
@@ -566,8 +554,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 | 需求 | 要求 |
 | --- | --- |
-| 引擎隔离 | Q7 / Assistant 独立目录、独立 manifest、独立构建，禁止混用 |
-| 构建可重复 | 相同输入产生相同 WASM 哈希；牵丝霖固定 `opt-level=2` 与单 codegen unit |
+| 引擎快照 | Q7 独立目录与 manifest；快照与上游逐字节一致（仅抗性覆盖） |
 | 文档防漂移 | 产品规则、技术实现、转律机制、定制清单、PRD 各自独立维护 |
 | 治理脚本 | 每次改动运行 `check_tiaolv_customizations.sh`；发布走 `publish_site.sh` |
 | 版本号 | 前端文件改动更新 `index.html` 中 `?v=`（格式 `YYYYMMDDHHmm`） |
@@ -582,9 +569,9 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 | 不做 | 原因/依据 |
 | --- | --- |
-| 不做通用 Excel 字节码解释器 | 已改为按流派/表格版本独立编译 WASM；不得恢复通用解释器，遇到不支持公式不得静默返回 0 或复用旧缓存 |
+| 不做通用 Excel 字节码解释器 | Q7 使用上游单体 WASM；不得恢复通用解释器，遇到不支持公式不得静默返回 0 或复用旧缓存 |
 | 不做 pvp 毕业率计算 | `pvp` 只作为装备"可用流派"标签，不进入 Panel、毕业率、最佳配装、培养建议、转律搜索 |
-| 不做跨引擎热切换 | 切换引擎必须刷新页面，禁止热切换、禁止跨引擎回退/混用 |
+| 不做引擎切换 | 固定 Q7 单一引擎；禁止重新引入其它引擎或旧回退路径 |
 | 不做公开注册 | 云备份仅管理员预建账号登录，不提供公开注册、验证码、找回密码 |
 | 不覆盖上游前端 | 本站前端自主维护；任何上游同步不得复制对方前端、不得覆盖本地定制层 |
 | 不做转律 CD 提醒 | 已完整移除，后续同步不得重新引入（转律状态追踪/建议/计算不属于删除范围） |
@@ -595,21 +582,18 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 | 红线 | 说明 |
 | --- | --- |
-| 引擎隔离 | Q7 引擎与 Assistant 引擎数据/口径不得混用 |
+| 单一引擎 | 仅 Q7 引擎；不得重新引入其它引擎或旧回退路径 |
 | 唯一覆盖 | Q7 模式唯一允许偏离上游的数值是赛季抗性 `2.45`（上游 `2.15`）；装备、武学、心法、套装、武库、原版 WASM、伤害公式、时间轴、毕业基准不得随之修改 |
-| 快照保护 | 任一抓取或验收失败时不得替换有效快照；`study/` 快照遵守 old→new 轮换 |
+| 快照保护 | 任一抓取或验收失败时不得替换有效快照；`study/q7/` 快照遵守 old→new 轮换 |
 
 ### 7.3 结构边界
 
 ```text
 用户看到的功能（本地定制层 + 主业务层）
-  ├─ 不得被上游同步覆盖
-  └─ 禁止混用两套引擎数据
+  └─ 不得被上游同步覆盖
 
-计算引擎（双 WASM）
-  ├─ yysls_panel.wasm（第一步，面板）
-  ├─ assets/wasm/excel/*.wasm（第二步，11 个表格版本）
-  └─ assets/wasm/q7/yysls_calc.wasm（Q7 原版单体，仅 Q7 引擎）
+计算引擎（Q7 原版单体 WASM）
+  └─ assets/wasm/q7/yysls_calc.wasm（面板 + 伤害/毕业率）
 ```
 
 ### 7.4 已移除功能的永久性
@@ -634,19 +618,15 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 | 指标 | 门槛 | 说明 |
 | --- | --- | --- |
-| Q7 上游 parity | 36 项 Panel + 5 项伤害输出 Float64 位级零差异 | 10 个流派固定矩阵 + ≥100 万组随机配置 |
-| Assistant Panel parity | 同上 | Panel 数据独立参考实现 |
+| Q7 上游 parity | Panel + 5 项伤害输出 Float64 位级零差异 | 每流派固定矩阵 + ≥100 万组随机配置 |
 | 抗性覆盖断言 | 运行时与配置缺省抗性必须为 2.45 | 浏览器链路断言，防止退回 2.15 |
-| 迁移验收语料 | 10 个可比较流派、5020 组输入、25100 项输出，位模式差异为 0 | 破竹鸢 2.4 不复现旧解释器过期结果 |
-| Panel 独立参考 | 600 固定矩阵 + 100 万随机 = 36,021,600 个面板字段，差异 0 | Excel 重建不得改变 Panel 哈希 |
 
 ### 8.2 性能指标
 
 | 指标 | 门槛 |
 | --- | --- |
-| 首屏加载 | 只加载 Panel WASM；当前流派 Excel WASM 预加载，不下载其余 27MB |
-| Excel 模块大小 | 11 个模块 gzip 均 <1MB（最大鸣金影 661,578 字节） |
-| 固定语料耗时 | 5020 组整体 ≤20s、单流派 ≤4s（旧解释器相对 3.83 倍） |
+| 首屏加载 | 加载 Q7 单体 WASM（约 1.7MB）与引擎元数据 |
+| Q7 校验耗时 | 100 万组随机配置 Float64 位级 parity 可完成 |
 
 ### 8.3 构建与发布指标
 
@@ -685,7 +665,6 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 - 首页"计算中…"状态持续时间与"0.00%"出现频率；
 - 各分析标签使用率（手动/最佳配装/转律占比）；
-- 引擎选择分布（Q7 vs Assistant）；
 - 备份/OCR 使用率与失败率。
 
 ---
@@ -702,7 +681,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | 项 | 状态 | 方向 |
 | --- | --- | --- |
 | 数值 parity 门禁 | 已有 | 每次上游同步强制位级回归；扩展固定样本覆盖 |
-| 双引擎隔离 | 已有 | 维持 manifest 登记与跨引擎禁止混用；警惕新字段误入对方引擎 |
+| 引擎快照登记 | 已有 | 维持 manifest 登记与上游 parity；警惕快照漂移 |
 | 恢复事务 | 已有 | 保持"校验→暂存→写入→回滚"，新增恢复前后 diff 摘要 |
 | 抗性覆盖断言 | 已有 | 浏览器链路自动断言 2.45，防止回归 |
 
@@ -723,7 +702,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | 多设备协同冲突可视化 | 已有多设备保护 | 可扩展为"本机/云端差异对比"界面 |
 | 数据导出增强 | 已有 Excel 填表 | 可增加毕业率历史曲线、方案对比导出 |
 | 埋点与使用观测 | 无 | 支持决策（见 8.6） |
-| 新表格版本接入 | 按 `skills/tiaolv-excel-update/` | 每次新版本走完整编译与位级验收 |
+| 新表格版本接入 | 随 Q7 快照更新（`skills/tiaolv-q7-engine-update/`） | 走完整位级验收 |
 
 ### 9.2 路线图建议
 
@@ -739,7 +718,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
   6. 多设备差异对比界面
 
 长期（随上游）
-  7. 跟随 Q7 / Assistant 上游版本迭代
+  7. 跟随 Q7 上游版本迭代
   8. 新流派/新表格版本接入
 ```
 
@@ -781,7 +760,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | 需承音 | 需要承音升级的装备：低于 115 级的一切装备，以及候选搜索为未承音装备自动生成的升级版（id 含 `_chengyin`） |
 | 武库 | 影响面板的武学库配置 |
 | 弓诀 | 精准/会心/会意三种弓 |
-| 引擎 | Q7 原版（默认）/ 测试新版两套隔离计算口径 |
+| 引擎 | Q7 原版单一计算口径 |
 | 表格版本 | 每个流派对应的社区 Excel 版本（如破竹鸢 2.4、牵丝翊 2.0） |
 
 ### 10.2 上游源站与参考
@@ -789,31 +768,17 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | 源 | 角色 |
 | --- | --- |
 | `yysls.leoq7.com` | Q7 原版引擎完整上游 |
-| `yysls-assistant.cn` | Assistant 引擎 Panel 数值参考 |
 | Violetta@片雲 及各流派表作者 | 社区 Excel 工作簿作者 |
 
-### 10.3 11 份工作簿清单（当前 Excel 模块）
+### 10.3 工作簿清单
 
-| 工作簿 | 流派/版本 |
-| --- | --- |
-| 鸣金虹 110 阶竞速轴属性毕业率进阶计算器 1.3 | 鸣金虹 |
-| 鸣金影 110 阶竞速轴属性毕业率进阶计算器 1.5 | 鸣金影 |
-| 裂石威 110 阶竞速轴属性毕业率进阶计算器 2.2 | 裂石威 |
-| 裂石钧 110 阶竞速轴属性毕业率进阶计算器 1.15 | 裂石钧 |
-| 破竹尘 110 阶竞速轴属性毕业率进阶计算器 2.0 | 破竹尘 |
-| 破竹风 110 阶竞速轴属性毕业率进阶计算器 1.1 | 破竹风 |
-| 破竹鸢 110 阶竞速轴属性毕业率进阶计算器 2.4 | 破竹鸢 |
-| 牵丝玉 110 阶竞速轴属性毕业率进阶计算器 1.4 | 牵丝玉 |
-| 牵丝翊 110 阶竞速轴属性毕业率进阶计算器 1.2 | 牵丝翊 1.2 |
-| 牵丝翊 110 阶竞速轴属性毕业率进阶计算器 2.0 | 牵丝翊 2.0（默认） |
-| 牵丝霖 110 阶竞速轴属性毕业率进阶计算器 1.1 | 牵丝霖 |
+Q7 当前工作簿版本以 `static/tools/yysls-tiaolv/assets/engines/q7/manifest.json` 的 `workbooks` 为准，随上游快照更新。
 
 ### 10.4 引擎生产结构
 
 | 引擎 | 结构 |
 | --- | --- |
 | Q7 原版 | 独立原版单体 `assets/wasm/q7/yysls_calc.wasm` + `assets/engines/q7/*`（manifest 登记 `seasonResistance=2.45`） |
-| Assistant | 1 个 Panel WASM（`yysls_panel.wasm`）+ 11 个 Excel WASM（`assets/wasm/excel/*.wasm`） |
 
 ### 10.5 关键文档索引
 
@@ -833,11 +798,9 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | 流程 | 入口 |
 | --- | --- |
 | 发布 | `skills/auto-site-publish/scripts/publish_site.sh` |
-| 定制检查 | `skills/tiaolv-sync/scripts/check_tiaolv_customizations.sh` |
-| 上游更新（assistant） | `skills/tiaolv-upstream-update/scripts/update_upstream.sh` |
-| Panel 同步 | `skills/tiaolv-sync/` |
+| 定制检查 | `skills/tiaolv-site-checks/scripts/check_tiaolv_customizations.sh` |
 | Q7 引擎更新 | `skills/tiaolv-q7-engine-update/` |
-| Excel 计算器更新 | `skills/tiaolv-excel-update/SKILL.md` |
+| Q7 校验 | `tests/q7/` |
 
 ---
 
@@ -865,7 +828,6 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 | `zhuanlv_status_<account>` | 转律状态 |
 | `grad_manual_form_v2_<account>_<class>_<flow>` | 手动毕业率配置 |
 | `last_selected_account` | 最近角色 |
-| `yysls_calculator_engine` | 引擎选择（q7/assistant） |
 
 - 装备稳定 ID 不得因导入、恢复、方案切换而改变；角色改名/完整恢复必须同步迁移所有角色级 key。
 - `getDB()` 读取后统一执行规范化：缺失等级按 `105`；低于 110 级清除 `isTransmutable`；承音装备的承音词条值按承音值补齐。
@@ -942,7 +904,7 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 ```text
 统一 options
   → calculate()
-      ├─ calculatePanel()：buildDiyRaw() → yysls_panel.wasm(yysls_calc_diy) → panelFromArray() → 三率溢出/增伤标记
+      ├─ calculatePanel()：buildDiyRaw() → Q7 单体 WASM(yysls_calc_diy) → panelFromArray() → 三率溢出/增伤标记
       └─ collectBonuses()：定音、穿透、武器增效、奇术增伤、临时修正
           → calculateFromPanel() → yysls_calc_class_outputs → totalDamage/dps/graduationRatio/rdps
 ```
@@ -1035,15 +997,14 @@ app.min.js init() → 恢复最近角色 → 加载该角色当前流派方案 �
 
 `OCRHandler` 使用 Tesseract 识别单件截图或批量粘贴结果，解析部位/名称/主副词条/数值；结果必须经用户确认与规范化后才写入仓库；OCR 失败不得影响现有数据。
 
-### 11.12 引擎切换与数值隔离
+### 11.12 引擎与数值
 
 | 引擎 | 上游与结构 |
 | --- | --- |
-| Q7 原版（默认） | `yysls.leoq7.com` 完整上游；独立 `assets/wasm/q7/yysls_calc.wasm` + `assets/engines/q7/*`；唯一本地数值覆盖 `localOverrides.seasonResistance = 2.45` |
-| Assistant（测试） | `yysls-assistant.cn` Panel 数值参考；`yysls_panel.wasm` + 11 个 Excel WASM |
+| Q7 原版 | `yysls.leoq7.com` 完整上游；独立 `assets/wasm/q7/yysls_calc.wasm` + `assets/engines/q7/*`；唯一本地数值覆盖 `localOverrides.seasonResistance = 2.45` |
 
-- 两套引擎相互隔离，不得混用数据；切换刷新页面；
-- 同一次推送中新增的表格版本必须按「按流派/表格版本独立编译、按需加载」的方式生成专用 WASM；
+- 引擎固定为 Q7 单一引擎，无切换入口；
+- Q7 工作簿随快照更新，保持与上游逐字节一致（仅抗性覆盖）；
 - 不得恢复通用 Excel 字节码解释器；遇到不支持公式不得静默返回 0、复用旧缓存或跳过公式。
 
 ### 11.13 已废弃与禁止回归的逻辑
