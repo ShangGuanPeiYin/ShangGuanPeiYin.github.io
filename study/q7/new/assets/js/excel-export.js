@@ -473,7 +473,7 @@
             await runtime.ready;
             const exportData = runtime.exportClassInputData(getCurrentExcelExportOptions());
             if (!exportData || !exportData.workbookName) throw new Error("当前流派没有可下载的表格模板");
-            const response = await fetch(workbookUrl(exportData.workbookName));
+            const response = await fetch(workbookUrl(exportData.workbookName), { cache: "no-store" });
             if (!response.ok) throw new Error(`无法下载模板：${exportData.workbookName}`);
             const filled = await patchWorkbook(await response.arrayBuffer(), exportData);
             const blob = new Blob([filled], { type: XLSX_MIME });

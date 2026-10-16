@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "521c96b6";
+    const ASSET_VERSION = "780d3962";
     const WASM_URL = `assets/wasm/q7/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -603,10 +603,13 @@
         qishuStatTypes.forEach(type => {
             if (type !== "全奇术增伤") delete adjusted[type];
         });
-        const skillLabel = classSkillLabels[className];
-        if (skillLabel && adjusted["指定武学技能增伤"] === undefined && adjusted[skillLabel] !== undefined) {
-            adjusted["指定武学技能增伤"] = adjusted[skillLabel];
-        }
+        const skillLabels = className === "裂石钧"
+            ? [classSkillLabels[className], classSkillLabels["裂石钧（纯唐）"]] : [classSkillLabels[className]];
+        skillLabels.forEach(skillLabel => {
+            if (skillLabel && adjusted["指定武学技能增伤"] === undefined && adjusted[skillLabel] !== undefined) {
+                adjusted["指定武学技能增伤"] = adjusted[skillLabel];
+            }
+        });
         return adjusted;
     }
 
@@ -751,9 +754,21 @@
                 setRawString(raw, classIndex, field, enabled ? toggle.trueValue : toggle.falseValue);
                 return;
             }
+            const dropdown = extraInputs.find(input => input.field === field && input.kind === "dropdown");
+            if (dropdown) {
+                setRawString(raw, classIndex, field, dropdown.candidates.includes(value) ? value : dropdown.default);
+                return;
+            }
             const number = Number(value);
             if (Number.isFinite(number)) setRaw(raw, classIndex, field, number);
         });
+        if (className === "裂石钧") {
+            const tang = overrides.output_mode === "唐刀";
+            const skillBonus = damagePct(panel["指定武学技能增伤"], damageState.dingyinEffective);
+            setRaw(raw, classIndex, "tang_dingyin", tang ? skillBonus : 0);
+            setRaw(raw, classIndex, "e25", tang ? 0 : skillBonus);
+            if (!tang) setRawString(raw, classIndex, "fourth_xinfa", "断石之构");
+        }
         return raw;
     }
 
@@ -813,13 +828,16 @@
         }
         const rotation = window.ClassConfig && window.ClassConfig.ROTATIONS && (window.ClassConfig.ROTATIONS[flowName] || window.ClassConfig.ROTATIONS[className]) || {};
         const generatedRotation = META.classRotationStats && (META.classRotationStats[flowName] || META.classRotationStats[className]) || {};
-        const useTime = Number(generatedRotation.useTime) || rotation.useTime || 1;
+        const modeInput = (META.classExtraInputs && META.classExtraInputs[flowName] || []).find(input => input.field === "output_mode");
+        const mode = options.classInputOverrides && options.classInputOverrides.output_mode;
+        const modeRotation = modeInput && modeInput.rotations && modeInput.rotations[mode] || {};
+        const useTime = Number(modeRotation.useTime || generatedRotation.useTime) || rotation.useTime || 1;
         if (!dps) dps = totalDamage / useTime;
         const fallbackBaseline = typeof window.getBaseLineByClass === "function"
             ? window.getBaseLineByClass(className, options.xinfa || panel["心法"] || [], flowName)
             : rotation.baseline || totalDamage;
-        const baselineTotal = Number(generatedRotation.baselineTotal || generatedRotation.baseline) || fallbackBaseline;
-        const baselineDps = Number(generatedRotation.baselineDps || generatedRotation.dps) || (baselineTotal / useTime);
+        const baselineTotal = modeRotation.baselineDps ? modeRotation.baselineDps * useTime : Number(generatedRotation.baselineTotal || generatedRotation.baseline) || fallbackBaseline;
+        const baselineDps = Number(modeRotation.baselineDps || generatedRotation.baselineDps || generatedRotation.dps) || (baselineTotal / useTime);
         const graduationRate = graduationRatio !== null ? graduationRatio * 100 : (baselineDps ? dps / baselineDps * 100 : null);
         const rdpsGraduationRate = rdpsGraduationRatio !== null ? rdpsGraduationRatio * 100 : null;
         const effectiveBaseline = graduationRatio ? dps / graduationRatio : baselineDps;
@@ -836,7 +854,9 @@
             baselineTotal,
             graduationRate,
             rdpsGraduationRate,
-            meta: { ...rotation, ...generatedRotation }
+            meta: { ...rotation, ...generatedRotation, ...(modeRotation.useTime ? {
+                ...modeRotation, baseline: baselineTotal, baselineTotal, dps: baselineDps
+            } : {}) }
         };
     }
 
@@ -885,7 +905,7 @@
                 cells,
                 values,
                 panel: result.panel,
-                meta: { ...result.meta, ...generatedRotation }
+                meta: { ...generatedRotation, ...result.meta }
             };
         } catch (error) {
             console.warn("Excel 表格导出输入生成失败：", error);
