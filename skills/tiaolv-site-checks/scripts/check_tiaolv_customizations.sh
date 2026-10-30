@@ -147,6 +147,8 @@ check_contains "$APP" "BEST_BUILD_MAX_EQUIPMENT_LEVEL = 115" "best-build maximum
 check_contains "$APP" "isBelowBestBuildMaxEquipmentLevel" "low-level best-build Chengyin guard"
 check_contains "$APP" "else if (isBelowBestBuildMaxEquipmentLevel(n)) i.push(this.createChengyinVersion(n))" "low-level best-build forced Chengyin candidate"
 check_contains "$APP" "Number(e.level) >= 110 && !0 === e.isTransmutable" "explicit transmutation eligibility"
+check_contains "$LOCAL_JS" "function isTransmutationLevel(level)" "shared 110+-level transmutation rule"
+check_not_contains "$LOCAL_JS" "110 === Number(" "exact-110 transmutation eligibility gate"
 check_contains "$APP" "if (!isTransmutableEquip(e)) return a" "transmutation variant eligibility guard"
 check_contains "$APP" "只有已勾选“可转律”的110级及以上装备可以计算转律建议" "transmutation suggestion eligibility guard"
 check_contains "$LOCAL_JS" "TRANSMUTATION_LEVEL_MIGRATION_MARKER" "transmutation status level migration marker"

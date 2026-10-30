@@ -8,8 +8,14 @@
     const TRANSMUTATION_EXPLICIT_ELIGIBILITY_MARKER = "tiaolv_transmutation_explicit_eligibility_v3";
     const TRANSMUTATION_STATUS_MODEL_VERSION = 3;
 
+    // 转律资格只看等级下限：110 级及以上（含 115 级与承音装备）都可转律。
+    // 所有资格/状态/备份判断都必须复用这一个入口，避免与主脚本的 >=110 判定分叉。
+    function isTransmutationLevel(level) {
+        return Number(level) >= 110;
+    }
+
     function isTransmutableEquip(equip) {
-        return !!equip && 110 === Number(equip.level) && true === equip.isTransmutable;
+        return !!equip && isTransmutationLevel(equip.level) && true === equip.isTransmutable;
     }
 
     function normalizeZhuanlvStatus(status, equip) {
@@ -73,13 +79,13 @@
                 var equips = parseStoredArray(equipKey).map(function(equip) {
                     var rawStatus = statusMap[String(equip.id)];
                     var subStatIndex = rawStatus ? Number(rawStatus.subStatIndex) : -1;
-                    var validActive = 110 === Number(equip.level)
+                    var validActive = isTransmutationLevel(equip.level)
                         && rawStatus && "active" === rawStatus.state
                         && (2 === Number(rawStatus.modelVersion) || TRANSMUTATION_STATUS_MODEL_VERSION === Number(rawStatus.modelVersion))
                         && Number.isInteger(subStatIndex) && subStatIndex >= 0
                         && Array.isArray(equip.subStats) && equip.subStats[subStatIndex]
                         && !!equip.subStats[subStatIndex].type;
-                    equip.isTransmutable = 110 === Number(equip.level)
+                    equip.isTransmutable = isTransmutationLevel(equip.level)
                         && (true === equip.isTransmutable || validActive);
                     if (validActive) {
                         cleanStatusMap[String(equip.id)] = {
@@ -187,7 +193,7 @@
                 name: equip.name,
                 isChengyin: equip.isChengyin || false,
                 isPurple: equip.isPurple || false,
-                isTransmutable: 110 === Number(equip.level) && true === equip.isTransmutable,
+                isTransmutable: isTransmutationLevel(equip.level) && true === equip.isTransmutable,
                 level: equip.level || 105,
                 availableClasses: "function" == typeof normalizeAvailableClassesForEquip ? normalizeAvailableClassesForEquip(equip) : equip.availableClasses || [],
                 mainStat: {
@@ -295,7 +301,7 @@
             name: equip.name,
             isChengyin: !!equip.isChengyin,
             isPurple: !!equip.isPurple,
-            isTransmutable: 110 === Number(equip.level) && true === equip.isTransmutable,
+            isTransmutable: isTransmutationLevel(equip.level) && true === equip.isTransmutable,
             level: Number(equip.level) || 105,
             availableClasses: Array.isArray(equip.availableClasses) ? equip.availableClasses.map(String) : [],
             mainStat: sanitizeStat(equip.mainStat),
@@ -526,7 +532,7 @@
                 var sourceEquip = account.equipData[index];
                 var rawStatus = rawZhuanlvData[String(equip.id)];
                 if (!Object.prototype.hasOwnProperty.call(sourceEquip, "isTransmutable")
-                    && 110 === Number(equip.level) && rawStatus && "active" === rawStatus.state
+                    && isTransmutationLevel(equip.level) && rawStatus && "active" === rawStatus.state
                     && (2 === Number(rawStatus.modelVersion) || TRANSMUTATION_STATUS_MODEL_VERSION === Number(rawStatus.modelVersion))) {
                     equip.isTransmutable = true;
                 }
@@ -671,11 +677,11 @@
                 }
                 (payload.equipData || []).forEach(function(item) {
                     if (!Object.prototype.hasOwnProperty.call(item, "isTransmutable")
-                        && 110 === Number(item.level) && item.zhuanlv && "active" === item.zhuanlv.state
+                        && isTransmutationLevel(item.level) && item.zhuanlv && "active" === item.zhuanlv.state
                         && (2 === Number(item.zhuanlv.modelVersion) || TRANSMUTATION_STATUS_MODEL_VERSION === Number(item.zhuanlv.modelVersion))) {
                         item.isTransmutable = true;
                     }
-                    item.isTransmutable = 110 === Number(item.level) && true === item.isTransmutable;
+                    item.isTransmutable = isTransmutationLevel(item.level) && true === item.isTransmutable;
                 });
                 if ("function" != typeof encryptData || "function" != typeof showImportWarning) {
                     alert("页面尚未初始化完成，请稍后再试");

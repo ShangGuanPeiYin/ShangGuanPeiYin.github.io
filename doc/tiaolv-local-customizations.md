@@ -74,6 +74,7 @@
    - `isTransmutableEquip` 统一规定只有 `level >= 110 && isTransmutable === true` 的装备可以进入转律功能；承音和紫装均不影响资格，其他等级仍可作为普通装备参与计算；进入最佳配装时，未承音装备只使用“需承音”升级版。
    - 低于110级装备不显示“可转律”复选框，切换到其他等级时自动取消勾选并清除指定槽位；110级及以上新装备默认不勾选。
    - `migrateTransmutationToExplicitEligibility` 将已有合法 active 状态迁移为已勾选并保留槽位；其他旧装备默认不可转律。完整备份和旧JSON会迁移同一字段。
+   - 资格判断只允许走共享入口 `isTransmutationLevel(level)`（`level >= 110`）；禁在 `local-customizations.js` 里写死 `110 === Number(...)`，否则 115 级（含承音）装备会出现“勾选可转律保存后没有徽标、重开编辑被自动取消、备份丢失资格”的不一致。
 6. **不可转律／待转律／已转律模型**
    - 未勾选“可转律”即不可转律；勾选但下拉保持“暂未指定”即待转律；选择一个当前存在的副词条后即已转律，不登记目标词条。
    - `TRANSMUTATION_STATUS_MODEL_VERSION = 2` 标识已转律槽位记录；待转律不额外写状态对象，只由装备上的 `isTransmutable:true` 表达。
