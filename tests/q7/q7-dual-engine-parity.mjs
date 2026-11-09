@@ -12,7 +12,7 @@ const upstreamBytes = Buffer.from(await fetch("https://yysls.leoq7.com/assets/wa
   return response.arrayBuffer();
 }));
 const sha256 = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
-const expectedHash = "a0db77a599681eaf4c6368f83ae784ba942a89bbc5a81b787ec2b600c64138c0";
+const expectedHash = "4ffa137fce77359fe4ccd9923429c9e2fb4243156f3d3241d36fb0f0371ff7b8";
 if (sha256(localBytes) !== expectedHash || sha256(upstreamBytes) !== expectedHash || !localBytes.equals(upstreamBytes)) throw new Error("Q7 WASM snapshot differs from upstream");
 for (const filename of ["generated-calc-strings.js", "generated-calc-metadata.js", "excel-runtime.js"]) {
   const upstream = await fetch(`https://yysls.leoq7.com/assets/js/${filename}`).then(async response => {

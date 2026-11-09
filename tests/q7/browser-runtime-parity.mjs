@@ -134,12 +134,12 @@ try {
     const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
     return { engine: window.YYSLS_ACTIVE_ENGINE, seasonResistance: CommonData.SEASON_STATS["赛季抗性"], summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate, resources: performance.getEntriesByType("resource").map(entry => entry.name) };
   })()`);
-  const expectedFlowCount = 14;
+  const expectedFlowCount = 15;
   if (result.loadedFlows.length !== expectedFlowCount) {
     throw new Error(`unexpected flow count ${result.loadedFlows.length} (engine=${result.engine})`);
   }
-  const expectedMainClasses = 11;
-  const expectedAvailableClasses = 12;
+  const expectedMainClasses = 12;
+  const expectedAvailableClasses = 13;
   if (result.mainClasses.includes("pvp") || result.mainClasses.includes("裂石钧（纯唐）") || result.mainClasses.length !== expectedMainClasses) {
     throw new Error(`unexpected main classes: ${JSON.stringify(result.mainClasses)}`);
   }
