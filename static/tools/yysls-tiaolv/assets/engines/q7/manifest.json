@@ -3,7 +3,7 @@
   "localOverrides": {
     "seasonResistance": 2.45
   },
-  "siteUpdateTime": "2026年11月8日 22:09:50",
+  "siteUpdateTime": "2026年11月10日 21:19:51",
   "flows": [
     "牵丝玉",
     "牵丝翊",
@@ -27,50 +27,50 @@
       "size": 24058
     },
     "generated-calc-metadata.js": {
-      "sha256": "e8fb764cfa945195bde30a865dda0dce0c4fb138e234e4484140af3fec1ae3c8",
-      "size": 36220
+      "sha256": "a70d6bdd98a5f3a33990cf0033500cc8a7f07b4cb84ed92384caf4ebcf56f9b8",
+      "size": 38191
     },
     "excel-runtime.js": {
-      "sha256": "e6dcb0ab1804fe081c3da0a718399c4b5dfa5217c2ea721b847c1795359577c9",
-      "size": 44661
+      "sha256": "ecee142d62a627abc7e7a956a18d1c4cce51a57fde26f2eba1bf422aaac0e976",
+      "size": 44764
     },
     "app.min.js": {
-      "sha256": "71c200b289cb95d7443a4b3c7934081b70940db8d1c5175ba1a207ae004b48d6",
-      "size": 420121
+      "sha256": "72c747709448e1d7d156cf5549e469d485b44ea9911f57b5bd5201b311864c6a",
+      "size": 420104
     }
   },
   "wasm": {
-    "sha256": "4ffa137fce77359fe4ccd9923429c9e2fb4243156f3d3241d36fb0f0371ff7b8",
-    "size": 1609924
+    "sha256": "881f10a3f2d393d06612a2080157a3e3ad2438f351b269594aeaa8450f2659fc",
+    "size": 1612701
   },
   "workbooks": {
-    "牵丝玉115阶竞速轴属性毕业率进阶计算器3.6.xlsx": {
-      "sha256": "428efc628870621b3e5f3229cd71286b882054d5ee22d072b5e58f46f958bba3",
-      "size": 377012
+    "牵丝玉115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "98f4614dd547d3f3e3153103e84abb72e6ccc21a828569808b0fe5b616c1f481",
+      "size": 377396
     },
-    "牵丝翊115阶竞速轴属性毕业率进阶计算器3.2.xlsx": {
-      "sha256": "d1c2290c6e89dfa3bc4df1d4a7626148ca3319157afe6f8f3492f940aa966bd7",
-      "size": 320202
+    "牵丝翊115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "c9fbe91c276af88a10aabd91f30740d7978b79af631a19a1fb72b4c10e077c19",
+      "size": 320119
     },
-    "破竹尘115阶竞速轴属性毕业率进阶计算器3.4.xlsx": {
-      "sha256": "2094b505eedfc5cfc31599948d42452785ad4f36149384f3dc26b267984edaa0",
-      "size": 503555
+    "破竹尘115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "5c784d7f33c3b978adca169cb4061b7171f33b788d7a666c6f07c73847bb0b35",
+      "size": 503113
     },
-    "破竹风115阶竞速轴属性毕业率进阶计算器3.3.xlsx": {
-      "sha256": "b802ae20d50b0b0786ca78831ab2c13b3329e787705531f2935c4552ef8a1e7d",
-      "size": 534786
+    "破竹风115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "dfb1ea060663891790789dd1623e528073bc21516542ecf5e69e18ffc4fdeda1",
+      "size": 534342
     },
-    "破竹鸢115阶竞速轴属性毕业率进阶计算器3.1.xlsx": {
-      "sha256": "2533930e5e5e2d2356239f22829a3f9e89f6661380ae70568992eaee60154e2b",
-      "size": 390065
+    "破竹鸢115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "23c8bb423bbc20c5ae82b567406868fa98d4a434a3d0cbfe364c67c95af0046a",
+      "size": 390441
     },
-    "裂石威115阶竞速轴属性毕业率进阶计算器3.4.xlsx": {
-      "sha256": "c6c3c71d296e56812cfd08bca5c1bc51edf382231f22d6fb135cc5f23e0c41af",
-      "size": 267512
+    "裂石威115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "f663641ea9f1d48cc85b8d34ca9e85d8f42248906ff74051ffa41d385137205c",
+      "size": 267580
     },
-    "裂石钧115阶竞速轴属性毕业率进阶计算器3.2.xlsx": {
-      "sha256": "a4696ff650ae283bffdca093a444b706932e397434ad352e24f7047bed46bdff",
-      "size": 610544
+    "裂石钧115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "825cce7f781d2ff294f302ae5e0ee23ff4d4fef86853122843b37c3936321fe4",
+      "size": 611248
     },
     "鸣金虹115阶竞速轴属性毕业率进阶计算器3.1.xlsx": {
       "sha256": "69329ec596c9d94c4253f741fdc5cc47e5b612c202907b3fb1fa5a7cd087b02e",
@@ -80,9 +80,9 @@
       "sha256": "9101f6e12cc26b7cbdfb6d5bce11e1357638a5720244f9d64062a4e7d6a9ae10",
       "size": 766607
     },
-    "牵丝霖115阶竞速轴属性毕业率进阶计算器3.2.xlsx": {
-      "sha256": "b9a8fe7103ed253d1f84d4421b02651bfed4881bd60a961d11f9af317a43f5bb",
-      "size": 244147
+    "牵丝霖115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
+      "sha256": "593c1e3217a1ae5351230779da4fa3bf50b8cbdd013307cb8c287224ac6b72ab",
+      "size": 244043
     },
     "破竹樽115阶竞速轴属性毕业率进阶计算器4.0.xlsx": {
       "sha256": "0bd2ff40de90483668bcb80e10147fa7b62723e48c94721069ca6e81f6db51b4",

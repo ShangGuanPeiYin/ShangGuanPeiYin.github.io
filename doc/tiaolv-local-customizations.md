@@ -28,7 +28,7 @@ Q7 是唯一引擎。上游负责数值配置、面板、伤害、毕业率、WA
 | 最佳配装算法 | best-build-algorithms、legacy-exhaustive、遗传搜索 | 算法注册与主脚本加载依赖保留；承音阈值、弓多选、限制、取消、进度ETA与Top20不丢失 |
 | 方案转律覆盖 | transmutationSelections、effectiveEquippedItems、applySchemeTransmutationSelections | 覆盖层计算不改写库；备份白名单与主页/分析入口同步维护 |
 | 流向与流派标签 | resolveEquipFlowType、matchesFlowTypeFilter、buildFlowTypeTagHtml、buildClassPillsHtml | 保留大小外均可语义，列表筛选不变成搜索隐含条件；颜色与全部流派区别保留 |
-| Excel回填 | excel-export、ensureExcel | 等待对应模板就绪；导出使用当前Q7资源 |
+| Excel回填 | excel-export、ensureExcel | 等待对应模板就绪；导出使用当前Q7资源；保留workbookPatch公式/下拉补丁和no-store模板请求 |
 | 外观和选择器 | custom-selects、ui-codex-command-classic.css、style.css | 保留承音文字着色、等宽数字、结果统计位置及标签样式 |
 
 ## 必须一起维护的链路
@@ -43,3 +43,7 @@ Q7 是唯一引擎。上游负责数值配置、面板、伤害、毕业率、WA
 保持引擎切换与第二套 Assistant 引擎入口缺席。保持转律 CD 功能、旧第三状态和旧目标编辑入口不回归；保留旧数据清理迁移。不要从历史资料恢复这些功能。
 
 修改前后执行 [定制检查脚本](../skills/tiaolv-site-checks/scripts/check_tiaolv_customizations.sh)，并结合 [验证说明](verification.md) 的相关回归场景。字符串检查只能证明保护标记存在，运行正确性仍需针对性验证。未实现的判重、成本排序、模拟持久化和整体恢复列在 SRS，不能通过改清单宣称已经修复。
+
+## 2026-11-11 同步保护补充
+
+Q7快照更新至2026年11月10日21:19:51。仅为兼容上游新增破竹樽第四心法，向本地excel-export移植工作簿公式/下拉补丁；保持Q7模板路径与ensureExcel保护。app.min.js、local-customizations.js及其全部本地功能保持原样。新增Excel补丁单元回归和浏览器真实工作簿验收，详见[验证说明](verification.md)。

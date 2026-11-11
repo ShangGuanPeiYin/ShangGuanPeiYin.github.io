@@ -263,6 +263,13 @@
 
     function setCellValue(doc, cell, kind, value) {
         while (cell.firstChild) cell.removeChild(cell.firstChild);
+        if (kind === "formula") {
+            cell.removeAttribute("t");
+            const formula = doc.createElementNS(XML_NS, "f");
+            formula.textContent = String(value).replace(/^=/, "");
+            cell.appendChild(formula);
+            return;
+        }
         if (kind === "str") {
             cell.setAttribute("t", "inlineStr");
             const inline = doc.createElementNS(XML_NS, "is");
@@ -281,7 +288,7 @@
         cell.appendChild(v);
     }
 
-    function patchSheetXml(xmlText, updates, label) {
+    function patchSheetXml(xmlText, updates, label, validations = []) {
         const doc = parseXml(xmlText, label);
         const sheetData = doc.getElementsByTagNameNS("*", "sheetData")[0];
         if (!sheetData) throw new Error(`${label} 缺少 sheetData`);
@@ -290,6 +297,17 @@
             const row = ensureRow(doc, sheetData, ref.row);
             const cell = ensureCell(doc, row, ref.cell);
             setCellValue(doc, cell, update.kind, update.value);
+        });
+        validations.forEach(update => {
+            const validation = Array.from(doc.getElementsByTagNameNS("*", "dataValidation"))
+                .find(node => node.getAttribute("sqref") === update.range);
+            if (!validation) throw new Error(`${label} 缺少 ${update.range} 的心法下拉框`);
+            let formula = directChildrenByLocalName(validation, "formula1")[0];
+            if (!formula) {
+                formula = doc.createElementNS(XML_NS, "formula1");
+                validation.appendChild(formula);
+            }
+            formula.textContent = update.formula1;
         });
         return serializeXml(doc);
     }
@@ -322,6 +340,9 @@
                 value: exportData.values[index]
             });
         });
+        (exportData.workbookPatch && exportData.workbookPatch.formulas || []).forEach(update => {
+            updates.push({ ...update, kind: "formula", value: update.formula });
+        });
         return updates;
     }
 
@@ -337,10 +358,18 @@
             if (!grouped.has(path)) grouped.set(path, []);
             grouped.get(path).push(update);
         });
+        const validationGroups = new Map();
+        (exportData.workbookPatch && exportData.workbookPatch.validations || []).forEach(update => {
+            const path = sheetPaths.get(update.sheet);
+            if (!path) throw new Error(`模板中找不到工作表：${update.sheet}`);
+            if (!validationGroups.has(path)) validationGroups.set(path, []);
+            validationGroups.get(path).push(update);
+            if (!grouped.has(path)) grouped.set(path, []);
+        });
         for (const [path, updates] of grouped.entries()) {
             const entry = map.get(path);
             if (!entry) throw new Error(`模板中找不到工作表文件：${path}`);
-            replacements.set(path, patchSheetXml(await entryText(entry), updates, path));
+            replacements.set(path, patchSheetXml(await entryText(entry), updates, path, validationGroups.get(path) || []));
         }
         const workbookEntry = map.get("xl/workbook.xml");
         if (workbookEntry) replacements.set("xl/workbook.xml", patchWorkbookXml(await entryText(workbookEntry)));
@@ -475,7 +504,7 @@
             await runtime.ensureExcel(exportOptions.flowName || exportOptions.className);
             const exportData = runtime.exportClassInputData(exportOptions);
             if (!exportData || !exportData.workbookName) throw new Error("当前流派没有可下载的表格模板");
-            const response = await fetch(workbookUrl(exportData.workbookName));
+            const response = await fetch(workbookUrl(exportData.workbookName), { cache: "no-store" });
             if (!response.ok) throw new Error(`无法下载模板：${exportData.workbookName}`);
             const filled = await patchWorkbook(await response.arrayBuffer(), exportData);
             const blob = new Blob([filled], { type: XLSX_MIME });

@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+const context = { window: {}, document: { readyState: 'loading', addEventListener() {} }, TextEncoder, TextDecoder };
+vm.createContext(context);
+vm.runInContext(fs.readFileSync(new URL('../../static/tools/yysls-tiaolv/assets/js/excel-export.js', import.meta.url), 'utf8'), context);
+const { buildUpdates } = context.window.YYSLSExcelExporter._internals;
+const input = { fields: ['fourth_xinfa'], cells: ['期望!E24'], kinds: ['str'], values: ['断石之构'] };
+const plain = buildUpdates(input);
+assert.equal(plain.length, 1);
+assert.equal(plain[0].value, '断石之构');
+const formula = '=IF(OR(期望!$E$22="断石之构",期望!$E$24="断石之构"),12,0)';
+const patched = buildUpdates({ ...input, workbookPatch: { formulas: [{ sheet: '增益', cell: 'F23', formula }] } });
+assert.equal(patched.length, 2, 'upstream formula patch must accompany exported input');
+assert.equal(patched[1].sheet, '增益');
+assert.equal(patched[1].cell, 'F23');
+assert.equal(patched[1].kind, 'formula');
+assert.equal(patched[1].value, formula);
+assert.equal(input.values[0], '断石之构');
+console.log('Excel export input and upstream formula patch regression passed');

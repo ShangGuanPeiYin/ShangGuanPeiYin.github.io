@@ -4,7 +4,7 @@
 
     const META = window.YYSLS_CALC_METADATA || {};
     const STRING_IDS = window.YYSLS_CALC_STRING_IDS || {};
-    const ASSET_VERSION = "4ffa137f";
+    const ASSET_VERSION = "881f10a3";
     const WASM_URL = `assets/wasm/q7/yysls_calc.wasm?v=${ASSET_VERSION}`;
 
     const slotColumns = {
@@ -901,6 +901,7 @@
                 className: options.className || result.className,
                 flowName,
                 workbookName,
+                workbookPatch: META.flowWorkbookPatches && META.flowWorkbookPatches[flowName] || null,
                 fields,
                 kinds,
                 cells,

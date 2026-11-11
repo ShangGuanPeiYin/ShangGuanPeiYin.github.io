@@ -64,6 +64,12 @@ try {
   if (!await evaluate(client, "Boolean(window.YYSLSExcelRuntime)")) {
     throw new Error("YYSLSExcelRuntime did not load");
   }
+  // The exporter loads after the external Supabase script; engine readiness alone is insufficient.
+  for (let attempt = 0; attempt < 600; attempt += 1) {
+    if (await evaluate(client, "Boolean(window.YYSLSExcelExporter)")) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  if (!await evaluate(client, "Boolean(window.YYSLSExcelExporter)")) throw new Error("Excel exporter did not load");
   client.exceptions.length = 0;
   const result = await evaluate(client, `(async () => {
     await window.YYSLSExcelRuntime.ready;
@@ -130,6 +136,42 @@ try {
       if (!normal || !manual || !best || !exported) throw new Error("runtime path returned null: " + className);
       summaries.push([className, normal.dps, manual.dps, best.dps, exported.values.length]);
     }
+    // Inspect the actual exported XLSX, including patches on sheets without input cells.
+    const exporter = window.YYSLSExcelExporter._internals;
+    const zOptions = { className: "破竹樽", equippedItems: {}, xinfa: ["君臣药", "忘川绝响", "征人归", "断石之构"], modifiers: [] };
+    const zExport = runtime.exportClassInputData(zOptions);
+    if (!zExport.workbookPatch || zExport.workbookPatch.formulas.length !== 13 || zExport.workbookPatch.validations.length !== 2) throw new Error("missing Pozhu Zun workbook patches");
+    if (zExport.values[zExport.fields.indexOf("fourth_xinfa")] !== "断石之构") throw new Error("fourth Xinfa export mismatch");
+    const templateResponse = await fetch("excels/q7/" + encodeURIComponent(zExport.workbookName));
+    if (!templateResponse.ok) throw new Error("Pozhu Zun workbook unavailable");
+    const filled = await exporter.patchWorkbook(await templateResponse.arrayBuffer(), zExport);
+    const entries = exporter.parseZip(filled);
+    const readXml = async name => {
+      const entry = entries.find(item => item.name === name);
+      if (!entry) throw new Error("missing XLSX entry " + name);
+      const bytes = entry.method === 0 ? entry.compressedData : await new Response(new Blob([entry.compressedData]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
+      return new DOMParser().parseFromString(new TextDecoder().decode(bytes), "application/xml");
+    };
+    const workbookXml = await readXml("xl/workbook.xml");
+    const relations = await readXml("xl/_rels/workbook.xml.rels");
+    const sheets = new Map();
+    for (const sheet of workbookXml.getElementsByTagNameNS("*", "sheet")) {
+      const id = sheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+      const relation = Array.from(relations.getElementsByTagNameNS("*", "Relationship")).find(item => item.getAttribute("Id") === id);
+      const target = relation.getAttribute("Target");
+      sheets.set(sheet.getAttribute("name"), await readXml(target.startsWith("/") ? target.slice(1) : "xl/" + target));
+    }
+    for (const patch of zExport.workbookPatch.formulas) {
+      const cell = Array.from(sheets.get(patch.sheet).getElementsByTagNameNS("*", "c")).find(item => item.getAttribute("r") === patch.cell);
+      if (cell?.getElementsByTagNameNS("*", "f")[0]?.textContent !== patch.formula.replace(/^=/, "")) throw new Error("exported formula mismatch " + patch.sheet + "!" + patch.cell);
+      if (cell.getElementsByTagNameNS("*", "v").length) throw new Error("stale formula cache retained");
+    }
+    for (const patch of zExport.workbookPatch.validations) {
+      const validation = Array.from(sheets.get(patch.sheet).getElementsByTagNameNS("*", "dataValidation")).find(item => item.getAttribute("sqref") === patch.range);
+      if (validation?.getElementsByTagNameNS("*", "formula1")[0]?.textContent !== patch.formula1) throw new Error("exported validation mismatch " + patch.sheet);
+    }
+    const fourthCell = Array.from(sheets.get("期望").getElementsByTagNameNS("*", "c")).find(item => item.getAttribute("r") === "E24");
+    if (fourthCell?.textContent !== "断石之构") throw new Error("fourth Xinfa not written to XLSX");
     const mainClasses = Array.from(document.getElementById("class-select").options, option => option.value);
     const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
     return { engine: window.YYSLS_ACTIVE_ENGINE, seasonResistance: CommonData.SEASON_STATS["赛季抗性"], summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate, resources: performance.getEntriesByType("resource").map(entry => entry.name) };
@@ -152,7 +194,7 @@ try {
   if (!loadedQ7) throw new Error(`Q7 resources were not loaded: ${JSON.stringify(result.resources)}`);
   await new Promise(resolve => setTimeout(resolve, 100));
   if (client.exceptions.length) throw new Error(`browser exceptions: ${JSON.stringify(client.exceptions)}`);
-  console.log(JSON.stringify({ status: "ok", engine: result.engine, flows: result.summaries.length, firstUse: result.firstFlow, firstBestRate: result.firstBestRate }));
+  console.log(JSON.stringify({ status: "ok", engine: result.engine, flows: result.summaries.length, firstUse: result.firstFlow, firstBestRate: result.firstBestRate, workbookPatchFormulas: 13, workbookPatchValidations: 2 }));
 } finally {
   client.socket.close();
 }
