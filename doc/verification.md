@@ -95,3 +95,9 @@ YYSLS_BROWSER_URL=http://127.0.0.1:8000/tools/yysls-tiaolv/ YYSLS_ENGINE=q7 node
 验证证明与上游的一致性及所测本地链路正确，未进行Excel/WPS全表重算、游戏实测、真实云备份或用户档案恢复；没有量化性能或配装收益，既有SRS差异保持原标记。
 
 页面发布时间：`2026年11月11日 14:02:59`；引擎资源、bootstrap及excel-export缓存版本：`202611111402`。发布按精确路径提交，既有doc/prd删除不纳入。
+
+## 2026-11-11 云备份登录反馈回归
+
+新增 `tests/cloud/login-feedback-browser.mjs`，使用9222隔离Chromium及本地空白页（`YYSLS_CLOUD_TEST_URL=http://127.0.0.1:8011/blank.html`），模拟SDK/认证结果，不向真实项目发送凭据或写入备份。旧实现空输入提示可见性断言失败；修复后空输入、网络错误、错误凭据、SDK缺失4场景全部通过，同时验证按钮状态和模拟请求次数。
+
+现场只读检查：配置项目域名在本机DNS无法解析，Cloudflare独立DNS返回NXDOMAIN（Status=3）。这证明当时服务端域名不可用，不能确定项目是否暂停或删除；用户需在控制台核对。真实账号登录、真实云备份/恢复尚未验证，不宣称整个云备份系统已恢复。

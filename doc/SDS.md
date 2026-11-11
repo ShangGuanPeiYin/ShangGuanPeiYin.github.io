@@ -102,3 +102,7 @@ flowchart TD
 `exportClassInputData`新增`workbookPatch`（来自元数据flowWorkbookPatches）。以前导出器只回填fields/kinds/cells/values，现在同时按sheet分组应用formulas与validations；破竹樽为13项公式和2项下拉补丁，新增第四心法写入期望!E24。只含校验补丁的RD工作表也必须写回。替换公式时删除旧缓存值，保留自动重算标记；模板请求使用no-store，避免同名4.0模板缓存过时。模板源文件保持上游字节一致，补丁仅作用于下载副本。
 
 保留本地`excels/q7/`路径和`ensureExcel`等待，未覆盖上游前端、未修改装备库、方案、搜索和备份行为。导出XML测试证明输入/公式/下拉回填正确；不等价于在Excel或WPS中重算全表并验证其最终数值。
+
+## 2026-11-11 云备份登录反馈修复
+
+`cloud-status`从仅登录后显示的`cloud-logged-in`内部移至登录表单之后的公共区域。登录流程和认证配置不变，未登录时也能看见空输入、进行中、凭据错误、网络失败及SDK缺失提示。自动备份、冲突保护与恢复语义未改。现场发现认证项目域名无法解析；需要在Supabase控制台核对项目状态，不能把前端反馈修复当作服务端已恢复。
