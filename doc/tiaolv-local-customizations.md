@@ -47,3 +47,8 @@ Q7 是唯一引擎。上游负责数值配置、面板、伤害、毕业率、WA
 ## 2026-11-11 同步保护补充
 
 Q7快照更新至2026年11月10日21:19:51。仅为兼容上游新增破竹樽第四心法，向本地excel-export移植工作簿公式/下拉补丁；保持Q7模板路径与ensureExcel保护。app.min.js、local-customizations.js及其全部本地功能保持原样。新增Excel补丁单元回归和浏览器真实工作簿验收，详见[验证说明](verification.md)。
+
+
+## 2026-11-12 同步保护补充
+
+同步2026年11月11日19:14:56快照，新增鸣金虹（流枫）输出版本。app.min.js、local-customizations.js和excel-export.js均未修改，本地搜索、转律、备份与Excel补丁链路保留；赛季抗性仍2.45。

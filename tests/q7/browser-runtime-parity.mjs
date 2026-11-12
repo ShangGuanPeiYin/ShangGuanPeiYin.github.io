@@ -176,7 +176,7 @@ try {
     const availableClasses = ClassConfig.AVAILABLE_CLASSES.slice();
     return { engine: window.YYSLS_ACTIVE_ENGINE, seasonResistance: CommonData.SEASON_STATS["赛季抗性"], summaries, mainClasses, availableClasses, initiallyLoaded, loadedFlows: runtime.loadedExcelFlows(), firstFlow, firstBestRate: firstBest.graduationRate, resources: performance.getEntriesByType("resource").map(entry => entry.name) };
   })()`);
-  const expectedFlowCount = 15;
+  const expectedFlowCount = 16;
   if (result.loadedFlows.length !== expectedFlowCount) {
     throw new Error(`unexpected flow count ${result.loadedFlows.length} (engine=${result.engine})`);
   }
